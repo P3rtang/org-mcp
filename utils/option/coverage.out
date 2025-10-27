@@ -1,0 +1,23 @@
+mode: set
+main/utils/option/option.go:8.30,10.2 1 1
+main/utils/option/option.go:12.33,17.2 1 1
+main/utils/option/option.go:24.35,26.2 1 1
+main/utils/option/option.go:33.35,35.2 1 1
+main/utils/option/option.go:44.31,45.16 1 1
+main/utils/option/option.go:45.16,46.41 1 1
+main/utils/option/option.go:49.2,49.16 1 1
+main/utils/option/option.go:56.35,57.16 1 1
+main/utils/option/option.go:57.16,58.41 1 1
+main/utils/option/option.go:61.2,61.17 1 1
+main/utils/option/option.go:64.48,65.16 1 1
+main/utils/option/option.go:65.16,67.3 1 1
+main/utils/option/option.go:69.2,69.16 1 1
+main/utils/option/option.go:74.37,75.16 1 1
+main/utils/option/option.go:75.16,77.3 1 1
+main/utils/option/option.go:79.2,79.13 1 1
+main/utils/option/option.go:82.50,83.16 1 1
+main/utils/option/option.go:83.16,85.3 1 1
+main/utils/option/option.go:87.2,87.20 1 1
+main/utils/option/option.go:93.66,94.21 1 1
+main/utils/option/option.go:94.21,96.3 1 1
+main/utils/option/option.go:98.2,98.31 1 1
