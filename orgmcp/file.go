@@ -86,6 +86,8 @@ func ParseIndentedLine(str string, parent Render) option.Option[Render] {
 		fallthrough
 	case '*':
 		return option.Map(NewBulletFromString(trimmed, parent), func(b Bullet) Render { return &b })
+	default:
+		return option.None[Render]()
 	}
 
 	fmt.Fprintf(os.Stderr, "Parsing error in header #%d\nGot: %s", parent.Uid(), str)

@@ -416,17 +416,17 @@ func main() {
 				return
 			}
 
-			headerUidFloat, ok := args["header_uid"].(float64)
+			header_uid_float, ok := args["header_uid"].(float64)
 			if !ok {
 				return nil, errors.New("invalid or missing header_uid parameter")
 			}
-			headerUid := int(headerUidFloat)
+			header_uid := int(header_uid_float)
 
-			bulletIndexFloat, ok := args["bullet_index"].(float64)
+			bullet_idx_float, ok := args["bullet_index"].(float64)
 			if !ok {
 				return nil, errors.New("invalid or missing bullet_index parameter")
 			}
-			bulletIndex := int(bulletIndexFloat)
+			bullet_idx := int(bullet_idx_float)
 
 			action, ok := args["action"].(string)
 			if !ok {
@@ -437,16 +437,23 @@ func main() {
 				return nil, errors.New("action must be either 'toggle' or 'complete'")
 			}
 
-			header, ok := org_file.GetUid(headerUid).Split()
 			if !ok {
-				return nil, fmt.Errorf("header with uid %d not found", headerUid)
+				return nil, fmt.Errorf("header with uid %d not found", header_uid)
 			}
 
+			var r_bullet orgmcp.Render
 			var bullet *orgmcp.Bullet
+			if r_bullet, ok = org_file.GetUid(header_uid + bullet_idx + 1).Split(); !ok {
+				return nil, fmt.Errorf("Bullet with index %d not found in header %d.", bullet_idx, header_uid)
+			}
+			if bullet, ok = r_bullet.(*orgmcp.Bullet); !ok {
+				return nil, fmt.Errorf("Item at index %d in header %d is not a bullet.", bullet_idx, header_uid)
+			}
+
 			if action == "toggle" {
-				bullet, err = header.ToggleCheckboxByIndex(bulletIndex)
+				bullet.ToggleCheckbox()
 			} else {
-				bullet, err = header.CompleteCheckboxByIndex(bulletIndex)
+				bullet.CompleteCheckbox()
 			}
 
 			if err != nil {
@@ -468,8 +475,8 @@ func main() {
 			bullet.Render(&builder, 0)
 
 			resp = map[string]any{
-				"header_uid":   headerUid,
-				"bullet_index": bulletIndex,
+				"header_uid":   header_uid,
+				"bullet_index": bullet_idx,
 				"content":      builder.String(),
 				"action":       action,
 			}
@@ -528,11 +535,11 @@ func main() {
 				return nil, err
 			}
 
-			headerUidFloat, ok := args["header_uid"].(float64)
+			header_uid_float, ok := args["header_uid"].(float64)
 			if !ok {
 				return nil, errors.New("invalid or missing header_uid parameter")
 			}
-			headerUid := int(headerUidFloat)
+			header_uid := int(header_uid_float)
 
 			method, ok := args["method"].(string)
 			if !ok {
@@ -545,9 +552,9 @@ func main() {
 			}
 			index := int(indexFloat)
 
-			header, ok := of.GetUid(headerUid).Split()
+			header, ok := of.GetUid(header_uid).Split()
 			if !ok {
-				return nil, fmt.Errorf("header with uid %d not found", headerUid)
+				return nil, fmt.Errorf("header with uid %d not found", header_uid)
 			}
 
 			if method == "add" {
@@ -579,7 +586,7 @@ func main() {
 				bullet.Render(&builder, 0)
 
 				resp = map[string]any{
-					"header_uid": headerUid,
+					"header_uid": header_uid,
 					"index":      index,
 					"content":    builder.String(),
 					"method":     method,
