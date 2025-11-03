@@ -36,6 +36,23 @@ func (s HeaderStatus) toString() string {
 	return fmt.Sprintf("%s ", s)
 }
 
+func (s HeaderStatus) GetNext() HeaderStatus {
+	switch s {
+	case None:
+		return Todo
+	case Todo:
+		return Next
+	case Next:
+		return Prog
+	case Prog:
+		return Done
+	case Done:
+		return None
+	default:
+		panic("unreachable")
+	}
+}
+
 const (
 	None HeaderStatus = "NONE"
 	Todo HeaderStatus = "TODO"
@@ -56,14 +73,16 @@ type Header struct {
 	Tags     option.Option[TagList]
 	location int
 
-	Parent   option.Option[Render]
-	children []Render
-	meta     option.Option[Metadata]
+	Parent     option.Option[Render]
+	children   []Render
+	schedule   option.Option[Schedule]
+	properties Properties
 
 	Content string
 }
 
-func HeaderFromString(str string, reader *bufio.Reader) option.Option[Header] {
+func NewHeaderFromString(str string, reader *bufio.Reader) option.Option[Header] {
+	// fmt.Fprintf(os.Stderr, "Parsing header %s\n", str)
 	if !strings.HasPrefix(str, "*") {
 		return option.None[Header]()
 	}
@@ -109,28 +128,27 @@ func HeaderFromString(str string, reader *bufio.Reader) option.Option[Header] {
 		return option.Some(header)
 	}
 
-	indent := header.Level + 2
-	meta, err := reader.Peek(indent + 6)
-
-	if err != nil {
-		return option.Some(header)
-	}
-
-	if slices.ContainsFunc([]MetadataString{CLOSED}, func(m MetadataString) bool {
-		return strings.ToUpper(strings.TrimSpace(string(meta))) == string(m)
-	}) {
-		meta, err = reader.ReadBytes('\n')
-		header.meta = option.Some(MetadataFromString(string(meta), &header))
-	}
+	header.schedule = NewScheduleFromReader(reader)
+	header.properties = NewPropertiesFromReader(reader)
 
 	return option.Some(header)
 }
 
-func (h *Header) AddChildren(render ...Render) {
+func (h *Header) AddChildren(render ...Render) error {
 	h.children = append(h.children, render...)
+
+	return nil
 }
 
-func (h *Header) Render(builder *strings.Builder) {
+func (b *Header) RemoveChildren(uids ...int) error {
+	b.children = slice.Filter(b.children, func(r Render) bool {
+		return slices.Contains(uids, b.Uid())
+	})
+
+	return nil
+}
+
+func (h *Header) Render(builder *strings.Builder, depth int) {
 	builder.WriteString(strings.Repeat("*", h.Level+1))
 	builder.WriteString(" ")
 	builder.WriteString(h.Status.toString())
@@ -146,16 +164,24 @@ func (h *Header) Render(builder *strings.Builder) {
 		tl.Render(builder)
 	})
 
+	if depth == 0 {
+		builder.WriteString("...")
+		builder.WriteRune('\n')
+		return
+	}
+
 	builder.WriteRune('\n')
 
-	h.meta.Then(func(m Metadata) {
-		m.Render(builder)
+	h.schedule.Then(func(s Schedule) {
+		s.Render(builder)
 		builder.WriteRune('\n')
 	})
 
+	h.properties.Render(builder)
+
 	children := itertools.FromSlice(h.children)
 	itertools.ForEach(children, func(child Render) {
-		child.Render(builder)
+		child.Render(builder, depth-1)
 	})
 }
 
@@ -207,4 +233,83 @@ func (h *Header) AddChild(r Render) error {
 
 func (h *Header) Children() []Render {
 	return h.children
+}
+
+func (b *Header) ChildrenRec() []Render {
+	children := []Render{}
+
+	for _, child := range b.Children() {
+		children = append(children, child.ChildrenRec()...)
+	}
+
+	return children
+}
+
+func (b *Header) Uid() int {
+	return b.properties.content["UID"].Int().Unwrap()
+}
+
+// GetParentUid returns the UID of the parent header, if it exists
+func (h *Header) ParentUid() int {
+	return option.Map(h.Parent, func(r Render) int {
+		return r.Uid()
+	}).UnwrapOr(0)
+}
+
+// CreateSubheader creates a new header as a child of the current header
+// The new header's level will be one more than the parent's level
+// A unique UID will be generated and assigned using NewPropertiesWithUID
+func (h *Header) CreateSubheader(title string, status HeaderStatus) *Header {
+	newHeader := &Header{
+		Level:      h.Level + 1,
+		Status:     status,
+		Content:    title,
+		Parent:     option.Some(Render(h)),
+		children:   []Render{},
+		properties: NewPropertiesWithUID(),
+	}
+
+	h.children = append(h.children, newHeader)
+
+	return newHeader
+}
+
+// ToggleCheckboxByIndex finds a bullet at the given index within this header's children
+// and toggles its checkbox state. Returns the updated bullet or an error.
+func (h *Header) ToggleCheckboxByIndex(index int) (*Bullet, error) {
+	if index < 0 || index >= len(h.children) {
+		return nil, fmt.Errorf("index %d out of range", index)
+	}
+
+	bullet, ok := h.children[index].(*Bullet)
+	if !ok {
+		return nil, fmt.Errorf("child at index %d is not a bullet", index)
+	}
+
+	if !bullet.HasCheckbox() {
+		return nil, fmt.Errorf("bullet at index %d does not have a checkbox", index)
+	}
+
+	bullet.ToggleCheckbox()
+	return bullet, nil
+}
+
+// CompleteCheckboxByIndex finds a bullet at the given index within this header's children
+// and marks it as completed. Returns the updated bullet or an error.
+func (h *Header) CompleteCheckboxByIndex(index int) (*Bullet, error) {
+	if index < 0 || index >= len(h.children) {
+		return nil, fmt.Errorf("index %d out of range", index)
+	}
+
+	bullet, ok := h.children[index].(*Bullet)
+	if !ok {
+		return nil, fmt.Errorf("child at index %d is not a bullet", index)
+	}
+
+	if !bullet.HasCheckbox() {
+		return nil, fmt.Errorf("bullet at index %d does not have a checkbox", index)
+	}
+
+	bullet.CompleteCheckbox()
+	return bullet, nil
 }

@@ -38,3 +38,21 @@ func Map[T any, U any](slice []T, f func(T) U) []U {
 
 	return result
 }
+
+func Reduce[T any, U any](slice []T, f func(U, T) U, acc U) U {
+	for _, t := range slice {
+		acc = f(acc, t)
+	}
+
+	return acc
+}
+
+func Filter[T any](slice []T, f func(T) bool) []T {
+	return Reduce(slice, func(acc []T, t T) []T {
+		if f(t) {
+			acc = append(acc, t)
+		}
+
+		return acc
+	}, []T{})
+}

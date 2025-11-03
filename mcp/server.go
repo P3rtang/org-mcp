@@ -10,7 +10,7 @@ import (
 	"slices"
 )
 
-type ToolFunc func(map[string]any) (map[string]any, error)
+type ToolFunc func(map[string]any) (any, error)
 
 // Server handles MCP protocol communication over stdio
 type Server struct {
@@ -138,10 +138,10 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 
 		if err != nil {
 			s.sender.SendError(id, -32000, fmt.Sprintf("Tool error: %v", err))
-			return
+		} else {
+			s.sender.SendMcpContent(id, resp)
 		}
 
-		s.sender.SendResponse(id, resp)
 		return
 	}
 
@@ -183,6 +183,10 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 		PROG: in progress
 		DONE: finalized
 		When starting work on a task or when completing a task make sure to update the status of the associated header
+
+		When query the content like a header by its status, its index will also be returned.
+		This index is also the line number in the tasks file and can be used to modify any content.
+		All children will count up by 1 in line number which will then be assigned as index.
 		`,
 	}
 

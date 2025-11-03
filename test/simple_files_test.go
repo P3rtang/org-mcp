@@ -51,7 +51,7 @@ func TestSimpleFileRender(t *testing.T) {
 
 	// Render the parsed file
 	builder := strings.Builder{}
-	orgFile.Render(&builder)
+	orgFile.Render(&builder, -1)
 
 	// The rendered output should match the original (or at least have the same structure)
 	rendered := builder.String()

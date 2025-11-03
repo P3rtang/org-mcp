@@ -44,6 +44,10 @@ func (o *Option[T]) IsSome() bool {
 	return o.set
 }
 
+func (o Option[T]) Split() (T, bool) {
+	return o.value, o.set
+}
+
 /*
 This function returns a copy of the data and not a pointer to it.
 Panics if the Option is None.

@@ -102,3 +102,20 @@ func toRawMessage(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
 }
+
+func (ms *MessageSender) SendMcpContent(id any, content any) error {
+	text, err := json.Marshal(content)
+
+	if err != nil {
+		return err
+	}
+
+	return ms.SendResponse(id, map[string]any{
+		"content": []any{
+			map[string]string{
+				"type": "text",
+				"text": string(text),
+			},
+		},
+	})
+}

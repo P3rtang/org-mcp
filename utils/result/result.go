@@ -45,6 +45,10 @@ func (o *Result[T]) IsOk() bool {
 	return o.ok
 }
 
+func (o Result[T]) Split() (T, error) {
+	return o.value, o.err
+}
+
 /*
 This function returns a copy of the data and not a pointer to it.
 Panics if the Option is None.

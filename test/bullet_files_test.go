@@ -52,7 +52,7 @@ func TestBulletFileRender(t *testing.T) {
 
 	// Render the parsed file
 	builder := strings.Builder{}
-	orgFile.Render(&builder)
+	orgFile.Render(&builder, -1)
 
 	// The rendered output should match the original (or at least have the same structure)
 	rendered := builder.String()
@@ -234,7 +234,7 @@ func TestBulletIndexing(t *testing.T) {
 			// Verify they render correctly
 			builder := strings.Builder{}
 			for _, bullet := range bulletChildren {
-				bullet.Render(&builder)
+				bullet.Render(&builder, -1)
 			}
 			rendered := builder.String()
 			if len(rendered) == 0 {
@@ -314,7 +314,7 @@ func TestBulletFileConsistency(t *testing.T) {
 
 	orgFile1 := OrgFileFromReader(file1).Unwrap()
 	builder1 := strings.Builder{}
-	orgFile1.Render(&builder1)
+	orgFile1.Render(&builder1, -1)
 	rendered1 := builder1.String()
 
 	// Parse the rendered content again
@@ -326,7 +326,7 @@ func TestBulletFileConsistency(t *testing.T) {
 
 	orgFile2 := OrgFileFromReader(file2).Unwrap()
 	builder2 := strings.Builder{}
-	orgFile2.Render(&builder2)
+	orgFile2.Render(&builder2, -1)
 	rendered2 := builder2.String()
 
 	// Both renders should be identical

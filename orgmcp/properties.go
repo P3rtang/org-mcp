@@ -1,0 +1,160 @@
+package orgmcp
+
+import (
+	"bufio"
+	"fmt"
+	"main/utils/option"
+	"math/rand"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type PropValue interface {
+	Date() option.Option[time.Time]
+	String() string
+	Int() option.Option[int]
+}
+
+type dateProperty struct {
+	time time.Time
+}
+
+func (d *dateProperty) Date() option.Option[time.Time] {
+	return option.Some(d.time)
+}
+
+func (d *dateProperty) String() string {
+	return d.time.String()
+}
+
+func (d *dateProperty) Int() option.Option[int] {
+	return option.Some(int(d.time.UnixMilli()))
+}
+
+type stringProperty struct {
+	str string
+}
+
+func (s *stringProperty) Date() option.Option[time.Time] {
+	return option.None[time.Time]()
+}
+
+func (s *stringProperty) String() string {
+	return s.str
+}
+
+func (s *stringProperty) Int() option.Option[int] {
+	if num, err := strconv.Atoi(s.str); err == nil {
+		return option.Some(num)
+	}
+
+	return option.None[int]()
+}
+
+type intProperty struct {
+	num int
+}
+
+func (i *intProperty) Date() option.Option[time.Time] {
+	return option.None[time.Time]()
+}
+
+func (i *intProperty) String() string {
+	return strconv.Itoa(i.num)
+}
+
+func (i *intProperty) Int() option.Option[int] {
+	return option.Some(i.num)
+}
+
+type Properties struct {
+	content map[string]PropValue
+	indent  int
+}
+
+// generateUID returns an 8-digit pseudo-random identifier as a string.
+func NewPropertiesWithUID() Properties {
+	return Properties{
+		content: map[string]PropValue{
+			"UID": &intProperty{num: rand.Intn(100000000)},
+		},
+		indent: 4,
+	}
+}
+
+func NewPropertiesFromReader(reader *bufio.Reader) (p Properties) {
+	p.content = make(map[string]PropValue)
+
+	var err error
+	var depth = 1
+	var bytes []byte
+
+	for bytes, err = reader.Peek(depth); !slices.Contains(bytes, '\n') && err == nil; bytes, err = reader.Peek(depth) {
+		depth += 1
+	}
+
+	// newline not found return a default generation
+	if err != nil {
+		p.content["UID"] = &intProperty{num: rand.Intn(100000000)}
+		p.indent = 4
+		return
+	}
+
+	// if the line is empty continue parsing
+	if strings.TrimSpace(string(bytes)) == "" {
+		_, _ = reader.ReadBytes('\n')
+		return NewPropertiesFromReader(reader)
+	}
+
+	// properties not found return None
+	if !strings.Contains(string(bytes), ":PROPERTIES:") {
+		p.content["UID"] = &intProperty{num: rand.Intn(100000000)}
+		p.indent = 4
+		return
+	}
+
+	p.indent = strings.Index(string(bytes), ":PROPERTIES:")
+
+	// advance the reader
+	_, _ = reader.ReadBytes('\n')
+
+	// TODO: should also parse dates between [...]
+	for bytes, err := reader.ReadBytes('\n'); err == nil && !strings.Contains(string(bytes), ":END:"); bytes, err = reader.ReadBytes('\n') {
+		mapping := strings.SplitN(string(bytes), ":", 3)
+		if len(mapping) >= 3 {
+			p.content[strings.TrimSpace(mapping[1])] = &stringProperty{str: strings.TrimSpace(mapping[2])}
+		}
+	}
+
+	// Assign a UID if missing
+	if _, hasUID := p.content["UID"]; !hasUID {
+		p.content["UID"] = &intProperty{num: rand.Intn(100000000)}
+	}
+
+	return
+}
+
+// Render writes the properties drawer to the given strings.Builder in org-mode format.
+// Example output:
+// :PROPERTIES:
+// :KEY1: value1
+// :KEY2: value2
+// :END:
+func (p *Properties) Render(sb *strings.Builder) {
+	if p == nil || len(p.content) == 0 {
+		return
+	}
+
+	sb.WriteString(strings.Repeat(" ", p.indent))
+	sb.WriteString(":PROPERTIES:\n")
+
+	for k, v := range p.content {
+		sb.WriteString(strings.Repeat(" ", p.indent))
+		fmt.Fprintf(sb, ":%s: %s\n", k, v.String())
+	}
+
+	sb.WriteString(strings.Repeat(" ", p.indent))
+	sb.WriteString(":END:\n")
+}

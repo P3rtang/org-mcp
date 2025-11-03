@@ -2,12 +2,15 @@ package orgmcp
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"main/utils/itertools"
 	"main/utils/logging"
 	"main/utils/option"
 	"main/utils/result"
+	"main/utils/slice"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 )
@@ -31,7 +34,10 @@ func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
 
 	buf_reader := bufio.NewReader(reader)
 
-	var current_parent Render = &org_file
+	var current_parent map[int]Render = map[int]Render{
+		0: &org_file,
+	}
+	current_parent_idx := 0
 	var current_line = 1
 
 	for val, err := buf_reader.ReadBytes('\n'); true; val, err = buf_reader.ReadBytes('\n') {
@@ -43,28 +49,29 @@ func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
 			return result.Err[OrgFile](err)
 		}
 
-		if len(val) == 0 {
+		if len(strings.TrimSpace(string(val))) == 0 {
 			continue
 		}
 
 		switch val[0] {
 		case '*':
-			HeaderFromString(string(val), buf_reader).Then(func(h Header) {
-				h.Parent = option.Some(current_parent)
+			NewHeaderFromString(string(val), buf_reader).Then(func(h Header) {
+				h.Parent = option.Some(current_parent[h.Level])
 				h.location = current_line
-				current_parent.AddChild(&h)
-				org_file.items[current_line] = &h
+				current_parent[h.Level].AddChildren(&h)
+				org_file.items[h.Uid()] = &h
 				current_line += 1
-				current_parent = &h
+				current_parent[h.Level+1] = &h
+				current_parent_idx = h.Level + 1
 			})
 		case ' ':
-			ParseIndentedLine(string(val), current_parent).Then(func(r Render) {
-				org_file.items[current_line] = r
+			ParseIndentedLine(string(val), current_parent[current_parent_idx]).Then(func(r Render) {
+				org_file.items[r.Uid()] = r
 				current_line += 1
-				current_parent.AddChild(r)
+				current_parent[current_parent_idx].AddChildren(r)
 			})
 		default:
-
+			panic("unreachable")
 		}
 	}
 
@@ -78,15 +85,20 @@ func ParseIndentedLine(str string, parent Render) option.Option[Render] {
 	case '-':
 		fallthrough
 	case '*':
-		return option.Map(BulletFromString(trimmed, parent), func(b Bullet) Render { return &b })
+		return option.Map(NewBulletFromString(trimmed, parent), func(b Bullet) Render { return &b })
 	}
 
+	fmt.Fprintf(os.Stderr, "Parsing error in header #%d\nGot: %s", parent.Uid(), str)
 	return logging.TODO[option.Option[Render]]()
 }
 
-func (of *OrgFile) Render(builder *strings.Builder) {
+func (of *OrgFile) Render(builder *strings.Builder, depth int) {
+	if depth == 0 {
+		return
+	}
+
 	for _, child := range of.children {
-		child.Render(builder)
+		child.Render(builder, depth-1)
 	}
 }
 
@@ -106,24 +118,58 @@ func (of *OrgFile) Children() []Render {
 	return of.children
 }
 
-func (h *OrgFile) AddChild(r Render) error {
-	h.children = append(h.children, r)
+func (of *OrgFile) ChildrenRec() []Render {
+	children := []Render{}
+
+	for _, child := range of.Children() {
+		children = append(children, child.ChildrenRec()...)
+	}
+
+	return children
+}
+
+func (of *OrgFile) AddChildren(r ...Render) error {
+	of.children = append(of.children, r...)
 
 	return nil
 }
 
-func (h *OrgFile) GetLine(line int) option.Option[Render] {
-	if item := h.items[line]; item != nil {
+func (of *OrgFile) RemoveChildren(uids ...int) error {
+	of.children = slice.Filter(of.children, func(r Render) bool {
+		return slices.Contains(uids, of.Uid())
+	})
+
+	return nil
+}
+
+func (of *OrgFile) GetLine(line int) option.Option[Render] {
+	if item := of.items[line]; item != nil {
 		return option.Some(item)
 	}
 
 	return option.None[Render]()
 }
 
-func (h *OrgFile) GetTag(tag string) option.Option[*Header] {
+func (of *OrgFile) GetUid(uid int) option.Option[Render] {
+	if uid == 0 {
+		return option.Some[Render](of)
+	}
+
+	if child, found := of.items[uid]; found {
+		return option.Some(child)
+	}
+
+	return option.None[Render]()
+}
+
+func (of *OrgFile) ParentUid() int {
+	return 0
+}
+
+func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
 	return option.Cast[Render, *Header](
 		itertools.Find(
-			maps.Values(h.items),
+			maps.Values(of.items),
 			func(r Render) bool {
 				header, ok := r.(*Header)
 				if !ok {
@@ -138,18 +184,20 @@ func (h *OrgFile) GetTag(tag string) option.Option[*Header] {
 	)
 }
 
-func (h *OrgFile) GetHeaderByStatus(status HeaderStatus) []*Header {
+func (of *OrgFile) GetHeaderByStatus(status HeaderStatus) []*Header {
 	headers := []*Header{}
 
-	for _, child := range h.children {
-		if header, ok := child.(*Header); ok {
-			headers = GetHeaderRec(header, func(h *Header) bool {
-				return h.Status == status
-			}, headers)
+	for _, child := range of.items {
+		if header, ok := child.(*Header); ok && header.Status == status {
+			headers = append(headers, header)
 		}
 	}
 
 	return headers
+}
+
+func (of *OrgFile) Uid() int {
+	return 0
 }
 
 func GetHeaderRec(header *Header, predicate func(*Header) bool, headers []*Header) []*Header {

@@ -6,10 +6,13 @@ import (
 )
 
 type Render interface {
-	Location() int
 	CheckProgress() option.Option[Progress]
-	Render(builder *strings.Builder)
+	Render(builder *strings.Builder, depth int)
 	IndentLevel() int
-	AddChild(Render) error
+	AddChildren(...Render) error
+	RemoveChildren(...int) error
 	Children() []Render
+	ChildrenRec() []Render
+	Uid() int
+	ParentUid() int
 }

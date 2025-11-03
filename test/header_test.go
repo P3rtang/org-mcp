@@ -12,7 +12,7 @@ func TestHeaderFromString(t *testing.T) {
 	expectedStatus := Todo
 	expectedContent := "Example"
 
-	header := HeaderFromString(input, nil).Unwrap()
+	header := NewHeaderFromString(input, nil).Unwrap()
 
 	if header.Level != expectedLevel {
 		t.Errorf("expected level %d, got %d", expectedLevel, header.Level)
@@ -27,7 +27,7 @@ func TestHeaderFromString(t *testing.T) {
 	}
 
 	builder := strings.Builder{}
-	header.Render(&builder)
+	header.Render(&builder, -1)
 
 	if strings.TrimSpace(builder.String()) != input {
 		t.Errorf("expected rendered output '%s', got '%s'", input, builder.String())
@@ -81,7 +81,7 @@ func TestHeaderProgress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			header := HeaderFromString(tt.input, nil).Unwrap()
+			header := NewHeaderFromString(tt.input, nil).Unwrap()
 
 			if tt.shouldHaveProgress {
 				if header.Progress.IsNone() {
@@ -140,7 +140,7 @@ func TestHeaderProgressCheckProgress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			header := HeaderFromString(tt.input, nil).Unwrap()
+			header := NewHeaderFromString(tt.input, nil).Unwrap()
 			progress := header.CheckProgress()
 
 			if tt.shouldReturnProgress {
