@@ -42,4 +42,3 @@ The server will be built using golang for performance and scalability.
 - Implement error handling and logging.
 - Write unit tests to ensure code quality and reliability.
 - Use version control (e.g., Git) for code management.
-

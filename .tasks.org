@@ -5,6 +5,39 @@
 ** Headers
    The main structure of an org file is the tree of headers that will encapsulate common items in a directory like structure.
    A header supports a lot of metadata like progress counters, schedules or even a properties dictionairy.
+*** Modification
+**** DONE change status by index [6/6]
+     CLOSED: [2025-11-01 Sat 20:46]
+     :PROPERTIES:
+     :UID: 99590227
+     :END:
+     - [x] implement the modification as a method on the OrgFile type
+     - [x] allow the tool call to generate the OrgFile from the input file
+     - [x] return the modified headers as a list of rendered entries
+     - [x] verify every status for this behaviour
+     - [x] deduplicate headers in the response
+     - [x] allow multiple indeces at once
+ 
+*** Metadata
+**** PROG parse CLOSED/SCHEDULED
+     - [X] parse the closed schedule tag
+     - [X] parse the scheduled schedule tag
+     - [X] parse the deadline schedule tag
+     - [ ] parse the date as an actual datetime
+
+**** DONE parse properties
+
+**** TODO automatically set CLOSED tag
+
+**** TODO modification of properties
+     - [ ] insert properties to the map
+     - [ ] delete properties from the map
+     - [ ] modify properties in the map
+
+**** TODO modification of schedule tags
+     - [ ] allow a schedule to be added to headers
+     - [ ] allow modifying schedule date
+     - [ ] CLOSED should always be automatic
 
 ** Bullets
    Bullets are a substructure of a header that can include distinct tasks needed to complete a task specified by a header.
