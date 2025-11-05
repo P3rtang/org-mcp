@@ -114,7 +114,7 @@ func main() {
 
 			response["headers"] = slice.Map(of.GetHeaderByStatus(status), func(h *orgmcp.Header) map[string]any {
 				builder := strings.Builder{}
-				h.Render(&builder, 0)
+				h.Render(&builder, 1)
 
 				return map[string]any{
 					"uid":        h.Uid(),
@@ -122,6 +122,11 @@ func main() {
 					"parent_uid": h.ParentUid(),
 				}
 			})
+
+			err = writeOrgFileToDisk(of, filePath)
+			if err != nil {
+				return
+			}
 
 			resp = response
 
@@ -136,17 +141,18 @@ func main() {
 				"Use this to render the header itself, its content including properties and schedules.\n" +
 				"But also all of its children recursively up to a given depth.\n" +
 				"Depth 0 will also include just the header content of the direct children of the header, but hide their content.\n" +
-				"You should think of headers as a directory containing other dirs (sub-headers), but also files and metadata.",
+				"You should think of headers as a directory containing other dirs (sub-headers), but also files and metadata.\n\n" +
+				"While not recommended it is possible to request the whole tasks file at once. You can achieve this be setting the uid to 0 and a depth of -1",
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"index": map[string]any{
+					"uid": map[string]any{
 						"type":        "number",
-						"description": "The index of the header to view.",
+						"description": "The uid of the header to view. The root of the file will always be uid 0.",
 					},
 					"depth": map[string]any{
 						"type":        "number",
-						"description": "The depth to which children should be rendered.",
+						"description": "The depth to which children should be rendered. A depth of -1 will return the whole content as if there is no depth cutoff.",
 					},
 					"path": map[string]any{
 						"type":        "string",
@@ -168,10 +174,10 @@ func main() {
 
 			// Get the index (uid) from the arguments
 			var uid int
-			if indexVal, ok := args["index"].(float64); ok {
+			if indexVal, ok := args["uid"].(float64); ok {
 				uid = int(indexVal)
 			} else {
-				return nil, errors.New("invalid or missing index parameter")
+				return nil, errors.New("invalid or missing uid parameter")
 			}
 
 			// Get the depth parameter, default to 1 if not provided
@@ -195,6 +201,8 @@ func main() {
 				"content":    builder.String(),
 				"parent_uid": header.ParentUid(),
 			}
+
+			_ = writeOrgFileToDisk(of, filePath)
 
 			return response, nil
 		},
@@ -456,22 +464,9 @@ func main() {
 				bullet.CompleteCheckbox()
 			}
 
-			if err != nil {
-				return
-			}
+			err = writeOrgFileToDisk(org_file, filePath)
 
 			builder := strings.Builder{}
-			org_file.Render(&builder, -1)
-
-			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
-			if err != nil {
-				return
-			}
-			defer file.Close()
-
-			file.WriteString(builder.String())
-
-			builder.Reset()
 			bullet.Render(&builder, 0)
 
 			resp = map[string]any{
@@ -487,15 +482,15 @@ func main() {
 
 	server.AddTool(
 		mcp.Tool{
-			Name:        "bullet_point",
-			Description: "Add or remove a bullet point from a header/task. Use method 'add' to insert a bullet point, or 'remove' to delete one. Index is used for both cases.",
+			Name:        "manage_bullet_point",
+			Description: "Add, remove or complete a bullet point from a header/task. Use method 'add' to insert a bullet point, or 'remove' to delete one. Index is used for both cases.",
 			InputSchema: map[string]any{
 				"type":     "object",
 				"required": []string{"method", "header_uid", "index"},
 				"properties": map[string]any{
 					"method": map[string]any{
 						"type":        "string",
-						"enum":        []string{"add", "remove"},
+						"enum":        []string{"add", "remove", "complete"},
 						"description": "Operation to perform: 'add' to insert a bullet, 'remove' to delete a bullet.",
 					},
 					"header_uid": map[string]any{
@@ -557,7 +552,8 @@ func main() {
 				return nil, fmt.Errorf("header with uid %d not found", header_uid)
 			}
 
-			if method == "add" {
+			switch method {
+			case "add":
 				content, ok := args["content"].(string)
 				if !ok || strings.TrimSpace(content) == "" {
 					return nil, errors.New("content is required for add method")
@@ -569,20 +565,11 @@ func main() {
 				}
 
 				bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(c))
+				bullet.SetContent(content)
+				bullet.SetIndex(index)
 				header.AddChildren(&bullet)
 
 				builder := strings.Builder{}
-				of.Render(&builder, -1)
-
-				file, ferr := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
-				if ferr != nil {
-					return nil, ferr
-				}
-				defer file.Close()
-
-				file.WriteString(builder.String())
-
-				builder.Reset()
 				bullet.Render(&builder, 0)
 
 				resp = map[string]any{
@@ -591,11 +578,14 @@ func main() {
 					"content":    builder.String(),
 					"method":     method,
 				}
-				return resp, nil
-			} else if method == "remove" {
+			case "remove":
+			default:
+				return nil, errors.New("invalid method; must be 'add' or 'remove'")
 			}
 
-			return nil, errors.New("invalid method; must be 'add' or 'remove'")
+			err = writeOrgFileToDisk(of, filePath)
+
+			return
 		},
 	)
 

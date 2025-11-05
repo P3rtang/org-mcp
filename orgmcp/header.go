@@ -81,6 +81,7 @@ type Header struct {
 	Content string
 }
 
+// TODO: remove str from arguments and parse from reader only (prob make a new constructor)
 func NewHeaderFromString(str string, reader *bufio.Reader) option.Option[Header] {
 	// fmt.Fprintf(os.Stderr, "Parsing header %s\n", str)
 	if !strings.HasPrefix(str, "*") {

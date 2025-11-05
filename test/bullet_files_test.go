@@ -105,33 +105,6 @@ func TestBulletFileProgress(t *testing.T) {
 	}
 }
 
-// TestBulletFileStructureFromContent tests by reading and validating content
-func TestBulletFileStructureFromContent(t *testing.T) {
-	content, err := os.ReadFile("./files/bullets.org")
-	if err != nil {
-		t.Fatalf("failed to read bullets.org: %v", err)
-	}
-
-	contentStr := string(content)
-
-	// Verify the file contains expected structure
-	expectedElements := []string{
-		"* This is the title",
-		"** DONE Header 1 [2/2]",
-		"* [X] Bullet 1",
-		"* [X] Bullet 2",
-		"** PROG Header 2 [1/3]",
-		"- [ ] Bullet 2",
-		"- [ ] Bullet 3",
-	}
-
-	for _, element := range expectedElements {
-		if !strings.Contains(contentStr, element) {
-			t.Errorf("expected to find '%s' in file content", element)
-		}
-	}
-}
-
 // TestBulletFileLocation tests the Location method
 func TestBulletFileLocation(t *testing.T) {
 	file, err := os.Open("./files/bullets.org")

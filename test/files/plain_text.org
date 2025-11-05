@@ -1,0 +1,34 @@
+* Header with Plain Text Content
+    :PROPERTIES:
+    :UID: 1
+    :END:
+This is plain text content under a header.
+It should be parsed and rendered correctly by the MCP integration.
+
+** Sub-header with More Plain Text
+    :PROPERTIES:
+    :UID: 2
+    :END:
+More plain text content here.
+Multiple lines of plain text should work fine.
+
+*** Deep Nested Plain Text
+    :PROPERTIES:
+    :UID: 3
+    :END:
+This is deeply nested plain text content.
+
+* Another Header
+    :PROPERTIES:
+    :UID: 4
+    :END:
+Plain text at the root level.
+
+** Plain Text with Special Characters
+    :PROPERTIES:
+    :UID: 5
+    :END:
+Text with @#$%^&*() special characters.
+URLs like https://example.com should work.
+Numbers: 12345, Version 2.5.1
+

@@ -2,15 +2,13 @@ package orgmcp
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"main/utils/itertools"
-	"main/utils/logging"
 	"main/utils/option"
+	"main/utils/reader"
 	"main/utils/result"
 	"main/utils/slice"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 )
@@ -25,14 +23,14 @@ type OrgFile struct {
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
 
-func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
+func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 	org_file := OrgFile{
 		items: map[int]Render{},
 	}
 
 	org_file.items[0] = &org_file
 
-	buf_reader := bufio.NewReader(reader)
+	peek_reader := reader.NewPeekReader(bufio.NewReader(r))
 
 	var current_parent map[int]Render = map[int]Render{
 		0: &org_file,
@@ -40,7 +38,7 @@ func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
 	current_parent_idx := 0
 	var current_line = 1
 
-	for val, err := buf_reader.ReadBytes('\n'); true; val, err = buf_reader.ReadBytes('\n') {
+	for val, err := peek_reader.PeekBytes('\n'); true; val, err = peek_reader.PeekBytes('\n') {
 		if err == io.EOF {
 			break
 		}
@@ -50,12 +48,14 @@ func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
 		}
 
 		if len(strings.TrimSpace(string(val))) == 0 {
+			peek_reader.Continue()
 			continue
 		}
 
 		switch val[0] {
 		case '*':
-			NewHeaderFromString(string(val), buf_reader).Then(func(h Header) {
+			peek_reader.Continue()
+			NewHeaderFromString(string(val), peek_reader.Reader).Then(func(h Header) {
 				h.Parent = option.Some(current_parent[h.Level])
 				h.location = current_line
 				current_parent[h.Level].AddChildren(&h)
@@ -65,7 +65,7 @@ func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
 				current_parent_idx = h.Level + 1
 			})
 		case ' ':
-			ParseIndentedLine(string(val), current_parent[current_parent_idx]).Then(func(r Render) {
+			ParseIndentedLine(peek_reader, current_parent[current_parent_idx]).Then(func(r Render) {
 				org_file.items[r.Uid()] = r
 				current_line += 1
 				current_parent[current_parent_idx].AddChildren(r)
@@ -75,23 +75,25 @@ func OrgFileFromReader(reader io.Reader) result.Result[OrgFile] {
 		}
 	}
 
+	peek_reader.Continue()
+
 	return result.Ok(org_file)
 }
 
-func ParseIndentedLine(str string, parent Render) option.Option[Render] {
-	trimmed := strings.TrimSpace(str)
+func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render] {
+	// errors have already been handled at this point
+	bytes, _ := r.PeekBytes('\n')
+	trimmed := strings.TrimSpace(string(bytes))
 
 	switch trimmed[0] {
 	case '-':
 		fallthrough
 	case '*':
+		r.Continue()
 		return option.Map(NewBulletFromString(trimmed, parent), func(b Bullet) Render { return &b })
 	default:
-		return option.None[Render]()
+		return option.Cast[PlainText, Render](NewPlainTextFromReader(r))
 	}
-
-	fmt.Fprintf(os.Stderr, "Parsing error in header #%d\nGot: %s", parent.Uid(), str)
-	return logging.TODO[option.Option[Render]]()
 }
 
 func (of *OrgFile) Render(builder *strings.Builder, depth int) {

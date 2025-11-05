@@ -1,11 +1,19 @@
 * Org mcp
+  :PROPERTIES:
+  :UID: 48524342
+  :END:
   Org mcp is a server that allows ai agents to interact with an emacs org file.
   This allows both a programmer and an Ai agent to work on a shared document that delegates tasks.
-
 ** Headers
+   :PROPERTIES:
+   :UID: 28028254
+   :END:
    The main structure of an org file is the tree of headers that will encapsulate common items in a directory like structure.
    A header supports a lot of metadata like progress counters, schedules or even a properties dictionairy.
 *** Modification
+    :PROPERTIES:
+    :UID: 92335292
+    :END:
 **** DONE change status by index [6/6]
      CLOSED: [2025-11-01 Sat 20:46]
      :PROPERTIES:
@@ -17,57 +25,120 @@
      - [x] verify every status for this behaviour
      - [x] deduplicate headers in the response
      - [x] allow multiple indeces at once
- 
 *** Metadata
-**** PROG parse CLOSED/SCHEDULED
-     - [X] parse the closed schedule tag
-     - [X] parse the scheduled schedule tag
-     - [X] parse the deadline schedule tag
-     - [ ] parse the date as an actual datetime
-
+    :PROPERTIES:
+    :UID: 32102203
+    :END:
+    - [x] parse the closed schedule tag
+    - [x] parse the scheduled schedule tag
+    - [x] parse the deadline schedule tag
+    - [ ] parse the date as an actual datetime
 **** DONE parse properties
-
+    :PROPERTIES:
+    :UID: 82181185
+    :END:
 **** TODO automatically set CLOSED tag
-
+    :PROPERTIES:
+    :UID: 14898686
+    :END:
 **** TODO modification of properties
+    :PROPERTIES:
+    :UID: 55803461
+    :END:
      - [ ] insert properties to the map
      - [ ] delete properties from the map
      - [ ] modify properties in the map
-
 **** TODO modification of schedule tags
+    :PROPERTIES:
+    :UID: 88799343
+    :END:
      - [ ] allow a schedule to be added to headers
      - [ ] allow modifying schedule date
      - [ ] CLOSED should always be automatic
-
+*** Parsing
+    :PROPERTIES:
+    :UID: 87835160
+    :END:
+**** TODO add a constructor based solely from a PeekReader instance
+    :PROPERTIES:
+    :UID: 46024702
+    :END:
+*** Searching
+    :PROPERTIES:
+    :UID: 8406955
+    :END:
+**** TODO Fuzzy search implementation plan
+     :PROPERTIES:
+     :UID: 51483267
+     :END:
+     - [ ] Analyze requirements for fuzzy header/content search in org mode files (should the search match any header line, content, or both?).
+     - [ ] Evaluate and choose a Go fuzzy matching library or method (e.g., github.com/lithammer/fuzzysearch, or custom scoring).
+     - [ ] Design a RESTful API endpoint for fuzzy search (input fields: search string, optional filters like status/tags, limit, etc.; output: matched headers with score and context).
+     - [ ] Implement search handler in mcp/server.go using the chosen algorithm on in-memory parsed org structure, scoring/returning best matches.
+     - [ ] Add unit and integration tests for different types of queries, edge cases, and expected matches.
+     - [ ] Document fuzzy search usage and add examples to API docs/test file.
 ** Bullets
+   :PROPERTIES:
+   :UID: 51396790
+   :END:
    Bullets are a substructure of a header that can include distinct tasks needed to complete a task specified by a header.
    Bullets can have checkboxes associated with either a space to mark uncompleted a dash as partially completed or x for completed.
-
 *** DONE Bullet parsing
-*** PROG Bullet modification [2/4]
-**** DONE bullet creation
-**** DONE bullet completion
+    :PROPERTIES:
+    :UID: 83577245
+    :END:
+*** PROG Bullet modification [1/4]
+    :PROPERTIES:
+    :UID: 89764195
+    :END:
+**** TODO bullet creation
+    :PROPERTIES:
+    :UID: 82673695
+    :END:
+     - [ ] Add support for omitting the index when creating a bullet—if no index is specified, append the bullet to the end rather than inserting at a specific position.
+**** NEXT bullet completion [0/9]
+    :PROPERTIES:
+    :UID: 62550511
+    :END:
+     - [ ] Review both the bullet completion and manage bullet tools in main.go and document differences and overlap.
+     - [ ] Analyze interfaces and implementation of complete_checkbox and manage_bullet_point in main.go for overlap and differences.
+     - [ ] Design a unified tool input schema that supports bullet add, remove, and completion (toggle/complete) operations via a 'method' argument.
+     - [ ] Design a unified tool implementation, merging manage_bullet_point and complete_checkbox logic into a single handler with branching on method.
+     - [ ] Update error handling and shared routines to prevent code duplication and improve API consistency.
+     - [ ] Update and combine the tool documentation (InputSchema, description) to cover all operations.
+     - [ ] Update/extend all relevant unit tests, covering add, remove, and complete logic through the unified tool.
+     - [ ] Test the MCP integration to ensure the unified tool performs correctly end-to-end.
+     - [ ] Create a short report after implementation summarizing combined logic, new tool schema, example usage, and migration steps if needed.
 **** PROG bullet deletion [2/4]
      DEADLINE: <2025-11-08 Sat>
-     - [X] Implement bullet deletion function.
-     - [X] Integrate bullet deletion in the bullet createion mcp tool.
+    :PROPERTIES:
+    :UID: 47234894
+    :END:
+     - [x] Implement bullet deletion function.
+     - [x] Integrate bullet deletion in the bullet createion mcp tool.
      - [ ] Write unit tests for bullet deletion.
      - [ ] Test the MCP tool for correctness of execution and return values.
 **** TODO synchornise header progress
-     - [X] Parially done already with the `CheckProgress` function
+    :PROPERTIES:
+    :UID: 88266361
+    :END:
+     - [x] Parially done already with the `CheckProgress` function
      - [ ] Change header status automatically from =NEXT=/=TODO= to =PROG=
      - [ ] Test new functionality
-
 ** Plain content
+   :PROPERTIES:
+   :UID: 18319364
+   :END:
    Org mode allows plain text to be entered in any header.
    Not yet supported by the parsing
-
-*** NEXT Plain text parsing [0/6]
+*** DONE Plain text parsing [6/6]
     SCHEDULED: <2025-11-08 sat>
-    - [ ] Extend the =ParseIndentedLine= function so it has a fallback to anything other than bullets etc.
-    - [ ] Add a =Text= type that implements =Render=
-    - [ ] Assign the default path of the switch case in =ParseIndentedLine= to a =Text= renderable.
-    - [ ] Unit test =Text= parsing
-    - [ ] Unit test rendering of =Text=
-    - [ ] Test the MCP integration by fetching a header and checking whether the plain text is returned as well.
-
+    :PROPERTIES:
+    :UID: 97732298
+    :END:
+    - [x] Extend the =ParseIndentedLine= function so it has a fallback to anything other than bullets etc.
+    - [x] Add a =Text= type that implements =Render=
+    - [x] Assign the default path of the switch case in =ParseIndentedLine= to a =Text= renderable.
+    - [x] Unit test =Text= parsing
+    - [x] Unit test rendering of =Text=
+    - [x] Test the MCP integration by fetching a header and checking whether the plain text is returned as well.

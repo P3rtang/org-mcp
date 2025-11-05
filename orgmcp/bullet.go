@@ -6,7 +6,6 @@ import (
 	"main/utils/option"
 	o "main/utils/option"
 	"main/utils/slice"
-	"os"
 	"slices"
 	"strings"
 )
@@ -35,8 +34,8 @@ func NewBulletStatus(str string) bulletStatus {
 type bulletPrefix string
 
 const (
-	Star = "*"
-	Dash = "-"
+	Star bulletPrefix = "*"
+	Dash bulletPrefix = "-"
 )
 
 type Bullet struct {
@@ -53,9 +52,14 @@ type Bullet struct {
 var _ Render = (*Bullet)(nil)
 
 func NewBulletFromString(str string, parent Render) o.Option[Bullet] {
-	bullet := Bullet{index: len(parent.Children())}
 
-	fmt.Fprintf(os.Stderr, "%s\n", str)
+	bullet := Bullet{}
+
+	if parent != nil {
+		bullet.index = len(parent.Children())
+	}
+
+	// fmt.Fprintf(os.Stderr, "%s\n", str)
 
 	if parent == nil {
 		bullet.parent = o.None[Render]()
@@ -86,19 +90,34 @@ func NewBulletFromString(str string, parent Render) o.Option[Bullet] {
 			bullet.checkbox = Checked
 		}
 
-		bullet.content = str[5:]
+		bullet.content = strings.TrimSpace(str[5:])
 	} else {
-		bullet.content = str[2:]
+		bullet.content = strings.TrimSpace(str[2:])
 	}
 
 	return o.Some(bullet)
 }
 
 func NewBullet(parent Render, status bulletStatus) Bullet {
-	return Bullet{
-		index:  len(parent.Children()),
-		parent: o.Some(parent),
+	prefix := Dash
+	if status == NoCheck {
+		prefix = Star
 	}
+
+	return Bullet{
+		index:    len(parent.Children()),
+		parent:   o.Some(parent),
+		prefix:   prefix,
+		checkbox: status,
+	}
+}
+
+func (b *Bullet) SetIndex(idx int) {
+	b.index = idx
+}
+
+func (b *Bullet) SetContent(content string) {
+	b.content = content
 }
 
 func (b *Bullet) CheckProgress() o.Option[Progress] {
@@ -122,9 +141,9 @@ func (b *Bullet) Render(builder *strings.Builder, depth int) {
 	case NoCheck:
 		fmt.Fprintf(builder, "%s ", string(b.prefix))
 	case Unchecked:
-		fmt.Fprintf(builder, "%s [ ]", string(b.prefix))
+		fmt.Fprintf(builder, "%s [ ] ", string(b.prefix))
 	case Checked:
-		fmt.Fprintf(builder, "%s [x]", string(b.prefix))
+		fmt.Fprintf(builder, "%s [x] ", string(b.prefix))
 	}
 
 	// Render content

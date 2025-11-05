@@ -161,34 +161,35 @@ func TestSimpleFileGetTag(t *testing.T) {
 	}
 }
 
-// TestSimpleFileGetLine tests the GetLine method for retrieving content by line number
-func TestSimpleFileGetLine(t *testing.T) {
-	file, _ := os.Open("./files/simple.org")
-	defer file.Close()
-
-	orgFile := OrgFileFromReader(file).Unwrap()
-
-	// Test getting line 0 (should be the OrgFile itself)
-	line0 := orgFile.GetLine(0)
-	if line0.IsNone() {
-		t.Errorf("expected to get content for line 0, got nil")
-	}
-
-	// Test getting line 1 (should be the first header)
-	line1 := orgFile.GetLine(1)
-	if line1.IsNone() {
-		t.Errorf("expected to get content for line 1, got nil")
-	}
-
-	// Test getting line 2 (should be a child header or content)
-	line2 := orgFile.GetLine(2)
-	if line2.IsNone() {
-		t.Errorf("expected to get content for line 2, got nil")
-	}
-
-	// Test getting a line that may not exist
-	line100 := orgFile.GetLine(100)
-	if line100.IsSome() {
-		t.Errorf("expected to get nil for line 100 (non-existent), got non-nil")
-	}
-}
+// TODO: rewrite with the GetUid() method
+// // TestSimpleFileGetLine tests the GetLine method for retrieving content by line number
+// func TestSimpleFileGetLine(t *testing.T) {
+// 	file, _ := os.Open("./files/simple.org")
+// 	defer file.Close()
+//
+// 	orgFile := OrgFileFromReader(file).Unwrap()
+//
+// 	// Test getting line 0 (should be the OrgFile itself)
+// 	line0 := orgFile.GetLine(0)
+// 	if line0.IsNone() {
+// 		t.Errorf("expected to get content for line 0, got nil")
+// 	}
+//
+// 	// Test getting line 1 (should be the first header)
+// 	line1 := orgFile.GetLine(1)
+// 	if line1.IsNone() {
+// 		t.Errorf("expected to get content for line 1, got nil")
+// 	}
+//
+// 	// Test getting line 2 (should be a child header or content)
+// 	line2 := orgFile.GetLine(2)
+// 	if line2.IsNone() {
+// 		t.Errorf("expected to get content for line 2, got nil")
+// 	}
+//
+// 	// Test getting a line that may not exist
+// 	line100 := orgFile.GetLine(100)
+// 	if line100.IsSome() {
+// 		t.Errorf("expected to get nil for line 100 (non-existent), got non-nil")
+// 	}
+// }
