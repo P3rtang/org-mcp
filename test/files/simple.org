@@ -1,38 +1,38 @@
 * This is a test Title :title:test:
     :PROPERTIES:
-    :UID: 25252671
+    :ID: 25252671
     :END:
 ** Header 1 [1/3] :header:
     :PROPERTIES:
-    :UID: 98191023
+    :ID: 98191023
     :END:
 *** TODO test this
     :PROPERTIES:
-    :UID: 15738965
+    :ID: 15738965
     :END:
 *** DONE completed
     CLOSED: [2025-10-26 Sun 21:11]
     :PROPERTIES:
-    :UID: 65234942
+    :ID: 65234942
     :END:
 *** TODO test 2
     :PROPERTIES:
-    :UID: 80028336
+    :ID: 80028336
     :END:
 ** PROG Header 2 [1/3] :header:
     :PROPERTIES:
-    :UID: 19276871
+    :ID: 19276871
     :END:
 *** TODO test this
     :PROPERTIES:
-    :UID: 84804021
+    :ID: 84804021
     :END:
 *** DONE completed
     CLOSED: [2025-10-26 Sun 21:11]
     :PROPERTIES:
-    :UID: 55572436
+    :ID: 55572436
     :END:
 *** TODO test 2
     :PROPERTIES:
-    :UID: 60809391
+    :ID: 60809391
     :END:

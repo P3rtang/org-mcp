@@ -1,2 +1,5 @@
 # Main binary
 /main
+
+# Logging files
+**/*.log

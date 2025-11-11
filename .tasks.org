@@ -1,23 +1,19 @@
 * Org mcp
   :PROPERTIES:
-  :UID: 48524342
+  :ID: 48524342
   :END:
-  Org mcp is a server that allows ai agents to interact with an emacs org file.
-  This allows both a programmer and an Ai agent to work on a shared document that delegates tasks.
 ** Headers
    :PROPERTIES:
-   :UID: 28028254
+   :ID: 28028254
    :END:
-   The main structure of an org file is the tree of headers that will encapsulate common items in a directory like structure.
-   A header supports a lot of metadata like progress counters, schedules or even a properties dictionairy.
 *** Modification
     :PROPERTIES:
-    :UID: 92335292
+    :ID: 92335292
     :END:
 **** DONE change status by index [6/6]
      CLOSED: [2025-11-01 Sat 20:46]
      :PROPERTIES:
-     :UID: 99590227
+     :ID: 99590227
      :END:
      - [x] implement the modification as a method on the OrgFile type
      - [x] allow the tool call to generate the OrgFile from the input file
@@ -27,49 +23,70 @@
      - [x] allow multiple indeces at once
 *** Metadata
     :PROPERTIES:
-    :UID: 32102203
+    :ID: 32102203
     :END:
     - [x] parse the closed schedule tag
     - [x] parse the scheduled schedule tag
     - [x] parse the deadline schedule tag
-    - [ ] parse the date as an actual datetime
+    - [x] parse the date as an actual datetime
 **** DONE parse properties
-    :PROPERTIES:
-    :UID: 82181185
-    :END:
+     :PROPERTIES:
+     :ID: 82181185
+     :END:
 **** TODO automatically set CLOSED tag
-    :PROPERTIES:
-    :UID: 14898686
-    :END:
+     :PROPERTIES:
+     :ID: 14898686
+     :END:
+     - [x] Analyze the current structure and data model to identify where the CLOSED field fits.
+       * The CLOSED tag in org mode is used to record the timestamp when a task is marked as DONE.
+         In the org-mcp project, status transitions (such as from TODO/PROG to DONE)
+         should trigger logic that sets the CLOSED property to the current timestamp.
+         The data model already parses CLOSED tags,
+         so the implementation should focus on updating the header's properties during status changes
+         and ensuring this is reflected in both the in-memory structure and the persisted org file.
+     - [ ] Identify where status transitions occur in the code (e.g., from TODO/PROG to DONE).
+     - [ ] Implement logic during status transitions to set CLOSED to the current timestamp.
+     - [ ] Write unit tests to validate that the CLOSED tag logic works properly.
+     - [ ] Document implementation details and edge cases in project documentation.
 **** TODO modification of properties
-    :PROPERTIES:
-    :UID: 55803461
-    :END:
+     :PROPERTIES:
+     :ID: 55803461
+     :END:
      - [ ] insert properties to the map
      - [ ] delete properties from the map
      - [ ] modify properties in the map
 **** TODO modification of schedule tags
-    :PROPERTIES:
-    :UID: 88799343
-    :END:
+     :PROPERTIES:
+     :ID: 88799343
+     :END:
      - [ ] allow a schedule to be added to headers
      - [ ] allow modifying schedule date
      - [ ] CLOSED should always be automatic
+**** TODO automatically set SCHEDULED tag
+     :PROPERTIES:
+     :ID: 24597521
+     :END:
+     - [ ] Create a function to automatically set the scheduled tag to today within the Golang code.
+     - [ ] Write scheduled function implementation, capable of fetching current date and assigning it to schedule tag.
+     - [ ] Ensure tests are written to validate scheduled tag is correctly set to today's date in different header states.
+     - [ ] Convert the header status change logic to include scheduled tags by default.
+     - [ ] Define test cases to validate that scheduled tags are set correctly for valid state transitions involving 'NEXT'.
+     - [ ] Test the scenario where headers already contain a scheduled tag and ensure proper behavior when transitioning to NEXT.
 *** Parsing
     :PROPERTIES:
-    :UID: 87835160
+    :ID: 87835160
     :END:
 **** TODO add a constructor based solely from a PeekReader instance
-    :PROPERTIES:
-    :UID: 46024702
-    :END:
+     :PROPERTIES:
+     :ID: 46024702
+     :END:
 *** Searching
     :PROPERTIES:
-    :UID: 8406955
+    :ID: 8406955
     :END:
 **** TODO Fuzzy search implementation plan
      :PROPERTIES:
-     :UID: 51483267
+     :ID: 51483267
      :END:
      - [ ] Analyze requirements for fuzzy header/content search in org mode files (should the search match any header line, content, or both?).
      - [ ] Evaluate and choose a Go fuzzy matching library or method (e.g., github.com/lithammer/fuzzysearch, or custom scoring).
@@ -77,64 +94,161 @@
      - [ ] Implement search handler in mcp/server.go using the chosen algorithm on in-memory parsed org structure, scoring/returning best matches.
      - [ ] Add unit and integration tests for different types of queries, edge cases, and expected matches.
      - [ ] Document fuzzy search usage and add examples to API docs/test file.
+**** DONE Vector search
+     :PROPERTIES:
+     :ID: 04236728
+     :END:
+*** TODO Consider SQLite for embedding storage enhancement
+    :PROPERTIES:
+    :ID: 37383517
+    :END:
+    - [ ] Analyze potential for a performance bottleneck in embedding generation for each vector search request.
+**** TODO Current Issue
+    :PROPERTIES:
+    :ID: 23501976
+    :END:
+     - [ ] Vector search currently regenerates embeddings for every search request
+     - [ ] Creates significant performance bottleneck, especially for large org files
+     - [ ] Wastes API calls to embedding providers (OpenAI, etc.) or CPU cycles for local models
+     - [ ] No persistence - embeddings lost on server restart
+     - [ ] Regeneration time increases linearly with file size
+**** TODO Benefits of SQLite Storage
+    :PROPERTIES:
+    :ID: 97146068
+    :END:
+     - [ ] Dramatically reduces search latency by caching embeddings instead of regenerating
+     - [ ] Cost efficiency - reduces expensive API calls to embedding providers
+     - [ ] Scalability - essential for large org files in knowledge management use cases
+     - [ ] Persistence - embeddings survive server restarts
+     - [ ] Go ecosystem fit - excellent SQLite libraries available (modernc.org/sqlite for pure Go, mattn/go-sqlite3 for C-based)
+     - [ ] Incremental updates - only regenerate embeddings for modified headers
+     - [ ] Advanced opportunity: Use sqlite-vss or sqlite-vec for native vector similarity search directly in database
+**** TODO Implementation Strategy
+    :PROPERTIES:
+    :ID: 39886024
+    :END:
+***** Database Schema
+     - [ ] Design embeddings table: (header_uid PRIMARY KEY, content_hash TEXT, embedding_blob BLOB, model_name TEXT, dimensions INTEGER, created_at TIMESTAMP, updated_at TIMESTAMP)
+     - [ ] Add index on content_hash for fast lookups
+     - [ ] Consider storing additional metadata (org file path, header title) for debugging
+***** Cache Invalidation
+     - [ ] Store SHA-256 hash of header content alongside embeddings
+     - [ ] Compare content hash on each search to detect changes
+     - [ ] Only regenerate embeddings for headers with changed content hash
+     - [ ] Implement orphan cleanup to remove embeddings for deleted headers
+***** Performance Optimization
+     - [ ] Evaluate sqlite-vss extension for native vector similarity search
+     - [ ] Evaluate sqlite-vec extension as alternative
+     - [ ] Consider background worker for batch regeneration of stale embeddings
+     - [ ] Implement connection pooling for concurrent access
+***** Migration Path
+     - [ ] Design backward-compatible initialization (create DB if not exists)
+     - [ ] Add CLI flag to force regeneration of all embeddings
+     - [ ] Support graceful fallback if database is corrupted
+**** TODO Key Considerations
+    :PROPERTIES:
+    :ID: 47380298
+    :END:
+     - [ ] File size: Embeddings are large (~6KB per header for 1536 dimensions) but SQLite handles blobs well
+     - [ ] Concurrency: SQLite's read concurrency is excellent; write locks shouldn't be an issue for read-heavy workload
+     - [ ] Storage location: Store DB alongside org file or in XDG cache directory?
+     - [ ] Schema versioning: Plan for future schema changes with version table
+     - [ ] Orphan cleanup: Need strategy to detect and remove embeddings for deleted headers
+     - [ ] Multiple org files: How to handle embeddings for multiple org files (one DB per file or unified DB)?
+     - [ ] Error handling: What happens if embedding generation fails for some headers?
+**** TODO Implementation Tasks
+    :PROPERTIES:
+    :ID: 55845642
+    :END:
+     - [ ] Research and choose SQLite library (modernc.org/sqlite vs mattn/go-sqlite3)
+     - [ ] Research and evaluate vector extensions (sqlite-vss vs sqlite-vec)
+     - [ ] Design database schema with proper indexes
+     - [ ] Implement database initialization and migration logic
+     - [ ] Create embedding storage layer with CRUD operations (Insert, Update, Get, Delete)
+     - [ ] Implement content hashing for cache invalidation
+     - [ ] Add cache invalidation logic in vector search handler
+     - [ ] Add CLI flags for cache management (--clear-cache, --rebuild-cache, --cache-stats)
+     - [ ] Write unit tests for storage layer (CRUD operations, concurrent access)
+     - [ ] Write unit tests for cache hit/miss scenarios
+     - [ ] Write integration tests for cache invalidation on content changes
+     - [ ] Benchmark performance: compare cached vs non-cached search times
+     - [ ] Document the caching strategy in README or docs/
+     - [ ] Document maintenance procedures (cache clearing, troubleshooting)
 ** Bullets
    :PROPERTIES:
-   :UID: 51396790
+   :ID: 51396790
    :END:
-   Bullets are a substructure of a header that can include distinct tasks needed to complete a task specified by a header.
-   Bullets can have checkboxes associated with either a space to mark uncompleted a dash as partially completed or x for completed.
 *** DONE Bullet parsing
     :PROPERTIES:
-    :UID: 83577245
+    :ID: 83577245
     :END:
-*** PROG Bullet modification [1/4]
+*** DONE Bullet modification [4/4]
+    CLOSED: [2025-11-09 Sun 11:26]
     :PROPERTIES:
-    :UID: 89764195
+    :ID: 89764195
     :END:
-**** TODO bullet creation
-    :PROPERTIES:
-    :UID: 82673695
-    :END:
-     - [ ] Add support for omitting the index when creating a bullet—if no index is specified, append the bullet to the end rather than inserting at a specific position.
-**** NEXT bullet completion [0/9]
-    :PROPERTIES:
-    :UID: 62550511
-    :END:
-     - [ ] Review both the bullet completion and manage bullet tools in main.go and document differences and overlap.
-     - [ ] Analyze interfaces and implementation of complete_checkbox and manage_bullet_point in main.go for overlap and differences.
-     - [ ] Design a unified tool input schema that supports bullet add, remove, and completion (toggle/complete) operations via a 'method' argument.
-     - [ ] Design a unified tool implementation, merging manage_bullet_point and complete_checkbox logic into a single handler with branching on method.
-     - [ ] Update error handling and shared routines to prevent code duplication and improve API consistency.
-     - [ ] Update and combine the tool documentation (InputSchema, description) to cover all operations.
-     - [ ] Update/extend all relevant unit tests, covering add, remove, and complete logic through the unified tool.
-     - [ ] Test the MCP integration to ensure the unified tool performs correctly end-to-end.
-     - [ ] Create a short report after implementation summarizing combined logic, new tool schema, example usage, and migration steps if needed.
-**** PROG bullet deletion [2/4]
+**** DONE bullet creation
+     CLOSED: [2025-11-08 Sat 17:06]
+     :PROPERTIES:
+     :ID: 82673695
+     :END:
+     - [x] Add support for omitting the index when creating a bullet. if no index is specified, append the bullet to the end rather than inserting at a specific position.
+**** DONE bullet completion [9/9]
+     :PROPERTIES:
+     :ID: 62550511
+     :END:
+     - [x] Review both the bullet completion and manage bullet tools in main.go and document differences and overlap.
+     - [x] Analyze interfaces and implementation of complete_checkbox and manage_bullet_point in main.go for overlap and differences.
+     - [x] Design a unified tool input schema that supports bullet add, remove, and completion (toggle/complete) operations via a 'method' argument.
+     - [x] Design a unified tool implementation, merging manage_bullet_point and complete_checkbox logic into a single handler with branching on method.
+     - [x] Update error handling and shared routines to prevent code duplication and improve API consistency.
+     - [x] Update and combine the tool documentation (InputSchema, description) to cover all operations.
+     - [x] Update/extend all relevant unit tests, covering add, remove, and complete logic through the unified tool.
+     - [x] Test the MCP integration to ensure the unified tool performs correctly end-to-end.
+     - [x] Create a short report after implementation summarizing combined logic, new tool schema, example usage, and migration steps if needed.
+**** DONE bullet deletion [4/4]
      DEADLINE: <2025-11-08 Sat>
-    :PROPERTIES:
-    :UID: 47234894
-    :END:
+     :PROPERTIES:
+     :ID: 47234894
+     :END:
      - [x] Implement bullet deletion function.
      - [x] Integrate bullet deletion in the bullet createion mcp tool.
-     - [ ] Write unit tests for bullet deletion.
-     - [ ] Test the MCP tool for correctness of execution and return values.
-**** TODO synchornise header progress
+     - [x] Write unit tests for bullet deletion.
+     - [x] Test the MCP tool for correctness of execution and return values.
+**** DONE synchornise header progress
+     CLOSED: [2025-11-09 Sun 11:26]
+     :PROPERTIES:
+     :ID: 88266361
+     :END:
+     - [x] Parially done already with the =CheckProgress= function
+       * Analyzed existing CheckProgress and header status logic.
+         Confirmed CheckProgress sets header to DONE when progress is complete.
+         Will update logic to set status to PROG if any checkbox is checked,
+         and further synchronize with checkbox state.
+         Planning to ensure thorough unit testing for any changes.
+     - [x] Change header status automatically from =NEXT=/=TODO= to =PROG= if a single checkbox is set
+     - [x] Change header status to =DONE= if =CheckProgress= has =Done()= as true.
+     - [x] Unit test new functionality
+*** NEXT Bullet children [0/7]
+    DEADLINE: <2025-11-11 Tue> SCHEDULED: <2025-11-10 Mon>
     :PROPERTIES:
-    :UID: 88266361
+    :ID: 90135268
     :END:
-     - [x] Parially done already with the `CheckProgress` function
-     - [ ] Change header status automatically from =NEXT=/=TODO= to =PROG=
-     - [ ] Test new functionality
+    - [ ] Add a children field to the bullet struct
+    - [ ] Assign a progress to a bullet point
+    - [ ] Allow partially completed bullets =[-]=
+    - [ ] Parse bullet children from the reader by peeking
+    - [ ] Bullet points can have progress counters =[0/2]=
+    - [ ] Children are always indented by 2 spaces
+    - [ ] IDs should still be calculated by the index inside the header
 ** Plain content
    :PROPERTIES:
-   :UID: 18319364
+   :ID: 18319364
    :END:
-   Org mode allows plain text to be entered in any header.
-   Not yet supported by the parsing
 *** DONE Plain text parsing [6/6]
-    SCHEDULED: <2025-11-08 sat>
+    SCHEDULED: <2025-11-08 Sat>
     :PROPERTIES:
-    :UID: 97732298
+    :ID: 97732298
     :END:
     - [x] Extend the =ParseIndentedLine= function so it has a fallback to anything other than bullets etc.
     - [x] Add a =Text= type that implements =Render=
@@ -142,3 +256,32 @@
     - [x] Unit test =Text= parsing
     - [x] Unit test rendering of =Text=
     - [x] Test the MCP integration by fetching a header and checking whether the plain text is returned as well.
+** Dates and schedules
+   :PROPERTIES:
+   :ID: 45374501
+   :END:
+*** PROG Date Parsing
+    :PROPERTIES:
+    :ID: 78268550
+    :END:
+    - [x] Analyze the org mode syntax for various date formats and ensure compliance with parsing standards.
+    - [x] Develop a parser to read CLOSED and SCHEDULED timestamps, ensuring timezone support.
+    - [ ] Write tests for parsing various edge cases, such as invalid or incomplete dates.
+*** TODO Date Searching
+    :PROPERTIES:
+    :ID: 94835494
+    :END:
+    - [ ] Study fuzzy and exact search algorithms for handling date queries in org mode.
+    - [ ] Design a REST endpoint to retrieve org entries based on date constraints (e.g., within a range).
+    - [ ] Create unit tests to validate search results, including handling of corner cases (e.g., NULL dates).
+    - [ ] Design flexible constraints such as allowing before/after X to deduplicate timestamps
+*** TODO Schedule Modification
+    :PROPERTIES:
+    :ID: 22890236
+    :END:
+    - [ ] Support adding new schedules while validating for allowed date ranges.
+    - [ ] Implement endpoint to modify dates (schedule adjustments) dynamically
+** Markdown rendering
+    :PROPERTIES:
+    :ID: 48165813
+    :END:

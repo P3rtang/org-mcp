@@ -9,6 +9,8 @@ import (
 
 // TestSimpleFileFromReader tests parsing the simple.org example file
 func TestSimpleFileFromReader(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Open the example file
 	file, err := os.Open("./files/simple.org")
 	if err != nil {
@@ -27,6 +29,8 @@ func TestSimpleFileFromReader(t *testing.T) {
 
 // TestSimpleFileRender tests that the parsed file can be rendered back
 func TestSimpleFileRender(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Read the original file content
 	originalContent, err := os.ReadFile("./files/simple.org")
 	if err != nil {
@@ -62,6 +66,8 @@ func TestSimpleFileRender(t *testing.T) {
 
 // TestSimpleFileProgress tests the progress checking of the parsed file
 func TestSimpleFileProgress(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, err := os.Open("./files/simple.org")
 	if err != nil {
 		t.Fatalf("failed to open simple.org: %v", err)
@@ -88,6 +94,8 @@ func TestSimpleFileProgress(t *testing.T) {
 
 // TestSimpleFileStructureFromContent tests by reading and validating content
 func TestSimpleFileStructureFromContent(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	content, err := os.ReadFile("./files/simple.org")
 	if err != nil {
 		t.Fatalf("failed to read simple.org: %v", err)
@@ -113,6 +121,8 @@ func TestSimpleFileStructureFromContent(t *testing.T) {
 
 // TestSimpleFileLocation tests the Location method
 func TestSimpleFileLocation(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, err := os.Open("./files/simple.org")
 	if err != nil {
 		t.Fatalf("failed to open simple.org: %v", err)
@@ -137,6 +147,8 @@ func TestSimpleFileLocation(t *testing.T) {
 
 // TestSimpleFileGetTag tests the GetTag method for retrieving headers by tag
 func TestSimpleFileGetTag(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, _ := os.Open("./files/simple.org")
 	defer file.Close()
 

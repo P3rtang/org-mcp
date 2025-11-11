@@ -1,11 +1,12 @@
 package orgmcp
 
 import (
-	"bufio"
 	"fmt"
 	"iter"
+	"main/embeddings"
 	"main/utils/itertools"
 	"main/utils/option"
+	"main/utils/reader"
 	"main/utils/slice"
 	"slices"
 	"strings"
@@ -77,12 +78,13 @@ type Header struct {
 	children   []Render
 	schedule   option.Option[Schedule]
 	properties Properties
+	embedding  option.Option[embeddings.Embedding]
 
 	Content string
 }
 
 // TODO: remove str from arguments and parse from reader only (prob make a new constructor)
-func NewHeaderFromString(str string, reader *bufio.Reader) option.Option[Header] {
+func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[Header] {
 	// fmt.Fprintf(os.Stderr, "Parsing header %s\n", str)
 	if !strings.HasPrefix(str, "*") {
 		return option.None[Header]()
@@ -129,7 +131,11 @@ func NewHeaderFromString(str string, reader *bufio.Reader) option.Option[Header]
 		return option.Some(header)
 	}
 
-	header.schedule = NewScheduleFromReader(reader)
+	header.schedule = option.Map(NewScheduleFromReader(reader), func(s Schedule) Schedule {
+		s.parent = &header
+		return s
+	})
+
 	header.properties = NewPropertiesFromReader(reader)
 
 	return option.Some(header)
@@ -175,7 +181,6 @@ func (h *Header) Render(builder *strings.Builder, depth int) {
 
 	h.schedule.Then(func(s Schedule) {
 		s.Render(builder)
-		builder.WriteRune('\n')
 	})
 
 	h.properties.Render(builder)
@@ -212,6 +217,8 @@ func (h *Header) CheckProgress() option.Option[Progress] {
 
 		if h.Progress.AndThen(func(p Progress) bool { return p.Done() }) && h.Status != None {
 			h.Status = Done
+		} else if h.Progress.AndThen(func(p Progress) bool { return p.Prog() }) && h.Status != None && h.Status != Done {
+			h.Status = Prog
 		}
 
 		return progress
@@ -247,7 +254,7 @@ func (b *Header) ChildrenRec() []Render {
 }
 
 func (b *Header) Uid() int {
-	return b.properties.content["UID"].Int().Unwrap()
+	return b.properties.content["ID"].Int().Unwrap()
 }
 
 // GetParentUid returns the UID of the parent header, if it exists

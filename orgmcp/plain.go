@@ -18,14 +18,19 @@ type PlainText struct {
 // Enforce that PlainText implements the Render interface at compile time
 var _ Render = (*PlainText)(nil)
 
-func NewPlainTextFromReader(reader *reader.PeekReader) option.Option[PlainText] {
+func NewPlainTextFromReader(reader *reader.PeekReader) option.Option[*PlainText] {
 	line, err := reader.ReadBytes('\n')
 
 	if err != nil {
-		return option.None[PlainText]()
+		return option.None[*PlainText]()
 	}
 
-	return option.Some(PlainText{content: strings.TrimSpace(string(line))})
+	content := strings.TrimLeft(string(line), " ")
+	indent := len(line) - len(content)
+
+	content = strings.TrimSpace(content) + "\n"
+
+	return option.Some(&PlainText{content: content, indent: indent})
 }
 
 func (p *PlainText) CheckProgress() option.Option[Progress] {
@@ -33,6 +38,7 @@ func (p *PlainText) CheckProgress() option.Option[Progress] {
 }
 
 func (p *PlainText) Render(builder *strings.Builder, depth int) {
+	builder.WriteString(strings.Repeat(" ", p.indent))
 	builder.WriteString(p.content)
 }
 

@@ -54,6 +54,11 @@ func (p *Progress) Render(builder *strings.Builder) {
 	fmt.Fprintf(builder, "[%d/%d]", p.Complete, p.Total)
 }
 
+// Prog returns true if the progress is partially complete (at least one but not all).
+func (p *Progress) Prog() bool {
+	return p.Complete > 0 && p.Complete < p.Total
+}
+
 func (p *Progress) Done() bool {
 	return p.done.UnwrapOrElse(func() bool { return p.Total == p.Complete })
 }

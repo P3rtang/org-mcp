@@ -10,6 +10,8 @@ import (
 
 // TestBulletFileFromReader tests parsing the bullets.org example file
 func TestBulletFileFromReader(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Open the example file
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
@@ -28,6 +30,8 @@ func TestBulletFileFromReader(t *testing.T) {
 
 // TestBulletFileRender tests that the parsed file can be rendered back
 func TestBulletFileRender(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Read the original file content
 	originalContent, err := os.ReadFile("./files/bullets.org")
 	if err != nil {
@@ -63,6 +67,8 @@ func TestBulletFileRender(t *testing.T) {
 
 // TestBulletFileProgress tests the progress checking of headers with bullets
 func TestBulletFileProgress(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to open bullets.org: %v", err)
@@ -107,6 +113,8 @@ func TestBulletFileProgress(t *testing.T) {
 
 // TestBulletFileLocation tests the Location method
 func TestBulletFileLocation(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to open bullets.org: %v", err)
@@ -131,6 +139,8 @@ func TestBulletFileLocation(t *testing.T) {
 
 // TestBulletFileHeadersHaveBullets tests that headers in bullets.org contain bullets
 func TestBulletFileHeadersHaveBullets(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to open bullets.org: %v", err)
@@ -167,6 +177,8 @@ func TestBulletFileHeadersHaveBullets(t *testing.T) {
 
 // TestBulletIndexing tests that we can index bullets from headers
 func TestBulletIndexing(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to open bullets.org: %v", err)
@@ -223,6 +235,8 @@ func TestBulletIndexing(t *testing.T) {
 
 // TestBulletCheckboxStatus tests checkbox parsing in bullets
 func TestBulletCheckboxStatus(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name      string
 		line      string
@@ -272,6 +286,8 @@ func TestBulletCheckboxStatus(t *testing.T) {
 
 // TestBulletFileConsistency tests that parsing and rendering produces consistent output
 func TestBulletFileConsistency(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Read the original file
 	originalContent, err := os.ReadFile("./files/bullets.org")
 	if err != nil {
@@ -310,5 +326,52 @@ func TestBulletFileConsistency(t *testing.T) {
 	// Should match original
 	if strings.TrimSpace(rendered1) != strings.TrimSpace(string(originalContent)) {
 		t.Errorf("first render does not match original content")
+	}
+}
+
+// TestBulletFileRemoveChildren tests bullet child removal functionality
+func TestBulletFileRemoveChildren(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
+	file, err := os.Open("./files/bullets.org")
+	if err != nil {
+		t.Fatalf("failed to open bullets.org: %v", err)
+	}
+	defer file.Close()
+
+	orgFileResult := OrgFileFromReader(file)
+
+	// Check if parsing was successful
+	if !orgFileResult.IsOk() {
+		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
+
+		// Additional render check after removing children
+		builder := strings.Builder{}
+		orgFileResult.UnwrapPtr().Render(&builder, -1)
+		rendered := builder.String()
+		if strings.Contains(rendered, "*") {
+			t.Errorf("expected no bullet markers in rendered output after child removal, but found:\n%s", rendered)
+		}
+	}
+
+	orgFile := orgFileResult.Unwrap()
+
+	// Check if there are any children
+	children := orgFile.Children()
+	if len(children) == 0 {
+		t.Fatalf("expected some children in OrgFile")
+	}
+
+	// Take the first header having children
+	header := children[0] // Assuming the first element is a header
+	if len(header.Children()) == 0 {
+		t.Fatalf("no children to test removal on")
+	}
+
+	// Call RemoveChildren
+	header.RemoveChildren()
+
+	if len(header.Children()) != 0 {
+		t.Errorf("RemoveChildren failed, expected 0 children, got %d", len(header.Children()))
 	}
 }

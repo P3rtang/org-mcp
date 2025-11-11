@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"main/utils/option"
 	o "main/utils/option"
+	"main/utils/reader"
 	"main/utils/slice"
+	"os"
 	"slices"
 	"strings"
 )
@@ -43,6 +45,7 @@ type Bullet struct {
 	content  string
 	prefix   bulletPrefix
 	index    int
+	indent   int
 
 	parent   o.Option[Render]
 	children []Render
@@ -51,8 +54,63 @@ type Bullet struct {
 // Enforce that Bullet implements the Render interface at compile time
 var _ Render = (*Bullet)(nil)
 
-func NewBulletFromString(str string, parent Render) o.Option[Bullet] {
+func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
+	bullet := Bullet{}
 
+	line, err := r.ReadBytes('\n')
+	fmt.Fprintf(os.Stderr, "Parsing bullet: %s\n", string(line))
+	if err != nil {
+		return o.None[*Bullet]()
+	}
+
+	str := strings.TrimLeft(string(line), " ")
+	bullet.indent = len(line) - len(str)
+
+	if len(str) < 2 {
+		return o.None[*Bullet]()
+	}
+
+	switch str[0] {
+	case '*':
+		bullet.prefix = Star
+	case '-':
+		bullet.prefix = Dash
+	default:
+		return o.None[*Bullet]()
+	}
+
+	if len(str) > 4 && str[2] == '[' && str[4] == ']' {
+		bullet.checkbox = Unchecked
+
+		switch str[3] {
+		case 'X':
+			fallthrough
+		case 'x':
+			bullet.checkbox = Checked
+		}
+
+		bullet.content = strings.TrimSpace(str[5:])
+	} else {
+		bullet.content = strings.TrimSpace(str[2:])
+	}
+
+	for line, err := r.PeekBytes('\n'); err == nil; line, err = r.PeekBytes('\n') {
+		if len(strings.TrimSpace(string(line))) == 0 ||
+			strings.TrimSpace(string(line))[0] == '*' ||
+			strings.TrimSpace(string(line))[0] == '-' {
+			break
+		}
+
+		fmt.Fprintf(os.Stderr, "Appending to bullet content: %s\n", string(line))
+
+		r.Continue()
+		bullet.content += "\n" + strings.TrimRight(string(line), "\n")
+	}
+
+	return option.Some(&bullet)
+}
+
+func NewBulletFromString(str string, parent Render) o.Option[Bullet] {
 	bullet := Bullet{}
 
 	if parent != nil {
@@ -152,7 +210,7 @@ func (b *Bullet) Render(builder *strings.Builder, depth int) {
 }
 
 func (b *Bullet) IndentLevel() int {
-	return o.Map(b.parent, func(r Render) int { return r.IndentLevel() }).UnwrapOr(0)
+	return b.indent
 }
 
 func (b *Bullet) AddChildren(r ...Render) error {

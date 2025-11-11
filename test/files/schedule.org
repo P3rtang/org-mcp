@@ -1,0 +1,17 @@
+* Schedule tags
+  :PROPERTIES:
+  :ID: 18268998
+  :END:
+** Single Schedule
+   SCHEDULED: <2025-11-10 Mon>
+   :PROPERTIES:
+   :ID: 24717013
+   :END:
+   This is a single Schedule tag
+** Multi setup [0/2]
+   SCHEDULED: <2025-11-10 Mon> DEADLINE: <2025-11-11 Tue>
+   :PROPERTIES:
+   :ID: 12004214
+   :END:
+   - [ ] test the multi setup
+   - [ ] another bullet

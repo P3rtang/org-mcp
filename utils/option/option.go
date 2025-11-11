@@ -1,7 +1,5 @@
 package option
 
-import "reflect"
-
 type Option[T any] struct {
 	value T
 	set   bool
@@ -101,6 +99,16 @@ func (o Option[T]) Then(fn func(T)) {
 	fn(o.value)
 }
 
+/*
+ */
+func (o Option[T]) ThenPtr(fn func(*T)) {
+	if o.IsNone() {
+		return
+	}
+
+	fn(&o.value)
+}
+
 func (o Option[T]) AndThen(fn func(T) bool) bool {
 	if o.IsNone() {
 		return false
@@ -120,14 +128,15 @@ func Map[T any, U any](option Option[T], fn func(T) U) Option[U] {
 	return Some(fn(option.value))
 }
 
-func Cast[T any, U any](o Option[T]) Option[U] {
-	if o.IsNone() {
-		return Option[U]{}
+func Cast[T any, U any](option Option[T]) Option[U] {
+	if option.IsNone() {
+		return None[U]()
 	}
 
-	if reflect.TypeOf(o.value) == reflect.TypeOf((*U)(nil)).Elem() {
-		return Some(any(o.value).(U))
+	casted, ok := any(option.value).(U)
+	if !ok {
+		return None[U]()
 	}
 
-	return Option[U]{}
+	return Some(casted)
 }

@@ -1,11 +1,10 @@
 package orgmcp
 
 import (
-	"bufio"
 	"fmt"
 	"main/utils/option"
+	"main/utils/reader"
 	"math/rand"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -78,39 +77,33 @@ type Properties struct {
 func NewPropertiesWithUID() Properties {
 	return Properties{
 		content: map[string]PropValue{
-			"UID": &intProperty{num: rand.Intn(100000000)},
+			"ID": &intProperty{num: rand.Intn(100000000)},
 		},
 		indent: 4,
 	}
 }
 
-func NewPropertiesFromReader(reader *bufio.Reader) (p Properties) {
+func NewPropertiesFromReader(reader *reader.PeekReader) (p Properties) {
 	p.content = make(map[string]PropValue)
 
-	var err error
-	var depth = 1
-	var bytes []byte
-
-	for bytes, err = reader.Peek(depth); !slices.Contains(bytes, '\n') && err == nil; bytes, err = reader.Peek(depth) {
-		depth += 1
-	}
+	bytes, err := reader.PeekBytes('\n')
 
 	// newline not found return a default generation
 	if err != nil {
-		p.content["UID"] = &intProperty{num: rand.Intn(100000000)}
+		p.content["ID"] = &intProperty{num: rand.Intn(100000000)}
 		p.indent = 4
 		return
 	}
-
-	// if the line is empty continue parsing
-	if strings.TrimSpace(string(bytes)) == "" {
-		_, _ = reader.ReadBytes('\n')
-		return NewPropertiesFromReader(reader)
-	}
+	//
+	// // if the line is empty continue parsing
+	// if strings.TrimSpace(string(bytes)) == "" {
+	// 	_, _ = reader.ReadBytes('\n')
+	// 	return NewPropertiesFromReader(reader)
+	// }
 
 	// properties not found return None
 	if !strings.Contains(string(bytes), ":PROPERTIES:") {
-		p.content["UID"] = &intProperty{num: rand.Intn(100000000)}
+		p.content["ID"] = &intProperty{num: rand.Intn(100000000)}
 		p.indent = 4
 		return
 	}
@@ -118,7 +111,7 @@ func NewPropertiesFromReader(reader *bufio.Reader) (p Properties) {
 	p.indent = strings.Index(string(bytes), ":PROPERTIES:")
 
 	// advance the reader
-	_, _ = reader.ReadBytes('\n')
+	reader.Continue()
 
 	// TODO: should also parse dates between [...]
 	for bytes, err := reader.ReadBytes('\n'); err == nil && !strings.Contains(string(bytes), ":END:"); bytes, err = reader.ReadBytes('\n') {
@@ -129,8 +122,8 @@ func NewPropertiesFromReader(reader *bufio.Reader) (p Properties) {
 	}
 
 	// Assign a UID if missing
-	if _, hasUID := p.content["UID"]; !hasUID {
-		p.content["UID"] = &intProperty{num: rand.Intn(100000000)}
+	if _, hasUID := p.content["ID"]; !hasUID {
+		p.content["ID"] = &intProperty{num: rand.Intn(100000000)}
 	}
 
 	return

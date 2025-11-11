@@ -2,6 +2,8 @@ package reader
 
 import (
 	"bufio"
+	"fmt"
+	"os"
 	"slices"
 )
 
@@ -42,6 +44,8 @@ func (p *PeekReader) Peek(n int) (bytes []byte, err error) {
 func (p *PeekReader) PeekBytes(r byte) (bytes []byte, err error) {
 	idx := slices.Index(p.peekBuffer, r)
 
+	fmt.Fprintf(os.Stderr, "[INFO] PeekBytes\nPeekbuffer content: %s, found char at idx: %d\n", string(p.peekBuffer), idx)
+
 	if idx >= 0 {
 		bytes = make([]byte, idx)
 		copy(bytes, p.peekBuffer[0:idx])
@@ -54,21 +58,20 @@ func (p *PeekReader) PeekBytes(r byte) (bytes []byte, err error) {
 	bytes = make([]byte, len(p.peekBuffer))
 	copy(bytes, p.peekBuffer)
 
+	fmt.Fprintf(os.Stderr, "[INFO] PeekBytes\nReturned bytes: %s\n", bytes)
+
 	return
 }
 
 func (p *PeekReader) ReadBytes(r byte) (bytes []byte, err error) {
-	bytes = make([]byte, 0, 512)
-
-	if len(p.peekBuffer) == 0 {
-		return p.Reader.ReadBytes(r)
-	}
-
 	idx := slices.Index(p.peekBuffer, r)
+	bytes = make([]byte, len(p.peekBuffer))
+
+	fmt.Fprintf(os.Stderr, "[INFO] ReadBytes\nPeekbuffer content: %s, found char at idx: %d\n", string(p.peekBuffer), idx)
 
 	if idx >= 0 {
-		copy(bytes, p.peekBuffer[0:idx])
-		p.peekBuffer = p.peekBuffer[idx:]
+		copy(bytes, p.peekBuffer[0:idx+1])
+		p.peekBuffer = p.peekBuffer[idx+1:]
 
 		return
 	}

@@ -2,11 +2,14 @@ package main
 
 import (
 	. "main/orgmcp"
+	"os"
 	"strings"
 	"testing"
 )
 
 func TestHeaderFromString(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "* TODO Example [0/1] :tag1:tag2:"
 	expectedLevel := 0
 	expectedStatus := Todo
@@ -35,6 +38,8 @@ func TestHeaderFromString(t *testing.T) {
 }
 
 func TestHeaderProgress(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name               string
 		input              string
@@ -106,6 +111,8 @@ func TestHeaderProgress(t *testing.T) {
 }
 
 func TestHeaderProgressCheckProgress(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name                 string
 		input                string

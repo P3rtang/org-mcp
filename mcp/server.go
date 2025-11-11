@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"maps"
+	"os"
 	"slices"
 )
 
@@ -70,6 +71,10 @@ func NewServer(reader io.Reader, sender *MessageSender, logger *log.Logger) *Ser
 func (s *Server) Run() error {
 	for {
 		line, err := s.reader.ReadString('\n')
+
+		// write the method to a log file
+		file, _ := os.OpenFile("org-mcp.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		fmt.Fprintf(file, "%s", line)
 
 		if err != nil {
 			if err == io.EOF {

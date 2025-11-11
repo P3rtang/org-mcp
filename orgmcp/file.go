@@ -2,16 +2,25 @@ package orgmcp
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"main/embeddings"
 	"main/utils/itertools"
 	"main/utils/option"
 	"main/utils/reader"
 	"main/utils/result"
 	"main/utils/slice"
 	"maps"
+	"os"
 	"slices"
+	"sort"
 	"strings"
 )
+
+type SearchScore struct {
+	score  float64
+	header *Header
+}
 
 type OrgFile struct {
 	name     string
@@ -55,7 +64,7 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		switch val[0] {
 		case '*':
 			peek_reader.Continue()
-			NewHeaderFromString(string(val), peek_reader.Reader).Then(func(h Header) {
+			NewHeaderFromString(string(val), peek_reader).Then(func(h Header) {
 				h.Parent = option.Some(current_parent[h.Level])
 				h.location = current_line
 				current_parent[h.Level].AddChildren(&h)
@@ -84,16 +93,89 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	// errors have already been handled at this point
 	bytes, _ := r.PeekBytes('\n')
 	trimmed := strings.TrimSpace(string(bytes))
+	fmt.Fprintf(os.Stderr, "Indented: %s\n", string(bytes))
 
 	switch trimmed[0] {
 	case '-':
 		fallthrough
 	case '*':
-		r.Continue()
-		return option.Map(NewBulletFromString(trimmed, parent), func(b Bullet) Render { return &b })
+		bullet := NewBulletFromReader(r)
+		bullet.Then(func(b *Bullet) {
+			b.index = len(parent.Children())
+			b.parent = option.Some(parent)
+		})
+
+		return option.Cast[*Bullet, Render](bullet)
 	default:
-		return option.Cast[PlainText, Render](NewPlainTextFromReader(r))
+		return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
 	}
+}
+
+func (of *OrgFile) GenerateEmbeddings() error {
+	headers := []*Header{}
+	contents := []string{}
+
+	for _, r := range of.items {
+		if h, ok := r.(*Header); ok {
+			headers = append(headers, h)
+			builder := strings.Builder{}
+			h.Render(&builder, 1)
+			contents = append(contents, builder.String())
+		}
+	}
+
+	embeds, err := embeddings.Generate(contents)
+
+	if err != nil {
+		return err
+	}
+
+	for i, header := range headers {
+		header.embedding = option.Some(embeds[i])
+	}
+
+	return nil
+}
+
+func (of *OrgFile) VectorSearch(query string, top_n int) (h []*Header, err error) {
+	headers := []*Header{}
+	contents := []string{query}
+
+	for _, r := range of.items {
+		if h, ok := r.(*Header); ok {
+			headers = append(headers, h)
+			builder := strings.Builder{}
+			h.Render(&builder, 1)
+			contents = append(contents, builder.String())
+		}
+	}
+
+	embeds, err := embeddings.Generate(contents)
+
+	if err != nil {
+		return
+	}
+
+	query_embed := embeds[0]
+	header_embeds := embeds[1:]
+
+	scores := []SearchScore{}
+	for i, embed := range header_embeds {
+		scores = append(scores, SearchScore{
+			header: headers[i],
+			score:  embeddings.Similarity(query_embed[:], embed[:]),
+		})
+	}
+
+	sort.Slice(scores, func(i, j int) bool {
+		return scores[i].score > scores[j].score
+	})
+
+	h = slice.Map(scores, func(s SearchScore) *Header {
+		return s.header
+	})[:top_n]
+
+	return
 }
 
 func (of *OrgFile) Render(builder *strings.Builder, depth int) {
@@ -171,7 +253,7 @@ func (of *OrgFile) ParentUid() int {
 }
 
 func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
-	return option.Cast[Render, *Header](
+	return option.Map(
 		itertools.Find(
 			maps.Values(of.items),
 			func(r Render) bool {
@@ -185,6 +267,7 @@ func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
 				}).UnwrapOr(false)
 			},
 		),
+		func(r Render) *Header { return r.(*Header) },
 	)
 }
 

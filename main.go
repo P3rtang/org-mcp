@@ -386,112 +386,18 @@ func main() {
 
 	server.AddTool(
 		mcp.Tool{
-			Name: "complete_checkbox",
-			Description: "Toggle or complete a checkbox in a bullet point within a header.\n" +
-				"Specify the action to either 'toggle' the checkbox state or 'complete' to mark it as done.",
-			InputSchema: map[string]any{
-				"type":     "object",
-				"required": []string{"header_uid", "bullet_index", "action"},
-				"properties": map[string]any{
-					"header_uid": map[string]any{
-						"type":        "number",
-						"description": "The UID of the header containing the bullet with the checkbox.",
-					},
-					"bullet_index": map[string]any{
-						"type":        "number",
-						"description": "The index (0-based) of the bullet within the header's children.",
-					},
-					"action": map[string]any{
-						"type":        "string",
-						"enum":        []string{"toggle", "complete"},
-						"description": "Action to perform: 'toggle' to toggle between checked/unchecked, or 'complete' to mark as checked.",
-					},
-					"path": map[string]any{
-						"type":        "string",
-						"description": "An optional file path, will default to the configured org file.",
-					},
-				},
-			},
-		},
-		func(args map[string]any) (resp any, err error) {
-			filePath, ok := args["path"].(string)
-			if !ok || filePath == "" {
-				filePath = defaultPath
-			}
-
-			org_file, err := loadOrgFile(filePath)
-			if err != nil {
-				return
-			}
-
-			header_uid_float, ok := args["header_uid"].(float64)
-			if !ok {
-				return nil, errors.New("invalid or missing header_uid parameter")
-			}
-			header_uid := int(header_uid_float)
-
-			bullet_idx_float, ok := args["bullet_index"].(float64)
-			if !ok {
-				return nil, errors.New("invalid or missing bullet_index parameter")
-			}
-			bullet_idx := int(bullet_idx_float)
-
-			action, ok := args["action"].(string)
-			if !ok {
-				return nil, errors.New("invalid or missing action parameter")
-			}
-
-			if action != "toggle" && action != "complete" {
-				return nil, errors.New("action must be either 'toggle' or 'complete'")
-			}
-
-			if !ok {
-				return nil, fmt.Errorf("header with uid %d not found", header_uid)
-			}
-
-			var r_bullet orgmcp.Render
-			var bullet *orgmcp.Bullet
-			if r_bullet, ok = org_file.GetUid(header_uid + bullet_idx + 1).Split(); !ok {
-				return nil, fmt.Errorf("Bullet with index %d not found in header %d.", bullet_idx, header_uid)
-			}
-			if bullet, ok = r_bullet.(*orgmcp.Bullet); !ok {
-				return nil, fmt.Errorf("Item at index %d in header %d is not a bullet.", bullet_idx, header_uid)
-			}
-
-			if action == "toggle" {
-				bullet.ToggleCheckbox()
-			} else {
-				bullet.CompleteCheckbox()
-			}
-
-			err = writeOrgFileToDisk(org_file, filePath)
-
-			builder := strings.Builder{}
-			bullet.Render(&builder, 0)
-
-			resp = map[string]any{
-				"header_uid":   header_uid,
-				"bullet_index": bullet_idx,
-				"content":      builder.String(),
-				"action":       action,
-			}
-
-			return
-		},
-	)
-
-	server.AddTool(
-		mcp.Tool{
-			Name:        "manage_bullet_point",
-			Description: "Add, remove or complete a bullet point from a header/task. Use method 'add' to insert a bullet point, or 'remove' to delete one. Index is used for both cases.",
+			Name: "manage_bullet",
+			Description: "Add, remove or complete a bullet point from a header/task.\n" +
+				"Use method 'add' to insert a bullet point, or 'remove' to delete one.\n" +
+				"Index is used for both cases but not mandatory for additions. As well as managing content\n",
 			InputSchema: map[string]any{
 				"type":     "object",
 				"required": []string{"method", "header_uid", "index"},
 				"properties": map[string]any{
 					"method": map[string]any{
 						"type":        "string",
-						"enum":        []string{"add", "remove", "complete"},
-						"description": "Operation to perform: 'add' to insert a bullet, 'remove' to delete a bullet.",
+						"enum":        []string{"add", "remove", "complete", "toggle", "set_content"},
+						"description": "The method by which to manage the bullet point.",
 					},
 					"header_uid": map[string]any{
 						"type":        "number",
@@ -499,22 +405,21 @@ func main() {
 					},
 					"index": map[string]any{
 						"type":        "number",
-						"description": "The index at which to add or remove the bullet.",
+						"description": "The index of the bullet you want to manage or add.",
 					},
 					"content": map[string]any{
 						"type":        "string",
 						"description": "Text content of the bullet (required for add).",
 					},
 					"checkbox": map[string]any{
-						"type": "string",
-						"description": "The current status of a checkbox." +
-							"For a bullet without a checkbox, you should omit this parameter",
+						"type":        "string",
+						"description": "Checkbox status for the new bullet (required for add).",
 						// TODO: add partial checked
 						"enum": []string{"Unchecked", "Checked"},
 					},
 					"path": map[string]any{
 						"type":        "string",
-						"description": "Optional file path, defaults to .tasks.org.",
+						"description": "Optional file path, defaults to ./.tasks.org.",
 					},
 				},
 			},
@@ -541,16 +446,18 @@ func main() {
 				return nil, errors.New("invalid or missing method parameter")
 			}
 
-			indexFloat, ok := args["index"].(float64)
-			if !ok {
-				return nil, errors.New("invalid or missing index parameter")
-			}
-			index := int(indexFloat)
-
 			header, ok := of.GetUid(header_uid).Split()
 			if !ok {
 				return nil, fmt.Errorf("header with uid %d not found", header_uid)
 			}
+
+			indexFloat, ok := args["index"].(float64)
+			if !ok {
+				indexFloat = float64(len(header.Children()))
+			}
+			index := int(indexFloat)
+
+			bullet := of.GetUid(header_uid + index + 1)
 
 			switch method {
 			case "add":
@@ -568,19 +475,46 @@ func main() {
 				bullet.SetContent(content)
 				bullet.SetIndex(index)
 				header.AddChildren(&bullet)
-
-				builder := strings.Builder{}
-				bullet.Render(&builder, 0)
-
-				resp = map[string]any{
-					"header_uid": header_uid,
-					"index":      index,
-					"content":    builder.String(),
-					"method":     method,
-				}
 			case "remove":
+				bullet.Then(func(r orgmcp.Render) {
+					header.RemoveChildren(r.Uid())
+				})
+			case "complete":
+				bullet.Then(func(r orgmcp.Render) {
+					if b, ok := r.(*orgmcp.Bullet); ok {
+						b.CompleteCheckbox()
+					}
+				})
+			case "toggle":
+				bullet.Then(func(r orgmcp.Render) {
+					if b, ok := r.(*orgmcp.Bullet); ok {
+						b.ToggleCheckbox()
+					}
+				})
+			case "set_content":
+				content, ok := args["content"].(string)
+				if !ok || strings.TrimSpace(content) == "" {
+					return nil, errors.New("content is required for set_content method")
+				}
+
+				bullet.Then(func(r orgmcp.Render) {
+					if b, ok := r.(*orgmcp.Bullet); ok {
+						b.SetContent(content)
+					}
+				})
 			default:
-				return nil, errors.New("invalid method; must be 'add' or 'remove'")
+				return nil, errors.New("invalid method; must be 'add', 'remove', 'complete', 'toggle' or 'set_content'")
+			}
+
+			header.CheckProgress()
+			builder := strings.Builder{}
+			header.Render(&builder, 1)
+
+			resp = map[string]any{
+				"header_uid": header_uid,
+				"index":      index,
+				"content":    builder.String(),
+				"method":     method,
 			}
 
 			err = writeOrgFileToDisk(of, filePath)
@@ -588,6 +522,68 @@ func main() {
 			return
 		},
 	)
+
+	server.AddTool(mcp.Tool{
+		Name: "vector_search",
+		Description: "Perform a vector search on all headers in the org file based on the provided query string. " +
+			"Returns the top N most relevant headers.\n" +
+			"It is optimal to include as much information as possible in the query, overflowing the text limit is hard. " +
+			"So include context like timeframes, people involved, locations, etc. to get the best results.",
+		InputSchema: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"query": map[string]any{
+					"type":        "string",
+					"description": "The search query string.",
+				},
+				"top_n": map[string]any{
+					"type":        "number",
+					"description": "The number of top relevant headers to return.",
+				},
+				"path": map[string]any{
+					"type":        "string",
+					"description": "An optional file path, will default to the configured org file.",
+				},
+			},
+		},
+	}, func(args map[string]any) (resp any, err error) {
+		filePath, ok := args["path"].(string)
+		if !ok || strings.TrimSpace(filePath) == "" {
+			filePath = defaultPath
+		}
+
+		query, ok := args["query"].(string)
+		if !ok || strings.TrimSpace(query) == "" {
+			return nil, errors.New("invalid or missing query parameter")
+		}
+
+		top_n, ok := args["top_n"].(float64)
+		if !ok || top_n <= 0 {
+			top_n = 0
+		}
+
+		of, err := loadOrgFile(filePath)
+		if err != nil {
+			return
+		}
+
+		headers, err := of.VectorSearch(args["query"].(string), int(top_n))
+
+		resp = map[string]any{
+			"results": slice.Map(headers, func(h *orgmcp.Header) map[string]any {
+				builder := strings.Builder{}
+				h.Render(&builder, 1)
+
+				return map[string]any{
+					"uid":        h.Uid(),
+					"content":    builder.String(),
+					"parent_uid": h.ParentUid(),
+				}
+			}),
+		}
+
+		return
+	})
 
 	if err := server.Run(); err != nil {
 		logger.Fatalf("Server error: %v", err)

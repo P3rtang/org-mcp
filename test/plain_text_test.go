@@ -4,12 +4,15 @@ import (
 	"bufio"
 	. "main/orgmcp"
 	"main/utils/reader"
+	"os"
 	"strings"
 	"testing"
 )
 
 // TestPlainTextParsing tests basic plain text parsing from a reader
 func TestPlainTextParsing(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name  string
 		input string
@@ -18,37 +21,37 @@ func TestPlainTextParsing(t *testing.T) {
 		{
 			name:  "Simple plain text",
 			input: "This is plain text\n",
-			want:  "This is plain text",
+			want:  "This is plain text\n",
 		},
 		{
 			name:  "Plain text with leading spaces",
 			input: "   Indented plain text\n",
-			want:  "Indented plain text",
+			want:  "   Indented plain text\n",
 		},
 		{
 			name:  "Plain text with trailing spaces",
 			input: "Plain text with trailing spaces   \n",
-			want:  "Plain text with trailing spaces",
+			want:  "Plain text with trailing spaces\n",
 		},
 		{
 			name:  "Plain text with multiple words",
 			input: "This is a longer piece of plain text\n",
-			want:  "This is a longer piece of plain text",
+			want:  "This is a longer piece of plain text\n",
 		},
 		{
 			name:  "Empty line",
 			input: "\n",
-			want:  "",
+			want:  "\n",
 		},
 		{
 			name:  "Plain text with special characters",
 			input: "Plain text with @#$%^&*() special characters\n",
-			want:  "Plain text with @#$%^&*() special characters",
+			want:  "Plain text with @#$%^&*() special characters\n",
 		},
 		{
 			name:  "Plain text with numbers",
 			input: "This contains 12345 numbers\n",
-			want:  "This contains 12345 numbers",
+			want:  "This contains 12345 numbers\n",
 		},
 	}
 
@@ -63,7 +66,7 @@ func TestPlainTextParsing(t *testing.T) {
 				return
 			}
 
-			pt := plainText.UnwrapPtr()
+			pt := plainText.Unwrap()
 			// Access the content through Render to verify it was parsed
 			builder := strings.Builder{}
 			pt.Render(&builder, -1)
@@ -78,6 +81,8 @@ func TestPlainTextParsing(t *testing.T) {
 
 // TestPlainTextFromString tests parsing plain text from a string
 func TestPlainTextFromString(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	testCases := []string{
 		"This is a test",
 		"Another line of text",
@@ -99,10 +104,12 @@ func TestPlainTextFromString(t *testing.T) {
 
 // TestPlainTextCheckProgress tests that PlainText has no progress
 func TestPlainTextCheckProgress(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	progress := plainText.CheckProgress()
 	if progress.IsSome() {
@@ -112,10 +119,12 @@ func TestPlainTextCheckProgress(t *testing.T) {
 
 // TestPlainTextIndentLevel tests the indent level of plain text
 func TestPlainTextIndentLevel(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	indent := plainText.IndentLevel()
 	if indent != 0 {
@@ -125,10 +134,12 @@ func TestPlainTextIndentLevel(t *testing.T) {
 
 // TestPlainTextChildren tests that PlainText has no children
 func TestPlainTextChildren(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	children := plainText.Children()
 	if len(children) != 0 {
@@ -143,10 +154,12 @@ func TestPlainTextChildren(t *testing.T) {
 
 // TestPlainTextAddChildren tests that PlainText cannot have children added
 func TestPlainTextAddChildren(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	// Try to add children
 	err := plainText.AddChildren()
@@ -157,10 +170,12 @@ func TestPlainTextAddChildren(t *testing.T) {
 
 // TestPlainTextRemoveChildren tests that PlainText cannot have children removed
 func TestPlainTextRemoveChildren(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	// Try to remove children
 	err := plainText.RemoveChildren()
@@ -171,6 +186,8 @@ func TestPlainTextRemoveChildren(t *testing.T) {
 
 // TestPlainTextWithWhitespace tests plain text with various whitespace patterns
 func TestPlainTextWithWhitespace(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name  string
 		input string
@@ -179,17 +196,17 @@ func TestPlainTextWithWhitespace(t *testing.T) {
 		{
 			name:  "Text with tabs",
 			input: "Text\twith\ttabs\n",
-			want:  "Text\twith\ttabs",
+			want:  "Text\twith\ttabs\n",
 		},
 		{
 			name:  "Text with multiple spaces",
 			input: "Text   with   multiple   spaces\n",
-			want:  "Text   with   multiple   spaces",
+			want:  "Text   with   multiple   spaces\n",
 		},
 		{
 			name:  "Leading and trailing whitespace",
 			input: "   text with whitespace   \n",
-			want:  "text with whitespace",
+			want:  "   text with whitespace\n",
 		},
 	}
 
@@ -204,7 +221,7 @@ func TestPlainTextWithWhitespace(t *testing.T) {
 				return
 			}
 
-			pt := plainText.UnwrapPtr()
+			pt := plainText.Unwrap()
 			builder := strings.Builder{}
 			pt.Render(&builder, -1)
 			got := builder.String()
@@ -218,6 +235,8 @@ func TestPlainTextWithWhitespace(t *testing.T) {
 
 // TestPlainTextMultipleLines tests parsing multiple plain text lines
 func TestPlainTextMultipleLines(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "Line 1\nLine 2\nLine 3\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
@@ -230,8 +249,8 @@ func TestPlainTextMultipleLines(t *testing.T) {
 	}
 
 	builder1 := strings.Builder{}
-	pt1.UnwrapPtr().Render(&builder1, -1)
-	if builder1.String() != "Line 1" {
+	pt1.Unwrap().Render(&builder1, -1)
+	if builder1.String() != "Line 1\n" {
 		t.Errorf("got %q, want %q", builder1.String(), "Line 1")
 	}
 
@@ -243,8 +262,8 @@ func TestPlainTextMultipleLines(t *testing.T) {
 	}
 
 	builder2 := strings.Builder{}
-	pt2.UnwrapPtr().Render(&builder2, -1)
-	if builder2.String() != "Line 2" {
+	pt2.Unwrap().Render(&builder2, -1)
+	if builder2.String() != "Line 2\n" {
 		t.Errorf("got %q, want %q", builder2.String(), "Line 2")
 	}
 
@@ -256,15 +275,17 @@ func TestPlainTextMultipleLines(t *testing.T) {
 	}
 
 	builder3 := strings.Builder{}
-	pt3.UnwrapPtr().Render(&builder3, -1)
-	if builder3.String() != "Line 3" {
+	pt3.Unwrap().Render(&builder3, -1)
+	if builder3.String() != "Line 3\n" {
 		t.Errorf("got %q, want %q", builder3.String(), "Line 3")
 	}
 }
 
 // TestPlainTextLongContent tests parsing long plain text content
 func TestPlainTextLongContent(t *testing.T) {
-	longText := "This is a very long piece of plain text that contains multiple words and should still be parsed correctly as plain text without any special formatting or structure"
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
+	longText := "This is a very long piece of plain text that contains multiple words and should still be parsed correctly as plain text without any special formatting or structure\n"
 	input := longText + "\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
@@ -276,7 +297,7 @@ func TestPlainTextLongContent(t *testing.T) {
 	}
 
 	builder := strings.Builder{}
-	plainText.UnwrapPtr().Render(&builder, -1)
+	plainText.Unwrap().Render(&builder, -1)
 	got := builder.String()
 
 	if got != longText {
@@ -286,10 +307,12 @@ func TestPlainTextLongContent(t *testing.T) {
 
 // TestPlainTextUid tests that plain text has a proper UID
 func TestPlainTextUid(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	uid := plainText.Uid()
 	// PlainText without a parent should return -1
@@ -300,10 +323,12 @@ func TestPlainTextUid(t *testing.T) {
 
 // TestPlainTextParentUid tests that plain text can have a parent UID
 func TestPlainTextParentUid(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
 	peekReader := reader.NewPeekReader(r)
-	plainText := NewPlainTextFromReader(peekReader).UnwrapPtr()
+	plainText := NewPlainTextFromReader(peekReader).Unwrap()
 
 	parentUid := plainText.ParentUid()
 	// PlainText without a parent should return 0

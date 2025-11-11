@@ -9,6 +9,8 @@ import (
 
 // TestBulletToggleCheckbox tests toggling checkbox state from Unchecked to Checked
 func TestBulletToggleCheckbox(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name          string
 		input         string
@@ -53,6 +55,8 @@ func TestBulletToggleCheckbox(t *testing.T) {
 
 // TestBulletCompleteCheckbox tests completing a checkbox (marking as Checked)
 func TestBulletCompleteCheckbox(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name          string
 		input         string
@@ -97,6 +101,8 @@ func TestBulletCompleteCheckbox(t *testing.T) {
 
 // TestBulletHasCheckbox tests checking if a bullet has a checkbox
 func TestBulletHasCheckbox(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name           string
 		input          string
@@ -140,6 +146,8 @@ func TestBulletHasCheckbox(t *testing.T) {
 
 // TestHeaderToggleCheckboxByIndex tests toggling checkbox in header's children by index
 func TestHeaderToggleCheckboxByIndex(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name             string
 		initialBullets   []string
@@ -218,6 +226,8 @@ func TestHeaderToggleCheckboxByIndex(t *testing.T) {
 
 // TestHeaderCompleteCheckboxByIndex tests completing checkbox in header's children by index
 func TestHeaderCompleteCheckboxByIndex(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	tests := []struct {
 		name             string
 		initialBullets   []string
@@ -296,6 +306,8 @@ func TestHeaderCompleteCheckboxByIndex(t *testing.T) {
 
 // TestCheckboxToggleRenderConsistency tests that toggled checkboxes render correctly
 func TestCheckboxToggleRenderConsistency(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Create a bullet with Unchecked state
 	bulletOpt := NewBulletFromString("* [ ] Test bullet", nil)
 	if bulletOpt.IsNone() {
@@ -335,6 +347,8 @@ func TestCheckboxToggleRenderConsistency(t *testing.T) {
 
 // TestCheckboxCompleteRenderConsistency tests that completed checkboxes render correctly
 func TestCheckboxCompleteRenderConsistency(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Create a bullet with Unchecked state
 	bulletOpt := NewBulletFromString("* [ ] Test bullet", nil)
 	if bulletOpt.IsNone() {
@@ -369,6 +383,8 @@ func TestCheckboxCompleteRenderConsistency(t *testing.T) {
 
 // TestCheckboxInBulletFile tests checkbox operations on parsed bullet file
 func TestCheckboxInBulletFile(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Open the bullets.org file
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
@@ -472,6 +488,8 @@ func TestCheckboxInBulletFile(t *testing.T) {
 
 // TestCheckboxCompleteInBulletFile tests completing checkboxes on parsed bullet file
 func TestCheckboxCompleteInBulletFile(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	// Open the bullets.org file
 	file, err := os.Open("./files/bullets.org")
 	if err != nil {
@@ -574,6 +592,8 @@ func TestCheckboxCompleteInBulletFile(t *testing.T) {
 
 // TestCheckboxEdgeCases tests edge cases for checkbox operations
 func TestCheckboxEdgeCases(t *testing.T) {
+	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
 	t.Run("Empty header children list", func(t *testing.T) {
 		header := NewHeaderFromString("* Empty header", nil).Unwrap()
 

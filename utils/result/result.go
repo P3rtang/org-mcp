@@ -72,6 +72,14 @@ func (o Result[T]) UnwrapOr(t T) T {
 	return o.value
 }
 
+func (o Result[T]) UnwrapErr() error {
+	if o.IsOk() {
+		panic("called UnwrapErr on an Ok value")
+	}
+
+	return o.err
+}
+
 /*
 This function returns a pointer to the data contained in the Option.
 Panics if the Option is None.
