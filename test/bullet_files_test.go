@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "main/orgmcp"
-	"main/utils/itertools"
+	. "github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/utils/itertools"
 	"os"
 	"strings"
 	"testing"

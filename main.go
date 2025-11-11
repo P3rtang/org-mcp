@@ -5,10 +5,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/p3rtang/org-mcp/mcp"
+	"github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/utils/slice"
 	"log"
-	"main/mcp"
-	"main/orgmcp"
-	"main/utils/slice"
 	"os"
 	"strings"
 )

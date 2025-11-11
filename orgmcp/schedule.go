@@ -2,8 +2,8 @@ package orgmcp
 
 import (
 	"fmt"
-	"main/utils/option"
-	"main/utils/reader"
+	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/reader"
 	"os"
 	"regexp"
 	"strings"
@@ -18,18 +18,18 @@ const (
 	Closed
 )
 
-func newStatusFromKeyword(kw string) ScheduleStatus {
-	switch kw {
-	case "DEADLINE":
-		return Deadline
-	case "SCHEDULED":
-		return Scheduled
-	case "CLOSED":
-		return Closed
-	default:
-		panic("unreachable")
-	}
-}
+// func newStatusFromKeyword(kw string) ScheduleStatus {
+// 	switch kw {
+// 	case "DEADLINE":
+// 		return Deadline
+// 	case "SCHEDULED":
+// 		return Scheduled
+// 	case "CLOSED":
+// 		return Closed
+// 	default:
+// 		panic("unreachable")
+// 	}
+// }
 
 func (s ScheduleStatus) String() string {
 	return ScheduleKeywords[s]

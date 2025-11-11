@@ -1,5 +1,6 @@
 # Main binary
 /main
+/org-mcp
 
 # Logging files
 **/*.log

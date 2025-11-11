@@ -2,12 +2,12 @@ package orgmcp
 
 import (
 	"fmt"
+	"github.com/p3rtang/org-mcp/embeddings"
+	"github.com/p3rtang/org-mcp/utils/itertools"
+	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/reader"
+	"github.com/p3rtang/org-mcp/utils/slice"
 	"iter"
-	"main/embeddings"
-	"main/utils/itertools"
-	"main/utils/option"
-	"main/utils/reader"
-	"main/utils/slice"
 	"slices"
 	"strings"
 )

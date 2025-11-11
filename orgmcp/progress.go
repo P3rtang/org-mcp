@@ -2,7 +2,7 @@ package orgmcp
 
 import (
 	"fmt"
-	"main/utils/option"
+	"github.com/p3rtang/org-mcp/utils/option"
 	"strconv"
 	"strings"
 	"unicode"

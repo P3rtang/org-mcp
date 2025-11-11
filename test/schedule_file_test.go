@@ -1,7 +1,7 @@
 package main
 
 import (
-	"main/orgmcp"
+	"github.com/p3rtang/org-mcp/orgmcp"
 	"os"
 	"strings"
 	"testing"

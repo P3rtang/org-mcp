@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	. "main/orgmcp"
-	"main/utils/reader"
+	. "github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/utils/reader"
 	"os"
 	"strings"
 	"testing"

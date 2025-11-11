@@ -1,7 +1,7 @@
 package orgmcp
 
 import (
-	"main/utils/option"
+	"github.com/p3rtang/org-mcp/utils/option"
 	"strings"
 )
 

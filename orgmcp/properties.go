@@ -2,8 +2,8 @@ package orgmcp
 
 import (
 	"fmt"
-	"main/utils/option"
-	"main/utils/reader"
+	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/reader"
 	"math/rand"
 	"strconv"
 	"strings"

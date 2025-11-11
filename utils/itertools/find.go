@@ -1,8 +1,8 @@
 package itertools
 
 import (
+	"github.com/p3rtang/org-mcp/utils/option"
 	"iter"
-	"main/utils/option"
 )
 
 func Find[T any](seq iter.Seq[T], f func(T) bool) option.Option[T] {
