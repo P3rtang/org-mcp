@@ -128,20 +128,32 @@
     :ID: 39886024
     :END:
 ***** Database Schema
+    :PROPERTIES:
+    :ID: 30138340
+    :END:
      - [ ] Design embeddings table: (header_uid PRIMARY KEY, content_hash TEXT, embedding_blob BLOB, model_name TEXT, dimensions INTEGER, created_at TIMESTAMP, updated_at TIMESTAMP)
      - [ ] Add index on content_hash for fast lookups
      - [ ] Consider storing additional metadata (org file path, header title) for debugging
 ***** Cache Invalidation
+    :PROPERTIES:
+    :ID: 94949826
+    :END:
      - [ ] Store SHA-256 hash of header content alongside embeddings
      - [ ] Compare content hash on each search to detect changes
      - [ ] Only regenerate embeddings for headers with changed content hash
      - [ ] Implement orphan cleanup to remove embeddings for deleted headers
 ***** Performance Optimization
+    :PROPERTIES:
+    :ID: 98802810
+    :END:
      - [ ] Evaluate sqlite-vss extension for native vector similarity search
      - [ ] Evaluate sqlite-vec extension as alternative
      - [ ] Consider background worker for batch regeneration of stale embeddings
      - [ ] Implement connection pooling for concurrent access
 ***** Migration Path
+    :PROPERTIES:
+    :ID: 62771632
+    :END:
      - [ ] Design backward-compatible initialization (create DB if not exists)
      - [ ] Add CLI flag to force regeneration of all embeddings
      - [ ] Support graceful fallback if database is corrupted
@@ -230,7 +242,7 @@
      - [x] Change header status to =DONE= if =CheckProgress= has =Done()= as true.
      - [x] Unit test new functionality
 *** NEXT Bullet children [0/7]
-    DEADLINE: <2025-11-11 Tue> SCHEDULED: <2025-11-10 Mon>
+    SCHEDULED: <2025-11-10 Mon> DEADLINE: <2025-11-11 Tue>
     :PROPERTIES:
     :ID: 90135268
     :END:
@@ -246,7 +258,7 @@
    :ID: 18319364
    :END:
 *** DONE Plain text parsing [6/6]
-    SCHEDULED: <2025-11-08 Sat>
+    SCHEDULED: <2025-11-08 Sat> CLOSED: [2025-11-11 Tue 22:00]
     :PROPERTIES:
     :ID: 97732298
     :END:
