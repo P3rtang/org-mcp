@@ -474,7 +474,6 @@ func main() {
 				bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(c))
 				bullet.SetContent(content)
 				bullet.SetIndex(index)
-				header.AddChildren(&bullet)
 			case "remove":
 				bullet.Then(func(r orgmcp.Render) {
 					header.RemoveChildren(r.Uid())

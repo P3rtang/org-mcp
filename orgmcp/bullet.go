@@ -156,18 +156,23 @@ func NewBulletFromString(str string, parent Render) o.Option[Bullet] {
 	return o.Some(bullet)
 }
 
-func NewBullet(parent Render, status bulletStatus) Bullet {
+func NewBullet(parent Render, status bulletStatus) *Bullet {
 	prefix := Dash
 	if status == NoCheck {
 		prefix = Star
 	}
 
-	return Bullet{
+	bullet := &Bullet{
 		index:    len(parent.Children()),
 		parent:   o.Some(parent),
 		prefix:   prefix,
 		checkbox: status,
 	}
+
+	bullet.indent = parent.IndentLevel()
+	parent.AddChildren(bullet)
+
+	return bullet
 }
 
 func (b *Bullet) SetIndex(idx int) {
