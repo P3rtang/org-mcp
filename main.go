@@ -415,7 +415,7 @@ func main() {
 
 		top_n, ok := args["top_n"].(float64)
 		if !ok || top_n <= 0 {
-			top_n = 0
+			top_n = 3.0
 		}
 
 		of, err := loadOrgFile(filePath)
