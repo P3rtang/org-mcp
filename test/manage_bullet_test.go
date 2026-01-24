@@ -32,7 +32,6 @@ func TestManageBulletAdd(t *testing.T) {
 	bullet1 := NewBullet(header, Unchecked)
 	bullet1.SetContent("Test bullet with checkbox")
 	bullet1.SetIndex(0)
-	header.AddChildren(&bullet1)
 
 	// Verify bullet was added
 	if len(header.Children()) != 1 {
@@ -43,7 +42,6 @@ func TestManageBulletAdd(t *testing.T) {
 	bullet2 := NewBullet(header, Checked)
 	bullet2.SetContent("Completed bullet")
 	bullet2.SetIndex(1)
-	header.AddChildren(&bullet2)
 
 	if len(header.Children()) != 2 {
 		t.Errorf("expected 2 children, got %d", len(header.Children()))
@@ -53,7 +51,6 @@ func TestManageBulletAdd(t *testing.T) {
 	bullet3 := NewBullet(header, NoCheck)
 	bullet3.SetContent("Regular bullet without checkbox")
 	bullet3.SetIndex(2)
-	header.AddChildren(&bullet3)
 
 	if len(header.Children()) != 3 {
 		t.Errorf("expected 3 children, got %d", len(header.Children()))
@@ -100,17 +97,14 @@ func TestManageBulletRemove(t *testing.T) {
 	bullet1 := NewBullet(header, Unchecked)
 	bullet1.SetContent("Bullet 1")
 	bullet1.SetIndex(0)
-	header.AddChildren(&bullet1)
 
 	bullet2 := NewBullet(header, Checked)
 	bullet2.SetContent("Bullet 2")
 	bullet2.SetIndex(1)
-	header.AddChildren(&bullet2)
 
 	bullet3 := NewBullet(header, NoCheck)
 	bullet3.SetContent("Bullet 3")
 	bullet3.SetIndex(2)
-	header.AddChildren(&bullet3)
 
 	if len(header.Children()) != 3 {
 		t.Fatalf("expected 3 bullets after adding")
@@ -150,7 +144,6 @@ func TestManageBulletComplete(t *testing.T) {
 	bullet := NewBullet(header, Unchecked)
 	bullet.SetContent("Task to complete")
 	bullet.SetIndex(0)
-	header.AddChildren(&bullet)
 
 	// Get the bullet and verify it has a checkbox
 	bulletFromHeader := header.Children()[0].(*Bullet)
@@ -194,7 +187,6 @@ func TestManageBulletToggle(t *testing.T) {
 	bullet := NewBullet(header, Unchecked)
 	bullet.SetContent("Toggle test")
 	bullet.SetIndex(0)
-	header.AddChildren(&bullet)
 
 	bulletFromHeader := header.Children()[0].(*Bullet)
 
@@ -246,7 +238,6 @@ func TestManageBulletSetContent(t *testing.T) {
 	bullet := NewBullet(header, Unchecked)
 	bullet.SetContent("Original content")
 	bullet.SetIndex(0)
-	header.AddChildren(&bullet)
 
 	bulletFromHeader := header.Children()[0].(*Bullet)
 
@@ -291,7 +282,6 @@ func TestManageBulletSequenceOperations(t *testing.T) {
 		bullet := NewBullet(header, Unchecked)
 		bullet.SetContent("Task " + string(rune(i+'1')))
 		bullet.SetIndex(i)
-		header.AddChildren(&bullet)
 	}
 
 	if len(header.Children()) != 3 {
@@ -349,7 +339,6 @@ func TestManageBulletInvalidOperations(t *testing.T) {
 	bullet := NewBullet(header, NoCheck)
 	bullet.SetContent("No checkbox bullet")
 	bullet.SetIndex(0)
-	header.AddChildren(&bullet)
 
 	bulletFromHeader := header.Children()[0].(*Bullet)
 

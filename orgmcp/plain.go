@@ -2,9 +2,11 @@ package orgmcp
 
 import (
 	"errors"
+	"fmt"
+	"strings"
+
 	"github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
-	"strings"
 )
 
 type PlainText struct {
@@ -50,7 +52,7 @@ func (p *PlainText) AddChildren(r ...Render) error {
 	return errors.New("PlainText cannot have children")
 }
 
-func (p *PlainText) RemoveChildren(...int) error {
+func (p *PlainText) RemoveChildren(...Uid) error {
 	return errors.New("PlainText cannot have children")
 }
 
@@ -62,16 +64,16 @@ func (p *PlainText) ChildrenRec() []Render {
 	return []Render{}
 }
 
-func (p *PlainText) Uid() int {
+func (p *PlainText) Uid() Uid {
 	if p.parent == nil {
-		return -1
+		return NewUid(-1)
 	}
 
-	return p.parent.Uid() + p.index + 1
+	return NewUid(fmt.Sprintf("%st%d", p.parent.Uid(), p.index))
 }
-func (p *PlainText) ParentUid() int {
+func (p *PlainText) ParentUid() Uid {
 	if p.parent == nil {
-		return 0
+		return NewUid(0)
 	}
 	return p.parent.Uid()
 }

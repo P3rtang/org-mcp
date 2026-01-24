@@ -26,7 +26,7 @@ type OrgFile struct {
 	name     string
 	children []Render
 
-	items map[int]Render
+	items map[Uid]Render
 }
 
 // Enforce that OrgFile implements the Render interface at compile time
@@ -34,10 +34,10 @@ var _ Render = (*OrgFile)(nil)
 
 func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 	org_file := OrgFile{
-		items: map[int]Render{},
+		items: map[Uid]Render{},
 	}
 
-	org_file.items[0] = &org_file
+	org_file.items[NewUid(0)] = &org_file
 
 	peek_reader := reader.NewPeekReader(bufio.NewReader(r))
 
@@ -75,6 +75,7 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 			})
 		case ' ':
 			ParseIndentedLine(peek_reader, current_parent[current_parent_idx]).Then(func(r Render) {
+				fmt.Fprintf(os.Stderr, "plain: %s\n", r.Uid())
 				org_file.items[r.Uid()] = r
 				current_line += 1
 				current_parent[current_parent_idx].AddChildren(r)
@@ -85,6 +86,8 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 	}
 
 	peek_reader.Continue()
+
+	fmt.Fprintf(os.Stderr, "Finished parsing org file with %d items\nMap: %v", len(org_file.items), org_file.items)
 
 	return result.Ok(org_file)
 }
@@ -107,7 +110,15 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 
 		return option.Cast[*Bullet, Render](bullet)
 	default:
-		return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
+		plain := NewPlainTextFromReader(r)
+		plain.Then(func(pt *PlainText) {
+			pt.index = len(parent.Children())
+			pt.parent = parent
+		})
+
+		fmt.Fprintf(os.Stderr, "Parsed plain text: %#v\n", plain)
+
+		return option.Cast[*PlainText, Render](plain)
 	}
 }
 
@@ -220,7 +231,7 @@ func (of *OrgFile) AddChildren(r ...Render) error {
 	return nil
 }
 
-func (of *OrgFile) RemoveChildren(uids ...int) error {
+func (of *OrgFile) RemoveChildren(uids ...Uid) error {
 	of.children = slice.Filter(of.children, func(r Render) bool {
 		return slices.Contains(uids, of.Uid())
 	})
@@ -228,16 +239,8 @@ func (of *OrgFile) RemoveChildren(uids ...int) error {
 	return nil
 }
 
-func (of *OrgFile) GetLine(line int) option.Option[Render] {
-	if item := of.items[line]; item != nil {
-		return option.Some(item)
-	}
-
-	return option.None[Render]()
-}
-
-func (of *OrgFile) GetUid(uid int) option.Option[Render] {
-	if uid == 0 {
+func (of *OrgFile) GetUid(uid Uid) option.Option[Render] {
+	if uid == NewUid(0) || uid == NewUid("root") {
 		return option.Some[Render](of)
 	}
 
@@ -248,8 +251,8 @@ func (of *OrgFile) GetUid(uid int) option.Option[Render] {
 	return option.None[Render]()
 }
 
-func (of *OrgFile) ParentUid() int {
-	return 0
+func (of *OrgFile) ParentUid() Uid {
+	return NewUid(0)
 }
 
 func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
@@ -283,8 +286,8 @@ func (of *OrgFile) GetHeaderByStatus(status HeaderStatus) []*Header {
 	return headers
 }
 
-func (of *OrgFile) Uid() int {
-	return 0
+func (of *OrgFile) Uid() Uid {
+	return NewUid(0)
 }
 
 func GetHeaderRec(header *Header, predicate func(*Header) bool, headers []*Header) []*Header {

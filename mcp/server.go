@@ -3,6 +3,7 @@ package mcp
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -11,14 +12,19 @@ import (
 	"slices"
 )
 
-type ToolFunc func(map[string]any) (any, error)
+type FuncOptions struct {
+	DefaultPath string
+}
+
+type ToolFunc func(map[string]any, FuncOptions) (any, error)
 
 // Server handles MCP protocol communication over stdio
 type Server struct {
-	reader *bufio.Reader
-	sender *MessageSender
-	log    *log.Logger
-	state  ServerState
+	reader    *bufio.Reader
+	sender    *MessageSender
+	log       *log.Logger
+	state     ServerState
+	workspace string
 
 	tools  map[string]Tool
 	toolCb map[string]ToolFunc
@@ -55,6 +61,12 @@ type Handler func(params json.RawMessage) (any, error)
 
 // NewServer creates a new MCP server
 func NewServer(reader io.Reader, sender *MessageSender, logger *log.Logger) *Server {
+	flag.Parse()
+	workspace := flag.String("workspace", "", "Path to the current workspace, when using relative file paths this is the root directory.")
+	if *workspace == "" {
+		*workspace += "."
+	}
+
 	return &Server{
 		reader: bufio.NewReader(reader),
 		sender: sender,
@@ -62,8 +74,9 @@ func NewServer(reader io.Reader, sender *MessageSender, logger *log.Logger) *Ser
 		state: ServerState{
 			Initialized: false,
 		},
-		tools:  map[string]Tool{},
-		toolCb: map[string]ToolFunc{},
+		workspace: *workspace,
+		tools:     map[string]Tool{},
+		toolCb:    map[string]ToolFunc{},
 	}
 }
 
@@ -138,8 +151,10 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 		return
 	}
 
+	default_path := s.workspace + "/.tasks.org"
+
 	if tool := s.toolCb[toolCall.Name]; tool != nil {
-		resp, err := tool(toolCall.Arguments)
+		resp, err := tool(toolCall.Arguments, FuncOptions{DefaultPath: default_path})
 
 		if err != nil {
 			s.sender.SendError(id, -32000, fmt.Sprintf("Tool error: %v", err))

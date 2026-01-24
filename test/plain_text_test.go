@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
-	. "github.com/p3rtang/org-mcp/orgmcp"
-	"github.com/p3rtang/org-mcp/utils/reader"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/utils/reader"
 )
 
 // TestPlainTextParsing tests basic plain text parsing from a reader
@@ -81,7 +83,7 @@ func TestPlainTextParsing(t *testing.T) {
 
 // TestPlainTextFromString tests parsing plain text from a string
 func TestPlainTextFromString(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	testCases := []string{
 		"This is a test",
@@ -104,7 +106,7 @@ func TestPlainTextFromString(t *testing.T) {
 
 // TestPlainTextCheckProgress tests that PlainText has no progress
 func TestPlainTextCheckProgress(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -119,7 +121,7 @@ func TestPlainTextCheckProgress(t *testing.T) {
 
 // TestPlainTextIndentLevel tests the indent level of plain text
 func TestPlainTextIndentLevel(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -134,7 +136,7 @@ func TestPlainTextIndentLevel(t *testing.T) {
 
 // TestPlainTextChildren tests that PlainText has no children
 func TestPlainTextChildren(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -154,7 +156,7 @@ func TestPlainTextChildren(t *testing.T) {
 
 // TestPlainTextAddChildren tests that PlainText cannot have children added
 func TestPlainTextAddChildren(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -170,7 +172,7 @@ func TestPlainTextAddChildren(t *testing.T) {
 
 // TestPlainTextRemoveChildren tests that PlainText cannot have children removed
 func TestPlainTextRemoveChildren(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -186,7 +188,7 @@ func TestPlainTextRemoveChildren(t *testing.T) {
 
 // TestPlainTextWithWhitespace tests plain text with various whitespace patterns
 func TestPlainTextWithWhitespace(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	tests := []struct {
 		name  string
@@ -235,7 +237,7 @@ func TestPlainTextWithWhitespace(t *testing.T) {
 
 // TestPlainTextMultipleLines tests parsing multiple plain text lines
 func TestPlainTextMultipleLines(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "Line 1\nLine 2\nLine 3\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -283,7 +285,7 @@ func TestPlainTextMultipleLines(t *testing.T) {
 
 // TestPlainTextLongContent tests parsing long plain text content
 func TestPlainTextLongContent(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	longText := "This is a very long piece of plain text that contains multiple words and should still be parsed correctly as plain text without any special formatting or structure\n"
 	input := longText + "\n"
@@ -307,7 +309,7 @@ func TestPlainTextLongContent(t *testing.T) {
 
 // TestPlainTextUid tests that plain text has a proper UID
 func TestPlainTextUid(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -316,14 +318,14 @@ func TestPlainTextUid(t *testing.T) {
 
 	uid := plainText.Uid()
 	// PlainText without a parent should return -1
-	if uid != -1 {
-		t.Errorf("expected UID -1 for plain text without parent, got %d", uid)
+	if uid != NewUid(-1) {
+		t.Errorf("expected UID -1 for plain text without parent, got %s", uid)
 	}
 }
 
 // TestPlainTextParentUid tests that plain text can have a parent UID
 func TestPlainTextParentUid(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "This is plain text\n"
 	r := bufio.NewReader(strings.NewReader(input))
@@ -332,7 +334,39 @@ func TestPlainTextParentUid(t *testing.T) {
 
 	parentUid := plainText.ParentUid()
 	// PlainText without a parent should return 0
-	if parentUid != 0 {
-		t.Errorf("expected parent UID 0 for plain text without parent, got %d", parentUid)
+	if parentUid != NewUid(0) {
+		t.Errorf("expected parent UID 0 for plain text without parent, got %s", parentUid)
+	}
+}
+
+func TestPlainTextFileUid(t *testing.T) {
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
+	file, _ := os.OpenFile("./files/plain_text.org", os.O_RDONLY, 0644)
+	of, err := orgmcp.OrgFileFromReader(file).Split()
+
+	if err != nil {
+		t.Fatalf("failed to parse org file: %v", err)
+	}
+
+	_, ok := of.GetUid(NewUid(1)).Split()
+
+	if !ok {
+		t.Fatalf("failed to get header with UID 1")
+	}
+
+	text, ok := of.GetUid(NewUid("1t0")).Split()
+
+	if !ok {
+		t.Fatalf("failed to get plain text with UID 1t0")
+	}
+
+	builder := strings.Builder{}
+	text.Render(&builder, 0)
+
+	expected := "This is plain text content under a header."
+
+	if strings.TrimSpace(builder.String()) != expected {
+		t.Errorf("expected plain text content '%s', got '%s'", expected, builder.String())
 	}
 }

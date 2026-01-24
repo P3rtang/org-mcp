@@ -230,7 +230,7 @@ func (b *Bullet) AddChildren(r ...Render) error {
 	return nil
 }
 
-func (b *Bullet) RemoveChildren(uids ...int) error {
+func (b *Bullet) RemoveChildren(uids ...Uid) error {
 	b.children = slice.Filter(b.children, func(r Render) bool {
 		return slices.Contains(uids, b.Uid())
 	})
@@ -252,16 +252,16 @@ func (b *Bullet) ChildrenRec() []Render {
 	return children
 }
 
-func (b *Bullet) Uid() int {
-	return option.Map(b.parent, func(r Render) int {
-		return r.Uid() + 1 + b.index
-	}).UnwrapOr(-1)
+func (b *Bullet) Uid() Uid {
+	return option.Map(b.parent, func(r Render) Uid {
+		return NewUid(fmt.Sprintf("%sb%d", r.Uid(), b.index))
+	}).UnwrapOr(NewUid(-1))
 }
 
-func (b *Bullet) ParentUid() int {
-	return option.Map(b.parent, func(r Render) int {
+func (b *Bullet) ParentUid() Uid {
+	return option.Map(b.parent, func(r Render) Uid {
 		return r.Uid()
-	}).UnwrapOr(0)
+	}).UnwrapOr(NewUid(0))
 }
 
 // ToggleCheckbox toggles the checkbox state between Unchecked and Checked

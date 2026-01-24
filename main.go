@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
-	"github.com/p3rtang/org-mcp/mcp"
-	"github.com/p3rtang/org-mcp/orgmcp"
-	"github.com/p3rtang/org-mcp/utils/slice"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/p3rtang/org-mcp/mcp"
+	"github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/tools"
+	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
 // loadOrgFile loads an OrgFile from the given file path.
@@ -42,17 +43,7 @@ func writeOrgFileToDisk(of orgmcp.OrgFile, filePath string) (err error) {
 }
 
 func main() {
-	// Define command-line flags
-	workspace := flag.String("workspace", "", "Path to the current workspace, when using relative file paths this is the root directory.")
-	flag.Parse()
-
-	defaultPath := ""
-
-	if *workspace != "" {
-		defaultPath += *workspace + "/"
-	}
-
-	defaultPath += ".tasks.org"
+	defaultPath := ".tasks.org"
 
 	// Setup logging to stderr so it doesn't interfere with stdout (which is used for MCP protocol)
 	logger := log.New(os.Stderr, "[org-mcp] ", log.LstdFlags|log.Lshortfile)
@@ -92,7 +83,7 @@ func main() {
 				},
 			},
 		},
-		func(args map[string]any) (resp any, err error) {
+		func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
 			response := map[string]any{}
 
 			filePath, ok := args["path"].(string)
@@ -160,7 +151,7 @@ func main() {
 					},
 				},
 			},
-		}, func(args map[string]any) (resp any, err error) {
+		}, func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
 			filePath, ok := args["path"].(string)
 
 			if !ok || filePath == "" {
@@ -173,10 +164,8 @@ func main() {
 			}
 
 			// Get the index (uid) from the arguments
-			var uid int
-			if indexVal, ok := args["uid"].(float64); ok {
-				uid = int(indexVal)
-			} else {
+			uid, ok := args["uid"].(string)
+			if !ok {
 				return nil, errors.New("invalid or missing uid parameter")
 			}
 
@@ -187,9 +176,9 @@ func main() {
 			}
 
 			// Retrieve the header by uid
-			header, ok := of.GetUid(uid).Split()
+			header, ok := of.GetUid(orgmcp.NewUid(uid)).Split()
 			if !ok {
-				return nil, fmt.Errorf("header with uid %d not found", uid)
+				return nil, fmt.Errorf("header with uid %s not found", uid)
 			}
 
 			// Render the header with the specified depth
@@ -237,14 +226,14 @@ func main() {
 					},
 				},
 			},
-		}, func(args map[string]any) (resp any, err error) {
+		}, func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
 			response := []any{}
 			uids := []int{}
 
-			if idcs, ok := args["uid"].([]any); ok {
-				for _, idx := range idcs {
-					if i, ok := idx.(float64); ok {
-						uids = append(uids, int(i))
+			if uids, ok := args["uid"].([]any); ok {
+				for _, uid := range uids {
+					if u, ok := uid.(string); ok {
+						uids = append(uids, orgmcp.NewUid(u))
 					} else {
 						err = fmt.Errorf("invalid uid type in array")
 						return
@@ -269,7 +258,7 @@ func main() {
 			for _, uid := range uids {
 				var r orgmcp.Render
 				var h *orgmcp.Header
-				if r, ok = org_file.GetUid(uid).Split(); !ok {
+				if r, ok = org_file.GetUid(orgmcp.NewUid(uid)).Split(); !ok {
 					err = fmt.Errorf("Header #%d not found", uid)
 					return
 				}
@@ -321,7 +310,7 @@ func main() {
 				},
 			},
 		},
-		func(args map[string]any) (resp any, err error) {
+		func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
 			filePath, ok := args["path"].(string)
 			if !ok || filePath == "" {
 				filePath = defaultPath
@@ -332,11 +321,10 @@ func main() {
 				return
 			}
 
-			parentUidFloat, ok := args["parent_uid"].(float64)
+			parentUid, ok := args["parent_uid"].(string)
 			if !ok {
 				return nil, errors.New("Invalid or missing parent_uid parameter")
 			}
-			parentUid := int(parentUidFloat)
 
 			title, ok := args["title"].(string)
 			if !ok || strings.TrimSpace(title) == "" {
@@ -350,7 +338,7 @@ func main() {
 				status = orgmcp.Todo
 			}
 
-			render, ok := of.GetUid(parentUid).Split()
+			render, ok := of.GetUid(orgmcp.NewUid(parentUid)).Split()
 			if !ok {
 				return nil, errors.New("Parent header not found.")
 			}
@@ -384,143 +372,7 @@ func main() {
 		},
 	)
 
-	server.AddTool(
-		mcp.Tool{
-			Name: "manage_bullet",
-			Description: "Add, remove or complete a bullet point from a header/task.\n" +
-				"Use method 'add' to insert a bullet point, or 'remove' to delete one.\n" +
-				"Index is used for both cases but not mandatory for additions. As well as managing content\n",
-			InputSchema: map[string]any{
-				"type":     "object",
-				"required": []string{"method", "header_uid", "index"},
-				"properties": map[string]any{
-					"method": map[string]any{
-						"type":        "string",
-						"enum":        []string{"add", "remove", "complete", "toggle", "set_content"},
-						"description": "The method by which to manage the bullet point.",
-					},
-					"header_uid": map[string]any{
-						"type":        "number",
-						"description": "UID of the header/task to modify.",
-					},
-					"index": map[string]any{
-						"type":        "number",
-						"description": "The index of the bullet you want to manage or add.",
-					},
-					"content": map[string]any{
-						"type":        "string",
-						"description": "Text content of the bullet (required for add).",
-					},
-					"checkbox": map[string]any{
-						"type":        "string",
-						"description": "Checkbox status for the new bullet (required for add).",
-						// TODO: add partial checked
-						"enum": []string{"Unchecked", "Checked"},
-					},
-					"path": map[string]any{
-						"type":        "string",
-						"description": "Optional file path, defaults to ./.tasks.org.",
-					},
-				},
-			},
-		},
-		func(args map[string]any) (resp any, err error) {
-			filePath, ok := args["path"].(string)
-			if !ok || filePath == "" {
-				filePath = defaultPath
-			}
-
-			of, err := loadOrgFile(filePath)
-			if err != nil {
-				return nil, err
-			}
-
-			header_uid_float, ok := args["header_uid"].(float64)
-			if !ok {
-				return nil, errors.New("invalid or missing header_uid parameter")
-			}
-			header_uid := int(header_uid_float)
-
-			method, ok := args["method"].(string)
-			if !ok {
-				return nil, errors.New("invalid or missing method parameter")
-			}
-
-			header, ok := of.GetUid(header_uid).Split()
-			if !ok {
-				return nil, fmt.Errorf("header with uid %d not found", header_uid)
-			}
-
-			indexFloat, ok := args["index"].(float64)
-			if !ok {
-				indexFloat = float64(len(header.Children()))
-			}
-			index := int(indexFloat)
-
-			bullet := of.GetUid(header_uid + index + 1)
-
-			switch method {
-			case "add":
-				content, ok := args["content"].(string)
-				if !ok || strings.TrimSpace(content) == "" {
-					return nil, errors.New("content is required for add method")
-				}
-
-				var c string
-				if c, ok = args["checkbox"].(string); !ok {
-					return nil, errors.New("invalid or missing checkbox parameter")
-				}
-
-				bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(c))
-				bullet.SetContent(content)
-				bullet.SetIndex(index)
-			case "remove":
-				bullet.Then(func(r orgmcp.Render) {
-					header.RemoveChildren(r.Uid())
-				})
-			case "complete":
-				bullet.Then(func(r orgmcp.Render) {
-					if b, ok := r.(*orgmcp.Bullet); ok {
-						b.CompleteCheckbox()
-					}
-				})
-			case "toggle":
-				bullet.Then(func(r orgmcp.Render) {
-					if b, ok := r.(*orgmcp.Bullet); ok {
-						b.ToggleCheckbox()
-					}
-				})
-			case "set_content":
-				content, ok := args["content"].(string)
-				if !ok || strings.TrimSpace(content) == "" {
-					return nil, errors.New("content is required for set_content method")
-				}
-
-				bullet.Then(func(r orgmcp.Render) {
-					if b, ok := r.(*orgmcp.Bullet); ok {
-						b.SetContent(content)
-					}
-				})
-			default:
-				return nil, errors.New("invalid method; must be 'add', 'remove', 'complete', 'toggle' or 'set_content'")
-			}
-
-			header.CheckProgress()
-			builder := strings.Builder{}
-			header.Render(&builder, 1)
-
-			resp = map[string]any{
-				"header_uid": header_uid,
-				"index":      index,
-				"content":    builder.String(),
-				"method":     method,
-			}
-
-			err = writeOrgFileToDisk(of, filePath)
-
-			return
-		},
-	)
+	server.AddTool(tools.BulletTool, tools.BulletFunc)
 
 	server.AddTool(mcp.Tool{
 		Name: "vector_search",
@@ -545,7 +397,7 @@ func main() {
 				},
 			},
 		},
-	}, func(args map[string]any) (resp any, err error) {
+	}, func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
 		filePath, ok := args["path"].(string)
 		if !ok || strings.TrimSpace(filePath) == "" {
 			filePath = defaultPath

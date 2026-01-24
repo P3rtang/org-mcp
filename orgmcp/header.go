@@ -147,7 +147,7 @@ func (h *Header) AddChildren(render ...Render) error {
 	return nil
 }
 
-func (b *Header) RemoveChildren(uids ...int) error {
+func (b *Header) RemoveChildren(uids ...Uid) error {
 	b.children = slice.Filter(b.children, func(r Render) bool {
 		return slices.Contains(uids, b.Uid())
 	})
@@ -253,15 +253,15 @@ func (b *Header) ChildrenRec() []Render {
 	return children
 }
 
-func (b *Header) Uid() int {
-	return b.properties.content["ID"].Int().Unwrap()
+func (b *Header) Uid() Uid {
+	return NewUid(b.properties.content["ID"].Int().Unwrap())
 }
 
 // GetParentUid returns the UID of the parent header, if it exists
-func (h *Header) ParentUid() int {
-	return option.Map(h.Parent, func(r Render) int {
+func (h *Header) ParentUid() Uid {
+	return option.Map(h.Parent, func(r Render) Uid {
 		return r.Uid()
-	}).UnwrapOr(0)
+	}).UnwrapOr(NewUid(0))
 }
 
 // CreateSubheader creates a new header as a child of the current header
