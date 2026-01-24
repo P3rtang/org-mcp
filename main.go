@@ -151,11 +151,11 @@ func main() {
 					},
 				},
 			},
-		}, func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
+		}, func(args map[string]any, options mcp.FuncOptions) (resp any, err error) {
 			filePath, ok := args["path"].(string)
 
 			if !ok || filePath == "" {
-				filePath = defaultPath
+				filePath = options.DefaultPath
 			}
 
 			of, err := loadOrgFile(filePath)
@@ -163,9 +163,14 @@ func main() {
 				return
 			}
 
+			fmt.Fprintf(os.Stderr, "\nuid: %v\n", args["uid"])
 			// Get the index (uid) from the arguments
-			uid, ok := args["uid"].(string)
-			if !ok {
+			uid := -1
+			if u, ok := args["uid"].(float64); ok {
+				uid = int(u)
+			}
+
+			if uid == -1 {
 				return nil, errors.New("invalid or missing uid parameter")
 			}
 
@@ -178,7 +183,7 @@ func main() {
 			// Retrieve the header by uid
 			header, ok := of.GetUid(orgmcp.NewUid(uid)).Split()
 			if !ok {
-				return nil, fmt.Errorf("header with uid %s not found", uid)
+				return nil, fmt.Errorf("header with uid %v not found", uid)
 			}
 
 			// Render the header with the specified depth
