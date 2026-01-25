@@ -142,7 +142,17 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 }
 
 func (h *Header) AddChildren(render ...Render) error {
+	for _, child := range render {
+		child.SetParent(h)
+	}
+
 	h.children = append(h.children, render...)
+
+	return nil
+}
+
+func (h *Header) SetParent(render Render) error {
+	h.Parent = option.Some(render)
 
 	return nil
 }

@@ -52,6 +52,13 @@ func (p *PlainText) AddChildren(r ...Render) error {
 	return errors.New("PlainText cannot have children")
 }
 
+func (p *PlainText) SetParent(r Render) error {
+	p.parent = r
+	p.index = len(r.Children())
+
+	return nil
+}
+
 func (p *PlainText) RemoveChildren(...Uid) error {
 	return errors.New("PlainText cannot have children")
 }
@@ -69,7 +76,7 @@ func (p *PlainText) Uid() Uid {
 		return NewUid(-1)
 	}
 
-	return NewUid(fmt.Sprintf("%st%d", p.parent.Uid(), p.index))
+	return NewUid(fmt.Sprintf("%s.t%d", p.parent.Uid(), p.index))
 }
 func (p *PlainText) ParentUid() Uid {
 	if p.parent == nil {

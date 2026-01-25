@@ -355,10 +355,10 @@ func TestPlainTextFileUid(t *testing.T) {
 		t.Fatalf("failed to get header with UID 1")
 	}
 
-	text, ok := of.GetUid(NewUid("1t0")).Split()
+	text, ok := of.GetUid(NewUid("1.t0")).Split()
 
 	if !ok {
-		t.Fatalf("failed to get plain text with UID 1t0")
+		t.Fatalf("failed to get plain text with UID 1.t0")
 	}
 
 	builder := strings.Builder{}

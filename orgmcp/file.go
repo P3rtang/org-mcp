@@ -2,19 +2,21 @@ package orgmcp
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"github.com/p3rtang/org-mcp/embeddings"
-	"github.com/p3rtang/org-mcp/utils/itertools"
-	"github.com/p3rtang/org-mcp/utils/option"
-	"github.com/p3rtang/org-mcp/utils/reader"
-	"github.com/p3rtang/org-mcp/utils/result"
-	"github.com/p3rtang/org-mcp/utils/slice"
 	"io"
 	"maps"
 	"os"
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/p3rtang/org-mcp/embeddings"
+	"github.com/p3rtang/org-mcp/utils/itertools"
+	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/reader"
+	"github.com/p3rtang/org-mcp/utils/result"
+	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
 type SearchScore struct {
@@ -41,11 +43,16 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 
 	peek_reader := reader.NewPeekReader(bufio.NewReader(r))
 
-	var current_parent map[int]Render = map[int]Render{
+	current_line := 1
+
+	var currentParent map[int]Render = map[int]Render{
 		0: &org_file,
 	}
-	current_parent_idx := 0
-	var current_line = 1
+	currentParentIdx := 0
+
+	var currentContent map[int]Render = map[int]Render{}
+	currentContentIndex := 0
+	currentContentIndent := 0
 
 	for val, err := peek_reader.PeekBytes('\n'); true; val, err = peek_reader.PeekBytes('\n') {
 		if err == io.EOF {
@@ -65,20 +72,40 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		case '*':
 			peek_reader.Continue()
 			NewHeaderFromString(string(val), peek_reader).Then(func(h Header) {
-				h.Parent = option.Some(current_parent[h.Level])
+				h.Parent = option.Some(currentParent[h.Level])
 				h.location = current_line
-				current_parent[h.Level].AddChildren(&h)
+				currentParent[h.Level].AddChildren(&h)
 				org_file.items[h.Uid()] = &h
 				current_line += 1
-				current_parent[h.Level+1] = &h
-				current_parent_idx = h.Level + 1
+				currentParent[h.Level+1] = &h
+				currentParentIdx = h.Level + 1
+				currentContentIndex = 0
+				currentContentIndent = 0
 			})
 		case ' ':
-			ParseIndentedLine(peek_reader, current_parent[current_parent_idx]).Then(func(r Render) {
-				fmt.Fprintf(os.Stderr, "plain: %s\n", r.Uid())
-				org_file.items[r.Uid()] = r
+			ParseIndentedLine(peek_reader, currentParent[currentParentIdx]).Then(func(r Render) {
+				indent := r.IndentLevel()
+				if currentContentIndent == 0 {
+					currentContentIndent = indent
+				} else if currentContentIndent < indent {
+					currentContentIndent = indent
+					currentContentIndex += 1
+				}
+
+				currentContent[currentContentIndex] = r
 				current_line += 1
-				current_parent[current_parent_idx].AddChildren(r)
+
+				fmt.Fprintf(os.Stderr, "Current content index: %d\n", currentContentIndex)
+
+				if currentContentIndex >= 1 {
+					currentContent[currentContentIndex-1].AddChildren(r)
+				} else {
+					currentParent[currentParentIdx].AddChildren(r)
+				}
+
+				org_file.items[r.Uid()] = r
+
+				fmt.Fprintf(os.Stderr, "------------\nuid: %s\n------------\n", r.Uid())
 			})
 		default:
 			panic("unreachable")
@@ -102,23 +129,9 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	case '-':
 		fallthrough
 	case '*':
-		bullet := NewBulletFromReader(r)
-		bullet.Then(func(b *Bullet) {
-			b.index = len(parent.Children())
-			b.parent = option.Some(parent)
-		})
-
-		return option.Cast[*Bullet, Render](bullet)
+		return option.Cast[*Bullet, Render](NewBulletFromReader(r))
 	default:
-		plain := NewPlainTextFromReader(r)
-		plain.Then(func(pt *PlainText) {
-			pt.index = len(parent.Children())
-			pt.parent = parent
-		})
-
-		fmt.Fprintf(os.Stderr, "Parsed plain text: %#v\n", plain)
-
-		return option.Cast[*PlainText, Render](plain)
+		return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
 	}
 }
 
@@ -226,9 +239,17 @@ func (of *OrgFile) ChildrenRec() []Render {
 }
 
 func (of *OrgFile) AddChildren(r ...Render) error {
+	for _, child := range r {
+		child.SetParent(of)
+	}
+
 	of.children = append(of.children, r...)
 
 	return nil
+}
+
+func (of *OrgFile) SetParent(render Render) error {
+	return errors.New("OrgFile cannot have a parent")
 }
 
 func (of *OrgFile) RemoveChildren(uids ...Uid) error {

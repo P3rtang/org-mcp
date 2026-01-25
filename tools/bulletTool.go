@@ -35,8 +35,9 @@ var BulletTool = mcp.Tool{
 		"- 'set_content': Updates the content of the bullet point. Requires 'content' parameter.\n\n" +
 		"The 'header_uid' parameter specifies the parent header under which the bullet point resides.\n" +
 		"The 'bullet_index' parameter specifies the position of the bullet point under the header (0-based index).\n\n" +
-		"When targeting a bullet, the uid is constructed as `header_uid + 'b' + bullet_index`.\n" +
-		"Bullets are not hierarchical yet; they exist directly under headers. No matter the indentation of the bullet in the org file, it is considered a direct child of the header.",
+		"When targeting a bullet, the uid is constructed as `header_uid + '.b' + bullet_index`.\n" +
+		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like h1.b0.b1\n",
+
 	InputSchema: map[string]any{
 		"type": "object",
 		"properties": map[string]any{

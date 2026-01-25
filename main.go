@@ -14,18 +14,6 @@ import (
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
-// loadOrgFile loads an OrgFile from the given file path.
-// It opens the file, reads it using OrgFileFromReader, and returns the result.
-func loadOrgFile(filePath string) (orgmcp.OrgFile, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return orgmcp.OrgFile{}, err
-	}
-	defer file.Close()
-
-	return orgmcp.OrgFileFromReader(file).Split()
-}
-
 // writeOrgFileToDisk renders the OrgFile and writes it to the provided file path.
 func writeOrgFileToDisk(of orgmcp.OrgFile, filePath string) (err error) {
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
@@ -92,7 +80,7 @@ func main() {
 				filePath = defaultPath
 			}
 
-			of, err := loadOrgFile(filePath)
+			of, err := mcp.LoadOrgFile(filePath)
 			if err != nil {
 				return
 			}
@@ -158,7 +146,7 @@ func main() {
 				filePath = options.DefaultPath
 			}
 
-			of, err := loadOrgFile(filePath)
+			of, err := mcp.LoadOrgFile(filePath)
 			if err != nil {
 				return
 			}
@@ -255,7 +243,7 @@ func main() {
 				filePath = defaultPath
 			}
 
-			org_file, err := loadOrgFile(filePath)
+			org_file, err := mcp.LoadOrgFile(filePath)
 			if err != nil {
 				return
 			}
@@ -321,7 +309,7 @@ func main() {
 				filePath = defaultPath
 			}
 
-			of, err := loadOrgFile(filePath)
+			of, err := mcp.LoadOrgFile(filePath)
 			if err != nil {
 				return
 			}
@@ -418,7 +406,7 @@ func main() {
 			top_n = 3.0
 		}
 
-		of, err := loadOrgFile(filePath)
+		of, err := mcp.LoadOrgFile(filePath)
 		if err != nil {
 			return
 		}

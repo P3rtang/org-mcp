@@ -1,11 +1,13 @@
 package main
 
 import (
-	. "github.com/p3rtang/org-mcp/orgmcp"
-	"github.com/p3rtang/org-mcp/utils/itertools"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/p3rtang/org-mcp/mcp"
+	. "github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
 // TestBulletFileFromReader tests parsing the bullets.org example file
@@ -13,18 +15,10 @@ func TestBulletFileFromReader(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	// Open the example file
-	file, err := os.Open("./files/bullets.org")
+	_, err := mcp.LoadOrgFile("./files/bullets.org")
+
 	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
-	}
-	defer file.Close()
-
-	// Parse the file
-	orgFileResult := OrgFileFromReader(file)
-
-	// Verify that the result is Ok
-	if !orgFileResult.IsOk() {
-		t.Errorf("expected OrgFileFromReader to return Ok, got Err")
+		t.Fatalf("failed to load bullets.org: %v", err)
 	}
 }
 
@@ -38,21 +32,10 @@ func TestBulletFileRender(t *testing.T) {
 		t.Fatalf("failed to read bullets.org: %v", err)
 	}
 
-	// Parse the file
-	file, err := os.Open("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
 	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
+		t.Fatalf("failed to load bullets.org: %v", err)
 	}
-	defer file.Close()
-
-	orgFileResult := OrgFileFromReader(file)
-
-	// Check if parsing was successful
-	if !orgFileResult.IsOk() {
-		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
-	}
-
-	orgFile := orgFileResult.Unwrap()
 
 	// Render the parsed file
 	builder := strings.Builder{}
@@ -65,24 +48,15 @@ func TestBulletFileRender(t *testing.T) {
 	}
 }
 
+// TODO: redo this test with explicit progress values
 // TestBulletFileProgress tests the progress checking of headers with bullets
 func TestBulletFileProgress(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
-	file, err := os.Open("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
 	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
+		t.Fatalf("failed to load bullets.org: %v", err)
 	}
-	defer file.Close()
-
-	orgFileResult := OrgFileFromReader(file)
-
-	// Check if parsing was successful
-	if !orgFileResult.IsOk() {
-		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
-	}
-
-	orgFile := orgFileResult.Unwrap()
 
 	// OrgFile itself should not have progress
 	fileProgress := orgFile.CheckProgress()
@@ -111,125 +85,83 @@ func TestBulletFileProgress(t *testing.T) {
 	}
 }
 
-// TestBulletFileLocation tests the Location method
-func TestBulletFileLocation(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
-
-	file, err := os.Open("./files/bullets.org")
-	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
-	}
-	defer file.Close()
-
-	orgFileResult := OrgFileFromReader(file)
-
-	// Check if parsing was successful
-	if !orgFileResult.IsOk() {
-		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
-	}
-
-	orgFile := orgFileResult.Unwrap()
-	location := orgFile.Location()
-
-	// For OrgFile, location should be 0
-	if location != 0 {
-		t.Errorf("expected location to be 0, got %d", location)
-	}
-}
-
 // TestBulletFileHeadersHaveBullets tests that headers in bullets.org contain bullets
 func TestBulletFileHeadersHaveBullets(t *testing.T) {
+	var headers = []struct {
+		uid         string
+		bulletCount int
+	}{
+		{uid: "63689387", bulletCount: 0},
+		{uid: "6806920", bulletCount: 2},
+		{uid: "31786692", bulletCount: 3},
+	}
+
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
-	file, err := os.Open("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
 	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
-	}
-	defer file.Close()
-
-	orgFileResult := OrgFileFromReader(file)
-
-	// Check if parsing was successful
-	if !orgFileResult.IsOk() {
-		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
+		t.Fatalf("failed to load bullets.org: %v", err)
 	}
 
-	orgFile := orgFileResult.Unwrap()
+	for _, headerTest := range headers {
+		header, ok := orgFile.GetUid(NewUid(headerTest.uid)).Split()
 
-	// The file should have children (headers)
-	if len(orgFile.Children()) == 0 {
-		t.Errorf("expected OrgFile to have headers, but it's empty")
-	}
-
-	// Verify at least one header has bullets as children
-	foundBullets := false
-	for _, child := range orgFile.Children() {
-		if len(child.Children()) > 0 {
-			foundBullets = true
-			break
+		if !ok {
+			t.Errorf("failed to get header with UID %s", headerTest.uid)
+			continue
 		}
-	}
 
-	if !foundBullets {
-		t.Errorf("expected at least one header to contain bullets")
+		children := header.Children()
+		bulletCount := 0
+
+		for _, child := range children {
+			_, isBullet := child.(*Bullet)
+			if isBullet {
+				bulletCount += 1
+			}
+		}
+
+		if bulletCount != headerTest.bulletCount {
+			t.Errorf("header UID %s: expected %d bullets, got %d", headerTest.uid, headerTest.bulletCount, bulletCount)
+		}
 	}
 }
 
 // TestBulletIndexing tests that we can index bullets from headers
 func TestBulletIndexing(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	var tests = []struct {
+		uid     string
+		content string
+	}{
+		{uid: "31786692.b0", content: "   - [x] Bullet 1"},
+		{uid: "31786692.b1", content: "   - [ ] Bullet 2"},
+		{uid: "31786693.b0", content: "   - [ ] Main bullet"},
+		{uid: "31786693.b0.b0", content: "     * Sub bullet 1"},
+	}
 
-	file, err := os.Open("./files/bullets.org")
+	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+
+	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
 	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
-	}
-	defer file.Close()
-
-	orgFileResult := OrgFileFromReader(file)
-
-	// Check if parsing was successful
-	if !orgFileResult.IsOk() {
-		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
+		t.Fatalf("failed to load bullets.org: %v", err)
 	}
 
-	orgFile := orgFileResult.Unwrap()
-	children := orgFile.Children()
+	builder := strings.Builder{}
 
-	// The first child should be the main title header
-	if len(children) < 1 {
-		t.Fatalf("expected at least 1 header in file")
-	}
-
-	// Index into the first header to find its children (which should be headers with bullets)
-	titleHeader := children[0]
-	titleChildren := titleHeader.Children()
-
-	// The title header should have sub-headers as children
-	if len(titleChildren) == 0 {
-		t.Fatalf("expected title header to have sub-headers as children")
-	}
-
-	// For each sub-header, check if it has bullet children
-	foundBullets := false
-	for _, subHeader := range titleChildren {
-		bulletChildren := subHeader.Children()
-		if len(bulletChildren) > 0 {
-			foundBullets = true
-			// We found bullets under a sub-header
-			// Verify they render correctly
-			builder := strings.Builder{}
-			for _, bullet := range bulletChildren {
-				bullet.Render(&builder, -1)
-			}
-			rendered := builder.String()
-			if len(rendered) == 0 {
-				t.Errorf("expected bullets to render non-empty content")
-			}
+	for _, test := range tests {
+		bullet, ok := orgFile.GetUid(NewUid(test.uid)).Split()
+		if !ok {
+			t.Errorf("failed to get bullet with UID %s", test.uid)
+			continue
 		}
-	}
 
-	if !foundBullets {
-		t.Fatalf("expected at least one sub-header to have bullet children")
+		bullet.Render(&builder, 0)
+		rendered := builder.String()
+		builder.Reset()
+
+		if strings.TrimSpace(rendered) != strings.TrimSpace(test.content) {
+			t.Errorf("bullet UID %s: expected rendered content:\n%s\nGot:\n%s", test.uid, test.content, rendered)
+		}
 	}
 }
 

@@ -212,6 +212,14 @@ func (b *Bullet) Render(builder *strings.Builder, depth int) {
 	// Render content
 	builder.WriteString(b.content)
 	builder.WriteRune('\n')
+
+	if depth == 0 {
+		return
+	}
+
+	for _, child := range b.children {
+		child.Render(builder, depth-1)
+	}
 }
 
 func (b *Bullet) IndentLevel() int {
@@ -223,9 +231,22 @@ func (b *Bullet) AddChildren(r ...Render) error {
 		if _, ok := child.(*Bullet); !ok {
 			return errors.New("can only add Bullet children to Bullet")
 		}
+
+		child.SetParent(b)
 	}
 
 	b.children = append(b.children, r...)
+
+	return nil
+}
+
+func (b *Bullet) SetParent(render Render) error {
+	if option.Map(b.parent, func(r Render) Uid { return r.Uid() }) == option.Some(render.Uid()) {
+		return nil
+	}
+
+	b.index = len(render.Children())
+	b.parent = option.Some(render)
 
 	return nil
 }
@@ -254,7 +275,7 @@ func (b *Bullet) ChildrenRec() []Render {
 
 func (b *Bullet) Uid() Uid {
 	return option.Map(b.parent, func(r Render) Uid {
-		return NewUid(fmt.Sprintf("%sb%d", r.Uid(), b.index))
+		return NewUid(fmt.Sprintf("%s.b%d", r.Uid(), b.index))
 	}).UnwrapOr(NewUid(-1))
 }
 
