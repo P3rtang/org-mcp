@@ -35,7 +35,8 @@ var BulletTool = mcp.Tool{
 		"- 'set_content': Updates the content of the bullet point. Requires 'content' parameter.\n\n" +
 		"The 'header_uid' parameter specifies the parent header under which the bullet point resides.\n" +
 		"The 'bullet_index' parameter specifies the position of the bullet point under the header (0-based index).\n\n" +
-		"When targeting a bullet, the uid is constructed as `header_uid + 'b' + bullet_index`.",
+		"When targeting a bullet, the uid is constructed as `header_uid + 'b' + bullet_index`.\n" +
+		"Bullets are not hierarchical yet; they exist directly under headers. No matter the indentation of the bullet in the org file, it is considered a direct child of the header.",
 	InputSchema: map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -62,7 +63,7 @@ var BulletTool = mcp.Tool{
 							"type":        "string",
 							"description": "Checkbox status for the new bullet.",
 							// TODO: add partial checked
-							"enum": []string{"Unchecked", "Checked"},
+							"enum": []string{"None", "Unchecked", "Checked"},
 						},
 					},
 				},
