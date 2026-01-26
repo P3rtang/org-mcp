@@ -168,7 +168,10 @@ func (b *Header) RemoveChildren(uids ...Uid) error {
 func (h *Header) Render(builder *strings.Builder, depth int) {
 	builder.WriteString(strings.Repeat("*", h.Level+1))
 	builder.WriteString(" ")
-	builder.WriteString(h.Status.String())
+	if h.Status != None {
+		builder.WriteString(h.Status.String())
+		builder.WriteString(" ")
+	}
 	builder.WriteString(h.Content)
 
 	h.Progress.Then(func(p Progress) {

@@ -16,7 +16,7 @@ type FuncOptions struct {
 	DefaultPath string
 }
 
-type ToolFunc func(map[string]any, FuncOptions) (any, error)
+type ToolFunc func(map[string]any, FuncOptions) ([]any, error)
 
 // Server handles MCP protocol communication over stdio
 type Server struct {

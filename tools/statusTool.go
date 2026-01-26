@@ -25,7 +25,7 @@ var StatusTool = mcp.Tool{
 		},
 	},
 
-	Callback: func(args map[string]any, options mcp.FuncOptions) (resp any, err error) {
+	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
 		var input InputSchema
 
 		bytes, err := json.Marshal(args)
@@ -50,7 +50,7 @@ var StatusTool = mcp.Tool{
 			return
 		}
 
-		resp = orgFile.GetStatusOverview()
+		resp = []any{orgFile.GetStatusOverview()}
 
 		return
 	},

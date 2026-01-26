@@ -11,11 +11,18 @@ import (
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/tools"
+	"github.com/p3rtang/org-mcp/utils/diff"
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
 // writeOrgFileToDisk renders the OrgFile and writes it to the provided file path.
-func writeOrgFileToDisk(of orgmcp.OrgFile, filePath string) (err error) {
+// It returns a diff of the changes made to the file.
+func writeOrgFileToDisk(of orgmcp.OrgFile, filePath string) (diffStr string, err error) {
+	oldContent, err := os.ReadFile(filePath)
+	if err != nil && !os.IsNotExist(err) {
+		return
+	}
+
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 	if err != nil {
 		return
@@ -24,9 +31,30 @@ func writeOrgFileToDisk(of orgmcp.OrgFile, filePath string) (err error) {
 
 	builder := strings.Builder{}
 	of.Render(&builder, -1)
+	newContent := builder.String()
 
-	_, err = file.WriteString(builder.String())
+	_, err = file.WriteString(newContent)
+	if err != nil {
+		return
+	}
 
+	diffStr = fmt.Sprintf("%v", diff.GetDiff(filePath, string(oldContent), newContent))
+	return
+}
+
+// GetDiffOnly renders the OrgFile and returns a diff against the current disk content
+// without modifying the file on disk.
+func GetDiffOnly(of orgmcp.OrgFile, filePath string) (diffStr string, err error) {
+	oldContent, err := os.ReadFile(filePath)
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+
+	builder := strings.Builder{}
+	of.Render(&builder, -1)
+	newContent := builder.String()
+
+	diffStr = fmt.Sprintf("%v", diff.GetDiff(filePath, string(oldContent), newContent))
 	return
 }
 
@@ -45,73 +73,6 @@ func main() {
 
 	// Create and run the MCP server
 	server := mcp.NewServer(os.Stdin, sender, logger)
-
-	// server.AddTool(
-	// 	mcp.Tool{
-	// 		Name: "get_header_by_status",
-	// 		Description: "Get all headers that have the input status set.\n" +
-	// 			"If a subheader is specified, only its descendant headers are considered." +
-	// 			"To view the contents of the returned header use the view_header tool.",
-	// 		InputSchema: map[string]any{
-	// 			"type": "object",
-	// 			"properties": map[string]any{
-	// 				"status": map[string]any{
-	// 					"type":        "string",
-	// 					"description": "The status the headers should have.",
-	// 					"enum":        []string{"TODO", "NEXT", "PROG", "DONE"},
-	// 				},
-	// 				"subheader": map[string]any{
-	// 					"type":        "number",
-	// 					"description": "The subheader to filter by.",
-	// 				},
-	// 				"path": map[string]any{
-	// 					"type":        "string",
-	// 					"description": "An optional file path, will default to the configured org file.",
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// 	func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
-	// 		response := map[string]any{}
-	//
-	// 		filePath, ok := args["path"].(string)
-	//
-	// 		if !ok || filePath == "" {
-	// 			filePath = defaultPath
-	// 		}
-	//
-	// 		of, err := mcp.LoadOrgFile(filePath)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	//
-	// 		status := orgmcp.StatusFromString(args["status"].(string))
-	//
-	// 		if status == orgmcp.None {
-	// 			return nil, errors.New("invalid status")
-	// 		}
-	//
-	// 		response["headers"] = slice.Map(of.GetHeaderByStatus(status), func(h *orgmcp.Header) map[string]any {
-	// 			builder := strings.Builder{}
-	// 			h.Render(&builder, 1)
-	//
-	// 			return map[string]any{
-	// 				"uid":        h.Uid(),
-	// 				"content":    builder.String(),
-	// 				"parent_uid": h.ParentUid(),
-	// 			}
-	// 		})
-	//
-	// 		err = writeOrgFileToDisk(of, filePath)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	//
-	// 		resp = response
-	//
-	// 		return
-	// 	},
-	// )
 
 	server.AddTool(
 		mcp.Tool{
@@ -139,7 +100,7 @@ func main() {
 					},
 				},
 			},
-		}, func(args map[string]any, options mcp.FuncOptions) (resp any, err error) {
+		}, func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
 			filePath, ok := args["path"].(string)
 
 			if !ok || filePath == "" {
@@ -184,9 +145,12 @@ func main() {
 				"parent_uid": header.ParentUid(),
 			}
 
-			_ = writeOrgFileToDisk(of, filePath)
+			diffStr, _ := writeOrgFileToDisk(of, filePath)
+			if diffStr != "" {
+				response["diff"] = diffStr
+			}
 
-			return response, nil
+			return []any{response}, nil
 		},
 	)
 
@@ -219,7 +183,7 @@ func main() {
 					},
 				},
 			},
-		}, func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
+		}, func(args map[string]any, _ mcp.FuncOptions) (resp []any, err error) {
 			response := []any{}
 			uids := []int{}
 
@@ -243,7 +207,7 @@ func main() {
 				filePath = defaultPath
 			}
 
-			org_file, err := mcp.LoadOrgFile(filePath)
+			orgFile, err := mcp.LoadOrgFile(filePath)
 			if err != nil {
 				return
 			}
@@ -251,7 +215,7 @@ func main() {
 			for _, uid := range uids {
 				var r orgmcp.Render
 				var h *orgmcp.Header
-				if r, ok = org_file.GetUid(orgmcp.NewUid(uid)).Split(); !ok {
+				if r, ok = orgFile.GetUid(orgmcp.NewUid(uid)).Split(); !ok {
 					err = fmt.Errorf("Header #%d not found", uid)
 					return
 				}
@@ -269,9 +233,16 @@ func main() {
 				}
 			}
 
-			err = writeOrgFileToDisk(org_file, filePath)
+			diffStr, err := writeOrgFileToDisk(orgFile, filePath)
 
-			return response, err
+			if err != nil {
+				return nil, err
+			}
+
+			return []any{map[string]any{
+				"results": response,
+				"diff":    diffStr,
+			}}, nil
 		},
 	)
 
@@ -303,7 +274,7 @@ func main() {
 				},
 			},
 		},
-		func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
+		func(args map[string]any, _ mcp.FuncOptions) (resp []any, err error) {
 			filePath, ok := args["path"].(string)
 			if !ok || filePath == "" {
 				filePath = defaultPath
@@ -342,24 +313,21 @@ func main() {
 			}
 
 			newHeader := parentHeader.CreateSubheader(title, status)
-			builder := strings.Builder{}
-			of.Render(&builder, -1)
 
-			file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+			diffStr, err := writeOrgFileToDisk(of, filePath)
+
 			if err != nil {
 				return nil, err
 			}
-			defer file.Close()
 
-			file.WriteString(builder.String())
-
-			builder.Reset()
+			builder := strings.Builder{}
 			parentHeader.Render(&builder, 1)
-			resp = map[string]any{
+			resp = []any{map[string]any{
 				"uid":        newHeader.Uid(),
 				"parent_uid": parentUid,
 				"content":    builder.String(),
-			}
+				"diff":       diffStr,
+			}}
 
 			return
 		},
@@ -391,7 +359,7 @@ func main() {
 				},
 			},
 		},
-	}, func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
+	}, func(args map[string]any, _ mcp.FuncOptions) (resp []any, err error) {
 		filePath, ok := args["path"].(string)
 		if !ok || strings.TrimSpace(filePath) == "" {
 			filePath = defaultPath
@@ -414,7 +382,7 @@ func main() {
 
 		headers, err := of.VectorSearch(args["query"].(string), int(top_n))
 
-		resp = map[string]any{
+		resp = []any{map[string]any{
 			"results": slice.Map(headers, func(h *orgmcp.Header) map[string]any {
 				builder := strings.Builder{}
 				h.Render(&builder, 1)
@@ -425,7 +393,7 @@ func main() {
 					"parent_uid": h.ParentUid(),
 				}
 			}),
-		}
+		}}
 
 		return
 	})

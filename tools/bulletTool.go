@@ -36,7 +36,7 @@ var BulletTool = mcp.Tool{
 		"The 'header_uid' parameter specifies the parent header under which the bullet point resides.\n" +
 		"The 'bullet_index' parameter specifies the position of the bullet point under the header (0-based index).\n\n" +
 		"When targeting a bullet, the uid is constructed as `header_uid + '.b' + bullet_index`.\n" +
-		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like h1.b0.b1\n",
+		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like h1.b0.b1\n\n",
 
 	InputSchema: map[string]any{
 		"type": "object",
@@ -79,7 +79,7 @@ var BulletTool = mcp.Tool{
 	Callback: bulletFunc,
 }
 
-func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp any, err error) {
+func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
 	var response []map[string]any
 
 	bytes, err := json.Marshal(args)
@@ -172,8 +172,9 @@ func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp any, err err
 		builder.Reset()
 	}
 
-	err = writeOrgFileToDisk(of, path)
-	resp = response
+	diff, err := writeOrgFileToDisk(of, path)
+
+	resp = []any{diff, map[string]any{"results": response}}
 
 	return
 }
