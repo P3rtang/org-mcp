@@ -29,12 +29,12 @@ func StatusFromString(str string) HeaderStatus {
 	return None
 }
 
-func (s HeaderStatus) toString() string {
+func (s HeaderStatus) String() string {
 	if s == None {
 		return ""
 	}
 
-	return fmt.Sprintf("%s ", s)
+	return string(s)
 }
 
 func (s HeaderStatus) GetNext() HeaderStatus {
@@ -168,7 +168,7 @@ func (b *Header) RemoveChildren(uids ...Uid) error {
 func (h *Header) Render(builder *strings.Builder, depth int) {
 	builder.WriteString(strings.Repeat("*", h.Level+1))
 	builder.WriteString(" ")
-	builder.WriteString(h.Status.toString())
+	builder.WriteString(h.Status.String())
 	builder.WriteString(h.Content)
 
 	h.Progress.Then(func(p Progress) {

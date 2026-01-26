@@ -16,6 +16,10 @@ func NewUid[T UidValue](uid T) Uid {
 	return Uid{uid: fmt.Sprintf("%v", uid)}
 }
 
-func (u Uid) String() string {
+func (u *Uid) String() string {
 	return u.uid
+}
+
+func (u *Uid) MarshalText() ([]byte, error) {
+	return []byte(u.uid), nil
 }

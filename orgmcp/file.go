@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -114,7 +115,11 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 
 	peek_reader.Continue()
 
-	fmt.Fprintf(os.Stderr, "Finished parsing org file with %d items\nMap: %v", len(org_file.items), org_file.items)
+	fmt.Fprintf(os.Stderr, "Finished parsing org file with %d items\n", len(org_file.items))
+
+	for _, item := range org_file.items {
+		fmt.Fprintf(os.Stderr, "\t %s: %s\n", item.Uid(), reflect.TypeOf(item))
+	}
 
 	return result.Ok(org_file)
 }
@@ -305,6 +310,32 @@ func (of *OrgFile) GetHeaderByStatus(status HeaderStatus) []*Header {
 	}
 
 	return headers
+}
+
+type StatusReport struct {
+	Count int   `json:"count"`
+	Ids   []Uid `json:"ids"`
+}
+
+func (of *OrgFile) GetStatusOverview() map[HeaderStatus]StatusReport {
+	overview := make(map[HeaderStatus]StatusReport)
+
+	for _, child := range of.items {
+		if header, ok := child.(*Header); ok {
+			if header.Status != None {
+				if _, exists := overview[header.Status]; !exists {
+					overview[header.Status] = StatusReport{Count: 0, Ids: []Uid{}}
+				}
+
+				overview[header.Status] = StatusReport{
+					Count: overview[header.Status].Count + 1,
+					Ids:   append(overview[header.Status].Ids, header.Uid()),
+				}
+			}
+		}
+	}
+
+	return overview
 }
 
 func (of *OrgFile) Uid() Uid {

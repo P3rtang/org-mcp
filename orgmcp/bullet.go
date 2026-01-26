@@ -7,7 +7,7 @@ import (
 	o "github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/slice"
-	"os"
+	// "os"
 	"slices"
 	"strings"
 )
@@ -58,7 +58,7 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 	bullet := Bullet{}
 
 	line, err := r.ReadBytes('\n')
-	fmt.Fprintf(os.Stderr, "Parsing bullet: %s\n", string(line))
+	// fmt.Fprintf(os.Stderr, "Parsing bullet: %s\n", string(line))
 	if err != nil {
 		return o.None[*Bullet]()
 	}
@@ -101,7 +101,7 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 			break
 		}
 
-		fmt.Fprintf(os.Stderr, "Appending to bullet content: %s\n", string(line))
+		// fmt.Fprintf(os.Stderr, "Appending to bullet content: %s\n", string(line))
 
 		r.Continue()
 		bullet.content += "\n" + strings.TrimRight(string(line), "\n")

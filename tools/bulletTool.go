@@ -75,9 +75,11 @@ var BulletTool = mcp.Tool{
 			},
 		},
 	},
+
+	Callback: bulletFunc,
 }
 
-func BulletFunc(args map[string]any, options mcp.FuncOptions) (resp any, err error) {
+func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp any, err error) {
 	var response []map[string]any
 
 	bytes, err := json.Marshal(args)

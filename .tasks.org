@@ -241,12 +241,12 @@
      - [x] Change header status automatically from =NEXT=/=TODO= to =PROG= if a single checkbox is set
      - [x] Change header status to =DONE= if =CheckProgress= has =Done()= as true.
      - [x] Unit test new functionality
-*** NEXT Bullet children [0/7]
-    SCHEDULED: <2025-11-10 Mon> DEADLINE: <2025-11-11 Tue>
+*** PROG Bullet children [1/7]
+    SCHEDULED: <2026-01-26 Mon> DEADLINE: <2026-02-02 Mon>
     :PROPERTIES:
     :ID: 90135268
     :END:
-    - [ ] Add a children field to the bullet struct
+    - [x] Add a children field to the bullet struct
     - [ ] Assign a progress to a bullet point
     - [ ] Allow partially completed bullets =[-]=
     - [ ] Parse bullet children from the reader by peeking
@@ -268,6 +268,27 @@
     - [x] Unit test =Text= parsing
     - [x] Unit test rendering of =Text=
     - [x] Test the MCP integration by fetching a header and checking whether the plain text is returned as well.
+*** TODO Plain text modification
+    SCHEDULED: <2026-01-31 Sat> DEADLINE: <2026-02-02 Mon>
+    :PROPERTIES:
+    :ID: 73284623
+    :END:
+**** TODO add method
+    :PROPERTIES:
+    :ID: 46348459
+    :END:
+**** TODO modify method
+    :PROPERTIES:
+    :ID: 71553477
+    :END:
+**** TODO remove method
+    :PROPERTIES:
+    :ID: 71251836
+    :END:
+**** TODO testing
+    :PROPERTIES:
+    :ID: 13815625
+    :END:
 ** Dates and schedules
    :PROPERTIES:
    :ID: 45374501

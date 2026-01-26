@@ -46,72 +46,72 @@ func main() {
 	// Create and run the MCP server
 	server := mcp.NewServer(os.Stdin, sender, logger)
 
-	server.AddTool(
-		mcp.Tool{
-			Name: "get_header_by_status",
-			Description: "Get all headers that have the input status set.\n" +
-				"If a subheader is specified, only its descendant headers are considered." +
-				"To view the contents of the returned header use the view_header tool.",
-			InputSchema: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"status": map[string]any{
-						"type":        "string",
-						"description": "The status the headers should have.",
-						"enum":        []string{"TODO", "NEXT", "PROG", "DONE"},
-					},
-					"subheader": map[string]any{
-						"type":        "number",
-						"description": "The subheader to filter by.",
-					},
-					"path": map[string]any{
-						"type":        "string",
-						"description": "An optional file path, will default to the configured org file.",
-					},
-				},
-			},
-		},
-		func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
-			response := map[string]any{}
-
-			filePath, ok := args["path"].(string)
-
-			if !ok || filePath == "" {
-				filePath = defaultPath
-			}
-
-			of, err := mcp.LoadOrgFile(filePath)
-			if err != nil {
-				return
-			}
-
-			status := orgmcp.StatusFromString(args["status"].(string))
-
-			if status == orgmcp.None {
-				return nil, errors.New("invalid status")
-			}
-
-			response["headers"] = slice.Map(of.GetHeaderByStatus(status), func(h *orgmcp.Header) map[string]any {
-				builder := strings.Builder{}
-				h.Render(&builder, 1)
-
-				return map[string]any{
-					"uid":        h.Uid(),
-					"content":    builder.String(),
-					"parent_uid": h.ParentUid(),
-				}
-			})
-
-			err = writeOrgFileToDisk(of, filePath)
-			if err != nil {
-				return
-			}
-
-			resp = response
-
-			return
-		},
-	)
+	// server.AddTool(
+	// 	mcp.Tool{
+	// 		Name: "get_header_by_status",
+	// 		Description: "Get all headers that have the input status set.\n" +
+	// 			"If a subheader is specified, only its descendant headers are considered." +
+	// 			"To view the contents of the returned header use the view_header tool.",
+	// 		InputSchema: map[string]any{
+	// 			"type": "object",
+	// 			"properties": map[string]any{
+	// 				"status": map[string]any{
+	// 					"type":        "string",
+	// 					"description": "The status the headers should have.",
+	// 					"enum":        []string{"TODO", "NEXT", "PROG", "DONE"},
+	// 				},
+	// 				"subheader": map[string]any{
+	// 					"type":        "number",
+	// 					"description": "The subheader to filter by.",
+	// 				},
+	// 				"path": map[string]any{
+	// 					"type":        "string",
+	// 					"description": "An optional file path, will default to the configured org file.",
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// 	func(args map[string]any, _ mcp.FuncOptions) (resp any, err error) {
+	// 		response := map[string]any{}
+	//
+	// 		filePath, ok := args["path"].(string)
+	//
+	// 		if !ok || filePath == "" {
+	// 			filePath = defaultPath
+	// 		}
+	//
+	// 		of, err := mcp.LoadOrgFile(filePath)
+	// 		if err != nil {
+	// 			return
+	// 		}
+	//
+	// 		status := orgmcp.StatusFromString(args["status"].(string))
+	//
+	// 		if status == orgmcp.None {
+	// 			return nil, errors.New("invalid status")
+	// 		}
+	//
+	// 		response["headers"] = slice.Map(of.GetHeaderByStatus(status), func(h *orgmcp.Header) map[string]any {
+	// 			builder := strings.Builder{}
+	// 			h.Render(&builder, 1)
+	//
+	// 			return map[string]any{
+	// 				"uid":        h.Uid(),
+	// 				"content":    builder.String(),
+	// 				"parent_uid": h.ParentUid(),
+	// 			}
+	// 		})
+	//
+	// 		err = writeOrgFileToDisk(of, filePath)
+	// 		if err != nil {
+	// 			return
+	// 		}
+	//
+	// 		resp = response
+	//
+	// 		return
+	// 	},
+	// )
 
 	server.AddTool(
 		mcp.Tool{
@@ -365,7 +365,8 @@ func main() {
 		},
 	)
 
-	server.AddTool(tools.BulletTool, tools.BulletFunc)
+	server.AddTool(tools.BulletTool, nil)
+	server.AddTool(tools.StatusTool, nil)
 
 	server.AddTool(mcp.Tool{
 		Name: "vector_search",

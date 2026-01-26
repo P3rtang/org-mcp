@@ -165,6 +165,20 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 		return
 	}
 
+	if tool := s.tools[toolCall.Name]; tool.Callback != nil {
+		resp, error := tool.Callback(toolCall.Arguments, FuncOptions{DefaultPath: default_path})
+
+		fmt.Fprintln(os.Stderr, resp)
+
+		if error != nil {
+			s.sender.SendError(id, -32000, fmt.Sprintf("Tool error: %v", error))
+		} else {
+			s.sender.SendMcpContent(id, resp)
+		}
+
+		return
+	}
+
 	s.sender.SendError(id, -32601, fmt.Sprintf("Unknown tool: %s", toolCall.Name))
 }
 

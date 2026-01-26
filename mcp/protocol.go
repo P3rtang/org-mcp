@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"sync"
 )
 
@@ -20,6 +22,8 @@ type Tool struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
 	InputSchema map[string]any `json:"inputSchema"`
+
+	Callback func(map[string]any, FuncOptions) (any, error) `json:"-"`
 }
 
 // ServerCapabilities defines what the MCP server can do
@@ -104,7 +108,10 @@ func toRawMessage(v any) json.RawMessage {
 }
 
 func (ms *MessageSender) SendMcpContent(id any, content any) error {
+	fmt.Fprintf(os.Stderr, "[DEBUG] MCP Content to send: %+v\n", content)
 	text, err := json.Marshal(content)
+
+	fmt.Fprintf(os.Stderr, "[DEBUG] Sending MCP Content: %s\n", string(text))
 
 	if err != nil {
 		return err
