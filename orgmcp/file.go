@@ -86,12 +86,16 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		case ' ':
 			ParseIndentedLine(peek_reader, currentParent[currentParentIdx]).Then(func(r Render) {
 				indent := r.IndentLevel()
+
 				if currentContentIndent == 0 {
-					currentContentIndent = indent
 				} else if currentContentIndent < indent {
 					currentContentIndent = indent
 					currentContentIndex += 1
+				} else if currentContentIndent > indent {
+					currentContentIndent = indent
+					currentContentIndex -= 1
 				}
+				currentContentIndent = indent
 
 				currentContent[currentContentIndex] = r
 				current_line += 1
@@ -271,6 +275,7 @@ func (of *OrgFile) GetUid(uid Uid) option.Option[Render] {
 	}
 
 	if child, found := of.items[uid]; found {
+		fmt.Fprintf(os.Stderr, "Found child with uid %s of type %s\n", uid, reflect.TypeOf(child))
 		return option.Some(child)
 	}
 

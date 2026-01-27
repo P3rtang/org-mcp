@@ -49,8 +49,9 @@ var StatusTool = mcp.Tool{
 		if err != nil {
 			return
 		}
-
 		resp = []any{orgFile.GetStatusOverview()}
+
+		_, err = writeOrgFileToDisk(orgFile, path)
 
 		return
 	},

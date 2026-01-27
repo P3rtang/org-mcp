@@ -307,3 +307,53 @@ func TestBulletFileRemoveChildren(t *testing.T) {
 		t.Errorf("RemoveChildren failed, expected 0 children, got %d", len(header.Children()))
 	}
 }
+
+func TestBulletComplete(t *testing.T) {
+	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
+
+	type Test struct {
+		uid       Uid
+		expected  string
+		operation func(b *Bullet)
+	}
+
+	testMap := []Test{
+		{
+			uid:      NewUid("31786692.b1"),
+			expected: "   - [x] Bullet 2",
+			operation: func(b *Bullet) {
+				b.CompleteCheckbox()
+			},
+		},
+		{
+			uid:      NewUid("31786694.b1"),
+			expected: "   - [x] Main bullet 2",
+			operation: func(b *Bullet) {
+				b.CompleteCheckbox()
+			},
+		},
+	}
+
+	builder := strings.Builder{}
+
+	if err != nil {
+		t.Fatalf("failed to load bullets.org: %v", err)
+	}
+
+	for _, test := range testMap {
+		bullet, ok := orgFile.GetUid(test.uid).Split()
+		if !ok {
+			t.Errorf("failed to get bullet with UID %s", test.uid)
+		}
+
+		test.operation(bullet.(*Bullet))
+
+		bullet.Render(&builder, 0)
+		rendered := builder.String()
+		builder.Reset()
+
+		if strings.TrimSpace(rendered) != strings.TrimSpace(test.expected) {
+			t.Errorf("after completing, expected rendered content:\n%s\nGot:\n%s", test.expected, rendered)
+		}
+	}
+}

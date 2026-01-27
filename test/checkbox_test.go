@@ -31,7 +31,7 @@ func TestBulletToggleCheckbox(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Parse the bullet from string
-			bulletOpt := NewBulletFromString(tt.input, nil)
+			bulletOpt := NewBulletFromString(tt.input)
 			if bulletOpt.IsNone() {
 				t.Fatalf("expected BulletFromString to parse successfully")
 			}
@@ -77,7 +77,7 @@ func TestBulletCompleteCheckbox(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Parse the bullet from string
-			bulletOpt := NewBulletFromString(tt.input, nil)
+			bulletOpt := NewBulletFromString(tt.input)
 			if bulletOpt.IsNone() {
 				t.Fatalf("expected BulletFromString to parse successfully")
 			}
@@ -128,7 +128,7 @@ func TestBulletHasCheckbox(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Parse the bullet from string
-			bulletOpt := NewBulletFromString(tt.input, nil)
+			bulletOpt := NewBulletFromString(tt.input)
 			if bulletOpt.IsNone() {
 				t.Fatalf("expected BulletFromString to parse successfully")
 			}
@@ -192,7 +192,7 @@ func TestHeaderToggleCheckboxByIndex(t *testing.T) {
 
 			// Add bullet children
 			for _, bulletStr := range tt.initialBullets {
-				bulletOpt := NewBulletFromString("* "+bulletStr, &header)
+				bulletOpt := NewBulletFromString("* " + bulletStr)
 				if bulletOpt.IsSome() {
 					bullet := bulletOpt.Unwrap()
 					header.AddChild(&bullet)
@@ -272,7 +272,7 @@ func TestHeaderCompleteCheckboxByIndex(t *testing.T) {
 
 			// Add bullet children
 			for _, bulletStr := range tt.initialBullets {
-				bulletOpt := NewBulletFromString("* "+bulletStr, &header)
+				bulletOpt := NewBulletFromString("* " + bulletStr)
 				if bulletOpt.IsSome() {
 					bullet := bulletOpt.Unwrap()
 					header.AddChild(&bullet)
@@ -309,7 +309,7 @@ func TestCheckboxToggleRenderConsistency(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	// Create a bullet with Unchecked state
-	bulletOpt := NewBulletFromString("* [ ] Test bullet", nil)
+	bulletOpt := NewBulletFromString("* [ ] Test bullet")
 	if bulletOpt.IsNone() {
 		t.Fatalf("expected BulletFromString to parse successfully")
 	}
@@ -350,7 +350,7 @@ func TestCheckboxCompleteRenderConsistency(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	// Create a bullet with Unchecked state
-	bulletOpt := NewBulletFromString("* [ ] Test bullet", nil)
+	bulletOpt := NewBulletFromString("* [ ] Test bullet")
 	if bulletOpt.IsNone() {
 		t.Fatalf("expected BulletFromString to parse successfully")
 	}
@@ -612,7 +612,7 @@ func TestCheckboxEdgeCases(t *testing.T) {
 	t.Run("Negative index", func(t *testing.T) {
 		header := NewHeaderFromString("* Test header", nil).Unwrap()
 
-		bulletOpt := NewBulletFromString("* [ ] Test bullet", &header)
+		bulletOpt := NewBulletFromString("* [ ] Test bullet")
 		if bulletOpt.IsSome() {
 			bullet := bulletOpt.Unwrap()
 			header.AddChild(&bullet)

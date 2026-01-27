@@ -110,20 +110,10 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 	return option.Some(&bullet)
 }
 
-func NewBulletFromString(str string, parent Render) o.Option[Bullet] {
+func NewBulletFromString(str string) o.Option[Bullet] {
 	bullet := Bullet{}
 
-	if parent != nil {
-		bullet.index = len(parent.Children())
-	}
-
 	// fmt.Fprintf(os.Stderr, "%s\n", str)
-
-	if parent == nil {
-		bullet.parent = o.None[Render]()
-	} else {
-		bullet.parent = o.Some(parent)
-	}
 
 	if str[1] != ' ' {
 		return o.None[Bullet]()

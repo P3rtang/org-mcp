@@ -23,3 +23,13 @@
      * Sub bullet 1
      * Sub bullet 2
      * Sub bullet 3
+** TODO Header 4 [0/2]
+    :PROPERTIES:
+    :ID: 31786694
+    :END:
+   - [ ] Main bullet
+     * Sub bullet 1
+     * Sub bullet 2
+     * Sub bullet 3
+   - [ ] Main bullet 2
+     * Sub bullet 1
