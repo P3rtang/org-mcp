@@ -285,7 +285,7 @@ func (of *OrgFile) SetParent(render Render) error {
 
 func (of *OrgFile) RemoveChildren(uids ...Uid) error {
 	of.children = slice.Filter(of.children, func(r Render) bool {
-		return slices.Contains(uids, of.Uid())
+		return !slices.Contains(uids, r.Uid())
 	})
 
 	return nil

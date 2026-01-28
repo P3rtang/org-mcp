@@ -159,7 +159,23 @@ var HeaderTool = mcp.Tool{
 
 				parent.AddChildren(&newHeader)
 			case "remove":
-				err = orgFile.RemoveChildren(orgmcp.NewUid(headerOp.Uid))
+				header, ok := orgFile.GetUid(orgmcp.NewUid(headerOp.Uid)).Split()
+				if !ok {
+					err = errors.New("invalid header UID for removal")
+					return
+				}
+
+				parent, ok := orgFile.GetUid(header.ParentUid()).Split()
+				if !ok {
+					err = errors.New("Missing or invalid parent for header removal")
+					return
+				}
+
+				err = parent.RemoveChildren(orgmcp.NewUid(headerOp.Uid))
+
+				if err != nil {
+					return
+				}
 			case "update":
 				header, ok := option.Cast[orgmcp.Render, *orgmcp.Header](orgFile.GetUid(orgmcp.NewUid(headerOp.Uid))).Split()
 				if !ok {

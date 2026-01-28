@@ -165,7 +165,7 @@ func (h *Header) SetParent(render Render) error {
 
 func (b *Header) RemoveChildren(uids ...Uid) error {
 	b.children = slice.Filter(b.children, func(r Render) bool {
-		return slices.Contains(uids, b.Uid())
+		return !slices.Contains(uids, r.Uid())
 	})
 
 	return nil
