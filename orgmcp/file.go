@@ -73,13 +73,13 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		case '*':
 			peek_reader.Continue()
 			NewHeaderFromString(string(val), peek_reader).Then(func(h Header) {
-				h.Parent = option.Some(currentParent[h.Level])
+				h.Parent = option.Some(currentParent[h.Level()])
 				h.location = current_line
-				currentParent[h.Level].AddChildren(&h)
+				currentParent[h.Level()].AddChildren(&h)
 				org_file.items[h.Uid()] = &h
 				current_line += 1
-				currentParent[h.Level+1] = &h
-				currentParentIdx = h.Level + 1
+				currentParent[h.Level()+1] = &h
+				currentParentIdx = h.Level() + 1
 				currentContentIndex = 0
 				currentContentIndent = 0
 			})
@@ -248,6 +248,10 @@ func (of *OrgFile) CheckProgress() option.Option[Progress] {
 }
 
 func (of *OrgFile) IndentLevel() int {
+	return 0
+}
+
+func (of *OrgFile) Level() int {
 	return 0
 }
 

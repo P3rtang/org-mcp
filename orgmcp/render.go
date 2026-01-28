@@ -9,6 +9,7 @@ type Render interface {
 	CheckProgress() option.Option[Progress]
 	Render(builder *strings.Builder, depth int)
 	IndentLevel() int
+	Level() int
 	AddChildren(...Render) error
 	SetParent(Render) error
 	RemoveChildren(...Uid) error

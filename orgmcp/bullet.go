@@ -216,6 +216,10 @@ func (b *Bullet) IndentLevel() int {
 	return b.indent
 }
 
+func (b *Bullet) Level() int {
+	return option.Map(b.parent, func(r Render) int { return r.Level() }).UnwrapOr(0)
+}
+
 func (b *Bullet) AddChildren(r ...Render) error {
 	for _, child := range r {
 		if _, ok := child.(*Bullet); !ok {

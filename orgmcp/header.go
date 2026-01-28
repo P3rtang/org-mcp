@@ -22,8 +22,12 @@ func StatusFromString(str string) HeaderStatus {
 		return Next
 	case "prog":
 		return Prog
+	case "revw":
+		return Revw
 	case "done":
 		return Done
+	case "delg":
+		return Delg
 	}
 
 	return None
@@ -59,7 +63,9 @@ const (
 	Todo HeaderStatus = "TODO"
 	Next HeaderStatus = "NEXT"
 	Prog HeaderStatus = "PROG"
+	Revw HeaderStatus = "REVW"
 	Done HeaderStatus = "DONE"
+	Delg HeaderStatus = "DELG"
 )
 
 var SPECIAL_TOKENS = []string{"[", ":"}
@@ -69,7 +75,7 @@ var _ Render = (*Header)(nil)
 
 type Header struct {
 	Status   HeaderStatus
-	Level    int
+	level    int
 	Progress option.Option[Progress]
 	Tags     option.Option[TagList]
 	location int
@@ -98,7 +104,7 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 	defer stop()
 
 	level, _ := next()
-	header.Level = strings.Count(level, "*") - 1
+	header.level = strings.Count(level, "*") - 1
 
 	part, end := next()
 
@@ -166,7 +172,7 @@ func (b *Header) RemoveChildren(uids ...Uid) error {
 }
 
 func (h *Header) Render(builder *strings.Builder, depth int) {
-	builder.WriteString(strings.Repeat("*", h.Level+1))
+	builder.WriteString(strings.Repeat("*", h.Level()+1))
 	builder.WriteString(" ")
 	if h.Status != None {
 		builder.WriteString(h.Status.String())
@@ -243,7 +249,15 @@ func (h *Header) Location() int {
 }
 
 func (h *Header) IndentLevel() int {
-	return h.Level + 2
+	return h.level + 2
+}
+
+func (h *Header) Level() int {
+	return h.level
+}
+
+func (h *Header) SetLevel(level int) {
+	h.level = level
 }
 
 func (h *Header) AddChild(r Render) error {
@@ -282,7 +296,7 @@ func (h *Header) ParentUid() Uid {
 // A unique UID will be generated and assigned using NewPropertiesWithUID
 func (h *Header) CreateSubheader(title string, status HeaderStatus) *Header {
 	newHeader := &Header{
-		Level:      h.Level + 1,
+		level:      h.Level() + 1,
 		Status:     status,
 		Content:    title,
 		Parent:     option.Some(Render(h)),

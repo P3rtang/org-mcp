@@ -109,7 +109,14 @@ func (ms *MessageSender) SendMcpContent(id any, content []any) error {
 	contentList := []any{}
 
 	for _, c := range content {
-		text, err := json.Marshal(c)
+		var text []byte
+		var err error
+
+		if t, ok := c.(string); ok {
+			text = []byte(t)
+		} else {
+			text, err = json.Marshal(c)
+		}
 
 		if err != nil {
 			return err

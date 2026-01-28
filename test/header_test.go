@@ -17,8 +17,8 @@ func TestHeaderFromString(t *testing.T) {
 
 	header := NewHeaderFromString(input, nil).Unwrap()
 
-	if header.Level != expectedLevel {
-		t.Errorf("expected level %d, got %d", expectedLevel, header.Level)
+	if header.Level() != expectedLevel {
+		t.Errorf("expected level %d, got %d", expectedLevel, header.Level())
 	}
 
 	if header.Status != expectedStatus {

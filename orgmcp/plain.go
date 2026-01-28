@@ -48,6 +48,10 @@ func (p *PlainText) IndentLevel() int {
 	return p.indent
 }
 
+func (p *PlainText) Level() int {
+	return p.parent.Level()
+}
+
 func (p *PlainText) AddChildren(r ...Render) error {
 	return errors.New("PlainText cannot have children")
 }
