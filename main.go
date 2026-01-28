@@ -189,8 +189,8 @@ func main() {
 
 			if uids, ok := args["uid"].([]any); ok {
 				for _, uid := range uids {
-					if u, ok := uid.(string); ok {
-						uids = append(uids, orgmcp.NewUid(u))
+					if u, ok := uid.(float64); ok {
+						uids = append(uids, orgmcp.NewUid(int(u)))
 					} else {
 						err = fmt.Errorf("invalid uid type in array")
 						return
