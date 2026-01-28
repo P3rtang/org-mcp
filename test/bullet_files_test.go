@@ -312,6 +312,7 @@ func TestBulletComplete(t *testing.T) {
 	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
 
 	type Test struct {
+		name      string
 		uid       Uid
 		expected  string
 		operation func(b *Bullet)
@@ -319,6 +320,7 @@ func TestBulletComplete(t *testing.T) {
 
 	testMap := []Test{
 		{
+			name:     "TestCompleteDefaultBullet",
 			uid:      NewUid("31786692.b1"),
 			expected: "   - [x] Bullet 2",
 			operation: func(b *Bullet) {
@@ -326,6 +328,7 @@ func TestBulletComplete(t *testing.T) {
 			},
 		},
 		{
+			name:     "TestCompleteNestedMainBullet",
 			uid:      NewUid("31786694.b1"),
 			expected: "   - [x] Main bullet 2",
 			operation: func(b *Bullet) {
@@ -341,19 +344,21 @@ func TestBulletComplete(t *testing.T) {
 	}
 
 	for _, test := range testMap {
-		bullet, ok := orgFile.GetUid(test.uid).Split()
-		if !ok {
-			t.Errorf("failed to get bullet with UID %s", test.uid)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			bullet, ok := orgFile.GetUid(test.uid).Split()
+			if !ok {
+				t.Errorf("failed to get bullet with UID %s", test.uid)
+			}
 
-		test.operation(bullet.(*Bullet))
+			test.operation(bullet.(*Bullet))
 
-		bullet.Render(&builder, 0)
-		rendered := builder.String()
-		builder.Reset()
+			bullet.Render(&builder, 0)
+			rendered := builder.String()
+			builder.Reset()
 
-		if strings.TrimSpace(rendered) != strings.TrimSpace(test.expected) {
-			t.Errorf("after completing, expected rendered content:\n%s\nGot:\n%s", test.expected, rendered)
-		}
+			if strings.TrimSpace(rendered) != strings.TrimSpace(test.expected) {
+				t.Errorf("after completing, expected rendered content:\n%s\nGot:\n%s", test.expected, rendered)
+			}
+		})
 	}
 }

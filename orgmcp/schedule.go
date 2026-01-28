@@ -1,10 +1,8 @@
 package orgmcp
 
 import (
-	"fmt"
 	"github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -64,7 +62,7 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 
 	r := regexp.MustCompile(".*SCHEDULED: <(.*?)( .*?)?>.*")
 	matches := r.FindStringSubmatch(content)
-	fmt.Fprintf(os.Stderr, "matches: %v", matches)
+	// fmt.Fprintf(os.Stderr, "matches: %v", matches)
 
 	if len(matches) != 0 {
 		if t, err := time.Parse("2006-01-02", matches[1]); err == nil {
@@ -77,7 +75,7 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 
 	r = regexp.MustCompile(".*DEADLINE: <(.*?)( .*?)?>.*")
 	matches = r.FindStringSubmatch(content)
-	fmt.Fprintf(os.Stderr, "matches: %v", matches)
+	// fmt.Fprintf(os.Stderr, "matches: %v", matches)
 
 	if len(matches) != 0 {
 		if t, err := time.Parse("2006-01-02", matches[1]); err == nil {

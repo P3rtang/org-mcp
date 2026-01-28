@@ -112,7 +112,7 @@ func main() {
 				return
 			}
 
-			fmt.Fprintf(os.Stderr, "\nuid: %v\n", args["uid"])
+			// fmt.Fprintf(os.Stderr, "\nuid: %v\n", args["uid"])
 			// Get the index (uid) from the arguments
 			uid := -1
 			if u, ok := args["uid"].(float64); ok {

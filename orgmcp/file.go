@@ -100,8 +100,6 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 				currentContent[currentContentIndex] = r
 				current_line += 1
 
-				fmt.Fprintf(os.Stderr, "Current content index: %d\n", currentContentIndex)
-
 				if currentContentIndex >= 1 {
 					currentContent[currentContentIndex-1].AddChildren(r)
 				} else {
@@ -109,8 +107,6 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 				}
 
 				org_file.items[r.Uid()] = r
-
-				fmt.Fprintf(os.Stderr, "------------\nuid: %s\n------------\n", r.Uid())
 			})
 		default:
 			panic("unreachable")
@@ -119,11 +115,33 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 
 	peek_reader.Continue()
 
-	fmt.Fprintf(os.Stderr, "Finished parsing org file with %d items\n", len(org_file.items))
+	fmt.Fprintf(os.Stderr, "\nFinished parsing org file with %d items\n", len(org_file.items))
 
-	for _, item := range org_file.items {
-		fmt.Fprintf(os.Stderr, "\t %s: %s\n", item.Uid(), reflect.TypeOf(item))
+	ordered := []Uid{}
+	colSize := make([]int, 2)
+
+	for uid, r := range org_file.items {
+		if len(uid.String()) > colSize[1] {
+			colSize[1] = len(uid.String())
+		}
+
+		if len(reflect.TypeOf(r).String()) > colSize[0] {
+			colSize[0] = len(reflect.TypeOf(r).String())
+		}
+
+		ordered = append(ordered, uid)
 	}
+
+	slices.SortFunc(ordered, func(i, j Uid) int {
+		return strings.Compare(i.String(), j.String())
+	})
+
+	fmt.Fprintf(os.Stderr, "\n| %-*s | %-*s |\n", colSize[0], "Type", colSize[1], "Uid")
+	fmt.Fprintf(os.Stderr, "+%s+%s+\n", strings.Repeat("-", colSize[0]+2), strings.Repeat("-", colSize[1]+2))
+	for _, item := range ordered {
+		fmt.Fprintf(os.Stderr, "| %-*s | %-*s |\n", colSize[0], reflect.TypeOf(org_file.items[item]), colSize[1], item)
+	}
+	fmt.Fprint(os.Stderr, "\n")
 
 	return result.Ok(org_file)
 }
@@ -132,7 +150,7 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	// errors have already been handled at this point
 	bytes, _ := r.PeekBytes('\n')
 	trimmed := strings.TrimSpace(string(bytes))
-	fmt.Fprintf(os.Stderr, "Indented: %s\n", string(bytes))
+	// fmt.Fprintf(os.Stderr, "Indented: %s\n", string(bytes))
 
 	switch trimmed[0] {
 	case '-':
@@ -275,7 +293,6 @@ func (of *OrgFile) GetUid(uid Uid) option.Option[Render] {
 	}
 
 	if child, found := of.items[uid]; found {
-		fmt.Fprintf(os.Stderr, "Found child with uid %s of type %s\n", uid, reflect.TypeOf(child))
 		return option.Some(child)
 	}
 
