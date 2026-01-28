@@ -255,7 +255,7 @@ func main() {
 				"required": []string{"parent_uid", "title"},
 				"properties": map[string]any{
 					"parent_uid": map[string]any{
-						"type":        "number",
+						"type":        "string",
 						"description": "The UID of the parent header to which the subheader will be added.",
 					},
 					"title": map[string]any{
