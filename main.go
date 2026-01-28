@@ -302,7 +302,7 @@ func main() {
 				status = orgmcp.Todo
 			}
 
-			render, ok := of.GetUid(orgmcp.NewUid(int(parent_uid))).Split()
+			render, ok := of.GetUid(orgmcp.NewUid(int(parentUid))).Split()
 			if !ok {
 				return nil, errors.New("Parent header not found.")
 			}
