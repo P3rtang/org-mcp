@@ -255,7 +255,7 @@ func main() {
 				"required": []string{"parent_uid", "title"},
 				"properties": map[string]any{
 					"parent_uid": map[string]any{
-						"type":        "string",
+						"type":        "number",
 						"description": "The UID of the parent header to which the subheader will be added.",
 					},
 					"title": map[string]any{
@@ -285,7 +285,7 @@ func main() {
 				return
 			}
 
-			parentUid, ok := args["parent_uid"].(string)
+			parentUid, ok := args["parent_uid"].(float64)
 			if !ok {
 				return nil, errors.New("Invalid or missing parent_uid parameter")
 			}
@@ -302,7 +302,7 @@ func main() {
 				status = orgmcp.Todo
 			}
 
-			render, ok := of.GetUid(orgmcp.NewUid(parentUid)).Split()
+			render, ok := of.GetUid(orgmcp.NewUid(int(parent_uid))).Split()
 			if !ok {
 				return nil, errors.New("Parent header not found.")
 			}
