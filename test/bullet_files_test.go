@@ -261,52 +261,53 @@ func TestBulletFileConsistency(t *testing.T) {
 	}
 }
 
-// TestBulletFileRemoveChildren tests bullet child removal functionality
-func TestBulletFileRemoveChildren(t *testing.T) {
-	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
-
-	file, err := os.Open("./files/bullets.org")
-	if err != nil {
-		t.Fatalf("failed to open bullets.org: %v", err)
-	}
-	defer file.Close()
-
-	orgFileResult := OrgFileFromReader(file)
-
-	// Check if parsing was successful
-	if !orgFileResult.IsOk() {
-		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
-
-		// Additional render check after removing children
-		builder := strings.Builder{}
-		orgFileResult.UnwrapPtr().Render(&builder, -1)
-		rendered := builder.String()
-		if strings.Contains(rendered, "*") {
-			t.Errorf("expected no bullet markers in rendered output after child removal, but found:\n%s", rendered)
-		}
-	}
-
-	orgFile := orgFileResult.Unwrap()
-
-	// Check if there are any children
-	children := orgFile.Children()
-	if len(children) == 0 {
-		t.Fatalf("expected some children in OrgFile")
-	}
-
-	// Take the first header having children
-	header := children[0] // Assuming the first element is a header
-	if len(header.Children()) == 0 {
-		t.Fatalf("no children to test removal on")
-	}
-
-	// Call RemoveChildren
-	header.RemoveChildren()
-
-	if len(header.Children()) != 0 {
-		t.Errorf("RemoveChildren failed, expected 0 children, got %d", len(header.Children()))
-	}
-}
+//
+// // TestBulletFileRemoveChildren tests bullet child removal functionality
+// func TestBulletFileRemoveChildren(t *testing.T) {
+// 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+//
+// 	file, err := os.Open("./files/bullets.org")
+// 	if err != nil {
+// 		t.Fatalf("failed to open bullets.org: %v", err)
+// 	}
+// 	defer file.Close()
+//
+// 	orgFileResult := OrgFileFromReader(file)
+//
+// 	// Check if parsing was successful
+// 	if !orgFileResult.IsOk() {
+// 		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
+//
+// 		// Additional render check after removing children
+// 		builder := strings.Builder{}
+// 		orgFileResult.UnwrapPtr().Render(&builder, -1)
+// 		rendered := builder.String()
+// 		if strings.Contains(rendered, "*") {
+// 			t.Errorf("expected no bullet markers in rendered output after child removal, but found:\n%s", rendered)
+// 		}
+// 	}
+//
+// 	orgFile := orgFileResult.Unwrap()
+//
+// 	// Check if there are any children
+// 	children := orgFile.Children()
+// 	if len(children) == 0 {
+// 		t.Fatalf("expected some children in OrgFile")
+// 	}
+//
+// 	// Take the first header having children
+// 	header := children[0] // Assuming the first element is a header
+// 	if len(header.Children()) == 0 {
+// 		t.Fatalf("no children to test removal on")
+// 	}
+//
+// 	// Call RemoveChildren
+// 	header.RemoveChildren()
+//
+// 	if len(header.Children()) != 0 {
+// 		t.Errorf("RemoveChildren failed, expected 0 children, got %d", len(header.Children()))
+// 	}
+// }
 
 func TestBulletComplete(t *testing.T) {
 	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")

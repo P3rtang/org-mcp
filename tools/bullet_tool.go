@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/p3rtang/org-mcp/mcp"
@@ -13,8 +12,9 @@ import (
 )
 
 type BulletInput struct {
-	Bullets []BulletValue `json:"bullets,omitempty"`
-	Path    string        `json:"path,omitempty"`
+	Bullets  []BulletValue `json:"bullets,omitempty"`
+	Path     string        `json:"path,omitempty"`
+	ShowDiff bool          `json:"show_diff,omitempty"`
 }
 
 type BulletValue struct {
@@ -73,6 +73,10 @@ var BulletTool = mcp.Tool{
 				"type":        "string",
 				"description": "Optional file path, defaults to ./.tasks.org.",
 			},
+			"show_diff": map[string]any{
+				"type":        "boolean",
+				"description": "Whether to show the diff of changes made to the Org file.",
+			},
 		},
 	},
 
@@ -80,8 +84,6 @@ var BulletTool = mcp.Tool{
 }
 
 func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
-	var response []map[string]any
-
 	bytes, err := json.Marshal(args)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling bullet input: %v", err)
@@ -109,72 +111,67 @@ func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp []any, err e
 	builder := strings.Builder{}
 
 	for _, b := range input.Bullets {
-		bullet := of.GetUid(orgmcp.NewUid(b.Uid))
-		fmt.Fprintf(os.Stderr, "%v", bullet)
-
-		header_uid, ok := option.Map(bullet, func(b orgmcp.Render) orgmcp.Uid { return b.ParentUid() }).Split()
-		if !ok {
-			return nil, errors.New("invalid bullet uid; cannot find parent header")
-		}
-
-		header := of.GetUid(header_uid).Unwrap()
-
 		switch b.Method {
 		case "add":
-			content, ok := args["content"].(string)
-			if !ok || strings.TrimSpace(content) == "" {
-				return nil, errors.New("content is required for add method")
-			}
-
-			var c string
-			if c, ok = args["checkbox"].(string); !ok {
-				return nil, errors.New("invalid or missing checkbox parameter")
-			}
-
-			bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(c))
-			bullet.SetContent(content)
+			header := of.GetUid(orgmcp.NewUid(b.Uid)).Unwrap()
+			bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(b.Checkbox))
+			bullet.SetContent(b.Content)
 		case "remove":
+			bullet := of.GetUid(orgmcp.NewUid(b.Uid))
+
+			header_uid, ok := option.Map(bullet, func(b orgmcp.Render) orgmcp.Uid { return b.ParentUid() }).Split()
+			if !ok {
+				return nil, errors.New("invalid bullet uid; cannot find parent header")
+			}
+
+			header := of.GetUid(header_uid).Unwrap()
+
 			header.RemoveChildren(orgmcp.NewUid(b.Uid))
+			header.CheckProgress()
 		case "complete":
-			bullet.Then(func(r orgmcp.Render) {
-				if b, ok := r.(*orgmcp.Bullet); ok {
-					b.CompleteCheckbox()
-				}
+			bullet, ok := option.Cast[orgmcp.Render, *orgmcp.Bullet](of.GetUid(orgmcp.NewUid(b.Uid))).Split()
+			if !ok {
+				err = errors.New("invalid bullet uid for set_content")
+				return
+			}
+
+			bullet.CompleteCheckbox()
+
+			of.GetUid(bullet.ParentUid()).Then(func(r orgmcp.Render) {
+				r.CheckProgress()
 			})
 		case "toggle":
-			bullet.Then(func(r orgmcp.Render) {
-				if b, ok := r.(*orgmcp.Bullet); ok {
-					b.ToggleCheckbox()
-				}
-			})
-		case "set_content":
-			content, ok := args["content"].(string)
-			if !ok || strings.TrimSpace(content) == "" {
-				return nil, errors.New("content is required for set_content method")
+			bullet, ok := option.Cast[orgmcp.Render, *orgmcp.Bullet](of.GetUid(orgmcp.NewUid(b.Uid))).Split()
+			if !ok {
+				err = errors.New("invalid bullet uid for set_content")
+				return
 			}
 
-			bullet.Then(func(r orgmcp.Render) {
-				if b, ok := r.(*orgmcp.Bullet); ok {
-					b.SetContent(content)
-				}
+			bullet.ToggleCheckbox()
+
+			of.GetUid(bullet.ParentUid()).Then(func(r orgmcp.Render) {
+				r.CheckProgress()
 			})
+		case "set_content":
+			bullet, ok := option.Cast[orgmcp.Render, *orgmcp.Bullet](of.GetUid(orgmcp.NewUid(b.Uid))).Split()
+			if !ok {
+				err = errors.New("invalid bullet uid for set_content")
+				return
+			}
+
+			bullet.SetContent(b.Content)
 		default:
 			return nil, errors.New("invalid method; must be 'add', 'remove', 'complete', 'toggle' or 'set_content'")
 		}
-
-		header.CheckProgress()
-		header.Render(&builder, 1)
-
-		response = append(response, map[string]any{
-			"header": builder.String(),
-		})
 
 		builder.Reset()
 	}
 
 	diff, err := writeOrgFileToDisk(of, path)
 
-	resp = []any{diff, map[string]any{"results": response}}
+	if input.ShowDiff {
+		resp = append(resp, diff)
+	}
 
 	return
 }
