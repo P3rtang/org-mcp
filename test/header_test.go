@@ -11,7 +11,7 @@ func TestHeaderFromString(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	input := "* TODO Example [0/1] :tag1:tag2:"
-	expectedLevel := 0
+	expectedLevel := 1
 	expectedStatus := Todo
 	expectedContent := "Example"
 

@@ -89,6 +89,22 @@ type Header struct {
 	Content string
 }
 
+func NewHeader(status HeaderStatus, content string) Header {
+	return Header{
+		Status:   status,
+		Progress: option.None[Progress](),
+		Tags:     option.None[TagList](),
+
+		Parent:     option.None[Render](),
+		children:   []Render{},
+		schedule:   option.None[Schedule](),
+		properties: NewPropertiesWithUID(),
+		embedding:  option.None[embeddings.Embedding](),
+
+		Content: content,
+	}
+}
+
 // TODO: remove str from arguments and parse from reader only (prob make a new constructor)
 func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[Header] {
 	// fmt.Fprintf(os.Stderr, "Parsing header %s\n", str)
@@ -104,7 +120,7 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 	defer stop()
 
 	level, _ := next()
-	header.level = strings.Count(level, "*") - 1
+	header.level = strings.Count(level, "*")
 
 	part, end := next()
 
@@ -159,6 +175,8 @@ func (h *Header) AddChildren(render ...Render) error {
 
 func (h *Header) SetParent(render Render) error {
 	h.Parent = option.Some(render)
+	h.level = render.Level() + 1
+	h.location = len(render.Children())
 
 	return nil
 }
@@ -172,7 +190,7 @@ func (b *Header) RemoveChildren(uids ...Uid) error {
 }
 
 func (h *Header) Render(builder *strings.Builder, depth int) {
-	builder.WriteString(strings.Repeat("*", h.Level()+1))
+	builder.WriteString(strings.Repeat("*", h.Level()))
 	builder.WriteString(" ")
 	if h.Status != None {
 		builder.WriteString(h.Status.String())
@@ -249,7 +267,7 @@ func (h *Header) Location() int {
 }
 
 func (h *Header) IndentLevel() int {
-	return h.level + 2
+	return h.level + 1
 }
 
 func (h *Header) Level() int {

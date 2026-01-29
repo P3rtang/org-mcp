@@ -149,12 +149,12 @@ var HeaderTool = mcp.Tool{
 					tags = option.Some(orgmcp.TagList(headerOp.Tags))
 				}
 
-				newHeader := orgmcp.Header{
-					Status:   orgmcp.HeaderStatus(headerOp.Status),
-					Progress: option.None[orgmcp.Progress](),
-					Tags:     tags,
-					Content:  headerOp.Content,
-				}
+				newHeader := orgmcp.NewHeader(
+					orgmcp.HeaderStatus(headerOp.Status),
+					headerOp.Content,
+				)
+
+				newHeader.Tags = tags
 				newHeader.SetLevel(parent.Level() + 1)
 
 				parent.AddChildren(&newHeader)
