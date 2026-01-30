@@ -36,7 +36,8 @@ var BulletTool = mcp.Tool{
 		"The 'header_uid' parameter specifies the parent header under which the bullet point resides.\n" +
 		"The 'bullet_index' parameter specifies the position of the bullet point under the header (0-based index).\n\n" +
 		"When targeting a bullet, the uid is constructed as `header_uid + '.b' + bullet_index`.\n" +
-		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like h1.b0.b1\n\n",
+		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like header_uid.b0.b1\n" +
+		"The add method is special as it requires the header_uid to be passed directly without any bullet index. The index will be determined by the tool itself.",
 
 	InputSchema: map[string]any{
 		"type": "object",
@@ -49,7 +50,7 @@ var BulletTool = mcp.Tool{
 					"properties": map[string]any{
 						"uid": map[string]any{
 							"type":        "string",
-							"description": "UID of the bullet point to modify. The uid is constructed as `header_uid + 'b' + bullet_index`",
+							"description": "UID of the bullet point to modify. The uid is constructed as `header_uid + '.b' + bullet_index`. For the 'add' method you should add the header uid instead",
 						},
 						"method": map[string]any{
 							"type":        "string",
