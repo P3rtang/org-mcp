@@ -34,6 +34,7 @@ func (s ScheduleStatus) String() string {
 }
 
 var ScheduleKeywords = []string{"DEADLINE", "SCHEDULED", "CLOSED"}
+var OrderedSchedules = []ScheduleStatus{Scheduled, Deadline, Closed}
 
 type Schedule struct {
 	values map[ScheduleStatus]struct {
@@ -116,9 +117,16 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 }
 
 func (s *Schedule) Render(builder *strings.Builder) {
-	builder.WriteString(strings.Repeat(" ", s.parent.IndentLevel()-1))
+	// Indent according to parent's child indent level
+	// subtract 1 to account for the space before the schedule keywords bound to a minimum of 0
+	builder.WriteString(strings.Repeat(" ", max(s.parent.ChildIndentLevel()-1, 0)))
 
-	for status, t := range s.values {
+	for _, status := range OrderedSchedules {
+		t := s.values[status]
+		if t.t.IsZero() {
+			continue
+		}
+
 		builder.WriteString(" ")
 		builder.WriteString(status.String())
 		builder.WriteString(": ")

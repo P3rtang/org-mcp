@@ -69,8 +69,8 @@ func (i *intProperty) Int() option.Option[int] {
 }
 
 type Properties struct {
+	parent  Render
 	content map[string]PropValue
-	indent  int
 }
 
 // generateUID returns an 8-digit pseudo-random identifier as a string.
@@ -79,7 +79,6 @@ func NewPropertiesWithUID() Properties {
 		content: map[string]PropValue{
 			"ID": &intProperty{num: rand.Intn(100000000)},
 		},
-		indent: 4,
 	}
 }
 
@@ -91,7 +90,6 @@ func NewPropertiesFromReader(reader *reader.PeekReader) (p Properties) {
 	// newline not found return a default generation
 	if err != nil {
 		p.content["ID"] = &intProperty{num: rand.Intn(100000000)}
-		p.indent = 4
 		return
 	}
 	//
@@ -104,11 +102,10 @@ func NewPropertiesFromReader(reader *reader.PeekReader) (p Properties) {
 	// properties not found return None
 	if !strings.Contains(string(bytes), ":PROPERTIES:") {
 		p.content["ID"] = &intProperty{num: rand.Intn(100000000)}
-		p.indent = 4
 		return
 	}
 
-	p.indent = strings.Index(string(bytes), ":PROPERTIES:")
+	// p.indent = strings.Index(string(bytes), ":PROPERTIES:")
 
 	// advance the reader
 	reader.Continue()
@@ -129,6 +126,14 @@ func NewPropertiesFromReader(reader *reader.PeekReader) (p Properties) {
 	return
 }
 
+func (p *Properties) IndentLevel() int {
+	return p.parent.ChildIndentLevel()
+}
+
+func (p *Properties) ChildIndentLevel() int {
+	return p.IndentLevel()
+}
+
 // Render writes the properties drawer to the given strings.Builder in org-mode format.
 // Example output:
 // :PROPERTIES:
@@ -140,14 +145,14 @@ func (p *Properties) Render(sb *strings.Builder) {
 		return
 	}
 
-	sb.WriteString(strings.Repeat(" ", p.indent))
+	sb.WriteString(strings.Repeat(" ", p.IndentLevel()))
 	sb.WriteString(":PROPERTIES:\n")
 
 	for k, v := range p.content {
-		sb.WriteString(strings.Repeat(" ", p.indent))
+		sb.WriteString(strings.Repeat(" ", p.IndentLevel()))
 		fmt.Fprintf(sb, ":%s: %s\n", k, v.String())
 	}
 
-	sb.WriteString(strings.Repeat(" ", p.indent))
+	sb.WriteString(strings.Repeat(" ", p.IndentLevel()))
 	sb.WriteString(":END:\n")
 }

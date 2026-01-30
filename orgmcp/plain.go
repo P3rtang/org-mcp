@@ -14,7 +14,7 @@ type PlainText struct {
 	indent  int
 	index   int
 
-	parent Render
+	parent option.Option[Render]
 }
 
 // Enforce that PlainText implements the Render interface at compile time
@@ -45,11 +45,19 @@ func (p *PlainText) Render(builder *strings.Builder, depth int) {
 }
 
 func (p *PlainText) IndentLevel() int {
-	return p.indent
+	return option.Map(p.parent, func(r Render) int {
+		return r.ChildIndentLevel()
+	}).UnwrapOr(0)
+}
+
+func (p *PlainText) ChildIndentLevel() int {
+	return p.IndentLevel() + 2
 }
 
 func (p *PlainText) Level() int {
-	return p.parent.Level()
+	return option.Map(p.parent, func(r Render) int {
+		return r.Level() + 1
+	}).UnwrapOr(0)
 }
 
 func (p *PlainText) AddChildren(r ...Render) error {
@@ -57,7 +65,7 @@ func (p *PlainText) AddChildren(r ...Render) error {
 }
 
 func (p *PlainText) SetParent(r Render) error {
-	p.parent = r
+	p.parent = option.Some(r)
 	p.index = len(r.Children())
 
 	return nil
@@ -76,15 +84,15 @@ func (p *PlainText) ChildrenRec() []Render {
 }
 
 func (p *PlainText) Uid() Uid {
-	if p.parent == nil {
+	if p.parent.IsNone() {
 		return NewUid(-1)
 	}
 
-	return NewUid(fmt.Sprintf("%s.t%d", p.parent.Uid(), p.index))
+	return NewUid(fmt.Sprintf("%s.t%d", p.parent.Unwrap().Uid(), p.index))
 }
 func (p *PlainText) ParentUid() Uid {
-	if p.parent == nil {
+	if p.parent.IsNone() {
 		return NewUid(0)
 	}
-	return p.parent.Uid()
+	return p.parent.Unwrap().Uid()
 }

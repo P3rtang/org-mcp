@@ -45,7 +45,6 @@ type Bullet struct {
 	content  string
 	prefix   bulletPrefix
 	index    int
-	indent   int
 
 	parent   o.Option[Render]
 	children []Render
@@ -64,7 +63,6 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 	}
 
 	str := strings.TrimLeft(string(line), " ")
-	bullet.indent = len(line) - len(str)
 
 	if len(str) < 2 {
 		return o.None[*Bullet]()
@@ -159,7 +157,6 @@ func NewBullet(parent Render, status bulletStatus) *Bullet {
 		checkbox: status,
 	}
 
-	bullet.indent = parent.IndentLevel()
 	parent.AddChildren(bullet)
 
 	return bullet
@@ -213,7 +210,13 @@ func (b *Bullet) Render(builder *strings.Builder, depth int) {
 }
 
 func (b *Bullet) IndentLevel() int {
-	return b.indent
+	return option.Map(b.parent, func(r Render) int {
+		return r.ChildIndentLevel()
+	}).UnwrapOr(0)
+}
+
+func (b *Bullet) ChildIndentLevel() int {
+	return b.IndentLevel() + 2
 }
 
 func (b *Bullet) Level() int {

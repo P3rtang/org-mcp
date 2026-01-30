@@ -6,7 +6,7 @@ import (
 	"github.com/p3rtang/org-mcp/mcp"
 )
 
-type InputSchema struct {
+type inputSchema struct {
 	Path string `json:"path"`
 }
 
@@ -26,7 +26,7 @@ var StatusTool = mcp.Tool{
 	},
 
 	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
-		var input InputSchema
+		var input inputSchema
 
 		bytes, err := json.Marshal(args)
 		if err != nil {

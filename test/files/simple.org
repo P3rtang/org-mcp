@@ -1,11 +1,11 @@
 * This is a test Title :title:test:
-    :PROPERTIES:
-    :ID: 25252671
-    :END:
+  :PROPERTIES:
+  :ID: 25252671
+  :END:
 ** Header 1 [1/3] :header:
-    :PROPERTIES:
-    :ID: 98191023
-    :END:
+   :PROPERTIES:
+   :ID: 98191023
+   :END:
 *** TODO test this
     :PROPERTIES:
     :ID: 15738965
@@ -20,9 +20,9 @@
     :ID: 80028336
     :END:
 ** PROG Header 2 [1/3] :header:
-    :PROPERTIES:
-    :ID: 19276871
-    :END:
+   :PROPERTIES:
+   :ID: 19276871
+   :END:
 *** TODO test this
     :PROPERTIES:
     :ID: 84804021

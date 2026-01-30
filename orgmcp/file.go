@@ -84,9 +84,8 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 				currentContentIndent = 0
 			})
 		case ' ':
+			indent := len(val) - len(strings.TrimLeft(string(val), " "))
 			ParseIndentedLine(peek_reader, currentParent[currentParentIdx]).Then(func(r Render) {
-				indent := r.IndentLevel()
-
 				if currentContentIndent == 0 {
 				} else if currentContentIndent < indent {
 					currentContentIndent = indent
@@ -248,6 +247,10 @@ func (of *OrgFile) CheckProgress() option.Option[Progress] {
 }
 
 func (of *OrgFile) IndentLevel() int {
+	return 0
+}
+
+func (of *OrgFile) ChildIndentLevel() int {
 	return 0
 }
 

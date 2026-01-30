@@ -159,6 +159,7 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 	})
 
 	header.properties = NewPropertiesFromReader(reader)
+	header.properties.parent = &header
 
 	return option.Some(header)
 }
@@ -267,6 +268,10 @@ func (h *Header) Location() int {
 }
 
 func (h *Header) IndentLevel() int {
+	return 0
+}
+
+func (h *Header) ChildIndentLevel() int {
 	return h.level + 1
 }
 
