@@ -60,6 +60,25 @@ func (p *PlainText) Level() int {
 	}).UnwrapOr(0)
 }
 
+func (p *PlainText) Location(table map[Uid]int) (loc int) {
+	if val, ok := table[p.Uid()]; ok {
+		return val
+	}
+
+	if parent, ok := p.parent.Split(); ok {
+		loc += parent.Location(table)
+
+		for i, child := range parent.Children() {
+			if child.Uid() == p.Uid() {
+				loc += i + 1
+				break
+			}
+		}
+	}
+
+	return
+}
+
 func (p *PlainText) AddChildren(r ...Render) error {
 	return errors.New("PlainText cannot have children")
 }
@@ -79,7 +98,7 @@ func (p *PlainText) Children() []Render {
 	return []Render{}
 }
 
-func (p *PlainText) ChildrenRec() []Render {
+func (p *PlainText) ChildrenRec(_ int) []Render {
 	return []Render{}
 }
 
@@ -95,4 +114,30 @@ func (p *PlainText) ParentUid() Uid {
 		return NewUid(0)
 	}
 	return p.parent.Unwrap().Uid()
+}
+
+func (p *PlainText) Status() HeaderStatus {
+	return option.Map(p.parent, func(p Render) HeaderStatus {
+		return p.Status()
+	}).UnwrapOr(None)
+}
+
+func (p *PlainText) TagList() (list TagList) {
+	if parent, ok := p.parent.Split(); ok {
+		list = parent.TagList()
+	}
+
+	return
+}
+
+func (p *PlainText) Preview() string {
+	return p.content
+}
+
+func (p *PlainText) Path() string {
+	if parent, ok := p.parent.Split(); ok {
+		return parent.Path() + "/" + p.Uid().String()
+	}
+
+	return p.Uid().String()
 }

@@ -114,7 +114,11 @@ func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp []any, err e
 	for _, b := range input.Bullets {
 		switch b.Method {
 		case "add":
-			header := of.GetUid(orgmcp.NewUid(b.Uid)).Unwrap()
+			header, ok := of.GetUid(orgmcp.NewUid(b.Uid)).Split()
+			if !ok {
+				return nil, errors.New("Invalid header uid for adding bullet, do not include bullet index.")
+			}
+
 			bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(b.Checkbox))
 			bullet.SetContent(b.Content)
 		case "remove":

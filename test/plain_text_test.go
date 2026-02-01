@@ -148,7 +148,7 @@ func TestPlainTextChildren(t *testing.T) {
 		t.Errorf("expected no children, got %d", len(children))
 	}
 
-	childrenRec := plainText.ChildrenRec()
+	childrenRec := plainText.ChildrenRec(-1)
 	if len(childrenRec) != 0 {
 		t.Errorf("expected no recursive children, got %d", len(childrenRec))
 	}

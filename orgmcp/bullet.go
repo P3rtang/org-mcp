@@ -45,6 +45,7 @@ type Bullet struct {
 	content  string
 	prefix   bulletPrefix
 	index    int
+	location int
 
 	parent   o.Option[Render]
 	children []Render
@@ -223,6 +224,25 @@ func (b *Bullet) Level() int {
 	return option.Map(b.parent, func(r Render) int { return r.Level() }).UnwrapOr(0)
 }
 
+func (p *Bullet) Location(table map[Uid]int) (loc int) {
+	if val, ok := table[p.Uid()]; ok {
+		return val
+	}
+
+	if parent, ok := p.parent.Split(); ok {
+		loc += parent.Location(table)
+
+		for i, child := range parent.ChildrenRec(-1) {
+			if child.Uid() == p.Uid() {
+				loc += i + 1
+				break
+			}
+		}
+	}
+
+	return
+}
+
 func (b *Bullet) AddChildren(r ...Render) error {
 	for _, child := range r {
 		if _, ok := child.(*Bullet); !ok {
@@ -260,11 +280,14 @@ func (b *Bullet) Children() []Render {
 	return b.children
 }
 
-func (b *Bullet) ChildrenRec() []Render {
-	children := []Render{}
+func (b *Bullet) ChildrenRec(depth int) (children []Render) {
+	if depth == 0 {
+		return
+	}
 
 	for _, child := range b.Children() {
-		children = append(children, child.ChildrenRec()...)
+		children = append(children, child)
+		children = append(children, child.ChildrenRec(depth-1)...)
 	}
 
 	return children
@@ -304,4 +327,30 @@ func (b *Bullet) CompleteCheckbox() {
 // HasCheckbox returns true if the bullet has a checkbox
 func (b *Bullet) HasCheckbox() bool {
 	return b.checkbox != NoCheck
+}
+
+func (b *Bullet) Status() HeaderStatus {
+	return option.Map(b.parent, func(p Render) HeaderStatus {
+		return p.Status()
+	}).UnwrapOr(None)
+}
+
+func (b *Bullet) TagList() (list TagList) {
+	if parent, ok := b.parent.Split(); ok {
+		list = parent.TagList()
+	}
+
+	return
+}
+
+func (b *Bullet) Preview() string {
+	return b.content
+}
+
+func (b *Bullet) Path() string {
+	if parent, ok := b.parent.Split(); ok {
+		return parent.Path() + "/" + b.Uid().String()
+	}
+
+	return b.Uid().String()
 }

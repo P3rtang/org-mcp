@@ -137,7 +137,7 @@ func TestSimpleFileLocation(t *testing.T) {
 	}
 
 	orgFile := orgFileResult.Unwrap()
-	location := orgFile.Location()
+	location := orgFile.Location(map[Uid]int{})
 
 	// For OrgFile, location should be 0
 	if location != 0 {

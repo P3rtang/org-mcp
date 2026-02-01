@@ -56,8 +56,8 @@ func TestHeaderCheckProgressWithStatus(t *testing.T) {
 				t.Errorf("expected Done()=%v, got %v", tc.expectedDone, p.Done())
 			}
 
-			if h.Status != tc.expectedStatus {
-				t.Errorf("expected status %v, got %v", tc.expectedStatus, h.Status)
+			if h.Status() != tc.expectedStatus {
+				t.Errorf("expected status %v, got %v", tc.expectedStatus, h.Status())
 			}
 		})
 	}
@@ -114,15 +114,15 @@ func TestHeaderCheckProgressDoneStatus(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			h := NewHeaderFromString(tc.orgContent, nil).Unwrap()
-			originalStatus := h.Status
+			originalStatus := h.Status()
 			h.CheckProgress()
 
-			if h.Status != Done {
-				t.Errorf("expected DONE header to stay DONE, but got %v", h.Status)
+			if h.Status() != Done {
+				t.Errorf("expected DONE header to stay DONE, but got %v", h.Status())
 			}
 
-			if h.Status != originalStatus {
-				t.Errorf("expected status to remain unchanged, got %v (was %v)", h.Status, originalStatus)
+			if h.Status() != originalStatus {
+				t.Errorf("expected status to remain unchanged, got %v (was %v)", h.Status(), originalStatus)
 			}
 		})
 	}
@@ -135,8 +135,8 @@ func TestHeaderCheckProgressBasic(t *testing.T) {
 	h := NewHeaderFromString("* TODO Test", nil).Unwrap()
 
 	// Initial state: TODO
-	if h.Status != Todo {
-		t.Errorf("expected initial status TODO, got %v", h.Status)
+	if h.Status() != Todo {
+		t.Errorf("expected initial status TODO, got %v", h.Status())
 	}
 
 	// Call CheckProgress
@@ -148,8 +148,8 @@ func TestHeaderCheckProgressBasic(t *testing.T) {
 	}
 
 	// Status should remain TODO since there are no children
-	if h.Status != Todo {
-		t.Errorf("expected TODO status to remain after CheckProgress, got %v", h.Status)
+	if h.Status() != Todo {
+		t.Errorf("expected TODO status to remain after CheckProgress, got %v", h.Status())
 	}
 }
 

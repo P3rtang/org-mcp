@@ -74,11 +74,12 @@ type Properties struct {
 }
 
 // generateUID returns an 8-digit pseudo-random identifier as a string.
-func NewPropertiesWithUID() Properties {
+func NewPropertiesWithUID(parent *Header) Properties {
 	return Properties{
 		content: map[string]PropValue{
 			"ID": &intProperty{num: rand.Intn(100000000)},
 		},
+		parent: parent,
 	}
 }
 

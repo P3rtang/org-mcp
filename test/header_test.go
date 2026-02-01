@@ -21,8 +21,8 @@ func TestHeaderFromString(t *testing.T) {
 		t.Errorf("expected level %d, got %d", expectedLevel, header.Level())
 	}
 
-	if header.Status != expectedStatus {
-		t.Errorf("expected status %v, got %v", expectedStatus, header.Status)
+	if header.Status() != expectedStatus {
+		t.Errorf("expected status %v, got %v", expectedStatus, header.Status())
 	}
 
 	if header.Content != expectedContent {

@@ -33,7 +33,7 @@
      :PROPERTIES:
      :ID: 82181185
      :END:
-**** TODO automatically set CLOSED tag
+**** NEXT automatically set CLOSED tag
      :PROPERTIES:
      :ID: 14898686
      :END:
@@ -104,18 +104,18 @@
     :END:
     - [ ] Analyze potential for a performance bottleneck in embedding generation for each vector search request.
 **** TODO Current Issue
-    :PROPERTIES:
-    :ID: 23501976
-    :END:
+     :PROPERTIES:
+     :ID: 23501976
+     :END:
      - [ ] Vector search currently regenerates embeddings for every search request
      - [ ] Creates significant performance bottleneck, especially for large org files
      - [ ] Wastes API calls to embedding providers (OpenAI, etc.) or CPU cycles for local models
      - [ ] No persistence - embeddings lost on server restart
      - [ ] Regeneration time increases linearly with file size
 **** TODO Benefits of SQLite Storage
-    :PROPERTIES:
-    :ID: 97146068
-    :END:
+     :PROPERTIES:
+     :ID: 97146068
+     :END:
      - [ ] Dramatically reduces search latency by caching embeddings instead of regenerating
      - [ ] Cost efficiency - reduces expensive API calls to embedding providers
      - [ ] Scalability - essential for large org files in knowledge management use cases
@@ -124,43 +124,43 @@
      - [ ] Incremental updates - only regenerate embeddings for modified headers
      - [ ] Advanced opportunity: Use sqlite-vss or sqlite-vec for native vector similarity search directly in database
 **** TODO Implementation Strategy
-    :PROPERTIES:
-    :ID: 39886024
-    :END:
+     :PROPERTIES:
+     :ID: 39886024
+     :END:
 ***** Database Schema
-    :PROPERTIES:
-    :ID: 30138340
-    :END:
-     - [ ] Design embeddings table: (header_uid PRIMARY KEY, content_hash TEXT, embedding_blob BLOB, model_name TEXT, dimensions INTEGER, created_at TIMESTAMP, updated_at TIMESTAMP)
-     - [ ] Add index on content_hash for fast lookups
-     - [ ] Consider storing additional metadata (org file path, header title) for debugging
+      :PROPERTIES:
+      :ID: 30138340
+      :END:
+      - [ ] Design embeddings table: (header_uid PRIMARY KEY, content_hash TEXT, embedding_blob BLOB, model_name TEXT, dimensions INTEGER, created_at TIMESTAMP, updated_at TIMESTAMP)
+      - [ ] Add index on content_hash for fast lookups
+      - [ ] Consider storing additional metadata (org file path, header title) for debugging
 ***** Cache Invalidation
-    :PROPERTIES:
-    :ID: 94949826
-    :END:
-     - [ ] Store SHA-256 hash of header content alongside embeddings
-     - [ ] Compare content hash on each search to detect changes
-     - [ ] Only regenerate embeddings for headers with changed content hash
-     - [ ] Implement orphan cleanup to remove embeddings for deleted headers
+      :PROPERTIES:
+      :ID: 94949826
+      :END:
+      - [ ] Store SHA-256 hash of header content alongside embeddings
+      - [ ] Compare content hash on each search to detect changes
+      - [ ] Only regenerate embeddings for headers with changed content hash
+      - [ ] Implement orphan cleanup to remove embeddings for deleted headers
 ***** Performance Optimization
-    :PROPERTIES:
-    :ID: 98802810
-    :END:
-     - [ ] Evaluate sqlite-vss extension for native vector similarity search
-     - [ ] Evaluate sqlite-vec extension as alternative
-     - [ ] Consider background worker for batch regeneration of stale embeddings
-     - [ ] Implement connection pooling for concurrent access
+      :PROPERTIES:
+      :ID: 98802810
+      :END:
+      - [ ] Evaluate sqlite-vss extension for native vector similarity search
+      - [ ] Evaluate sqlite-vec extension as alternative
+      - [ ] Consider background worker for batch regeneration of stale embeddings
+      - [ ] Implement connection pooling for concurrent access
 ***** Migration Path
-    :PROPERTIES:
-    :ID: 62771632
-    :END:
-     - [ ] Design backward-compatible initialization (create DB if not exists)
-     - [ ] Add CLI flag to force regeneration of all embeddings
-     - [ ] Support graceful fallback if database is corrupted
+      :PROPERTIES:
+      :ID: 62771632
+      :END:
+      - [ ] Design backward-compatible initialization (create DB if not exists)
+      - [ ] Add CLI flag to force regeneration of all embeddings
+      - [ ] Support graceful fallback if database is corrupted
 **** TODO Key Considerations
-    :PROPERTIES:
-    :ID: 47380298
-    :END:
+     :PROPERTIES:
+     :ID: 47380298
+     :END:
      - [ ] File size: Embeddings are large (~6KB per header for 1536 dimensions) but SQLite handles blobs well
      - [ ] Concurrency: SQLite's read concurrency is excellent; write locks shouldn't be an issue for read-heavy workload
      - [ ] Storage location: Store DB alongside org file or in XDG cache directory?
@@ -169,9 +169,9 @@
      - [ ] Multiple org files: How to handle embeddings for multiple org files (one DB per file or unified DB)?
      - [ ] Error handling: What happens if embedding generation fails for some headers?
 **** TODO Implementation Tasks
-    :PROPERTIES:
-    :ID: 55845642
-    :END:
+     :PROPERTIES:
+     :ID: 55845642
+     :END:
      - [ ] Research and choose SQLite library (modernc.org/sqlite vs mattn/go-sqlite3)
      - [ ] Research and evaluate vector extensions (sqlite-vss vs sqlite-vec)
      - [ ] Design database schema with proper indexes
@@ -274,26 +274,26 @@
     :ID: 73284623
     :END:
 **** TODO add method
-    :PROPERTIES:
-    :ID: 46348459
-    :END:
+     :PROPERTIES:
+     :ID: 46348459
+     :END:
 **** TODO modify method
-    :PROPERTIES:
-    :ID: 71553477
-    :END:
+     :PROPERTIES:
+     :ID: 71553477
+     :END:
 **** TODO remove method
-    :PROPERTIES:
-    :ID: 71251836
-    :END:
+     :PROPERTIES:
+     :ID: 71251836
+     :END:
 **** TODO testing
-    :PROPERTIES:
-    :ID: 13815625
-    :END:
+     :PROPERTIES:
+     :ID: 13815625
+     :END:
 ** Dates and schedules
    :PROPERTIES:
    :ID: 45374501
    :END:
-*** PROG Date Parsing
+*** NEXT Date Parsing :date:parsing:
     :PROPERTIES:
     :ID: 78268550
     :END:
@@ -315,6 +315,63 @@
     - [ ] Support adding new schedules while validating for allowed date ranges.
     - [ ] Implement endpoint to modify dates (schedule adjustments) dynamically
 ** Markdown rendering
+   :PROPERTIES:
+   :ID: 48165813
+   :END:
+** AI Session Context & Tooling Progress
+   :PROPERTIES:
+   :ID: 96275729
+   :END:
+   * Optimized ~query_items~ tool with CSV output, deduplication, and document-order sorting.
+   * Implemented ~PATH~ column using a UID-stack format (e.g., ~//ROOT/PARENT/ID~) for token-efficient navigation.
+   * Added ~PREVIEW~ and ~TAGS~ (comma-quoted) columns to separate core text from Org-syntax noise.
+   * Confirmed regex filtering on ~CONTENT~ matches against the ~PREVIEW~ text.
+   * Verified that ~manage_header~ handles sequential updates and queries in a single multi-item request.
+*** Data Formats & CSV Optimization
     :PROPERTIES:
-    :ID: 48165813
+    :ID: 32788174
     :END:
+    * Primary tool output is standardized to CSV for maximum token efficiency.
+    * Fields are automatically quoted (via ~encoding/csv~) to safely handle internal commas in content or tags.
+    * ~PREVIEW~ column provides the 'clean' title/text, while ~CONTENT~ provides the raw Org-syntax for editing.
+*** Query & Search Logic
+    :PROPERTIES:
+    :ID: 45715638
+    :END:
+    * Multi-item requests in ~manage_header~ and ~query_items~ are processed sequentially, allowing a single call to 'Update' then 'Get' a header state.
+    * Global deduplication logic ensures unique UIDs in a single unified CSV response, even with overlapping depth/filter parameters.
+    * Results are sorted by their original position in the document to preserve semantic flow.
+*** Navigation & Hierarchical Context
+    :PROPERTIES:
+    :ID: 30640212
+    :END:
+    * The ~PATH~ column provides a token-efficient 'GPS' using UIDs (e.g., ~//ROOT/PARENT/ID~) to map hierarchy without repeating long titles.
+    * Metadata columns like ~PARENT~ and ~CHILDREN_COUNT~ allow the model to navigate the tree structure without deep-reading content.
+*** DONE Implemented CSV Columns [10/10]
+    :PROPERTIES:
+    :ID: 42321214
+    :END:
+    - [x] ~TYPE~: Go type of the renderable item (e.g., ~*orgmcp.Header~, ~*orgmcp.Bullet~).
+    - [x] ~UID~: Unique identifier (string or integer) for the item.
+    - [x] ~PREVIEW~: Clean text content without Org-mode syntax/markers. Best for token-efficient browsing.
+    - [x] ~CONTENT~: Raw Org-mode content, including syntax and newlines (escaped as ~\n~).
+    - [x] ~STATUS~: Header status (TODO, NEXT, PROG, DONE, etc.). Empty for bullets/text.
+    - [x] ~PROGRESS~: Progress ratio (e.g., ~2/3~) for items with children/checkboxes.
+    - [x] ~PARENT~: UID of the immediate parent item.
+    - [x] ~CHILDREN_COUNT~: Number of direct children under the item.
+    - [x] ~TAGS~: Comma-separated list of tags, quoted for CSV safety (e.g., ~"tag1,tag2"~).
+    - [x] ~PATH~: Hierarchical stack of UIDs from root to item (e.g., ~//UID1/UID2/ID~).
+*** Design Philosophy & Future Ideas
+    :PROPERTIES:
+    :ID: 74856328
+    :END:
+    * *AI-Native Goal*: Prioritize 'steering' data (UIDs, status, progress) over raw 'text' data to keep context windows small.
+    * *CSV vs JSON*: CSV is preferred for bulk queries due to its higher data density and lower token overhead (no repeating keys).
+    * *Document Order*: Always preserve file order in query results, as sequence is semantic in Org-mode. Avoid sorting by UIDs unless explicitly requested.
+    * *Potential Column: STATUS_COUNTS*: Consider adding an aggregated view of children's statuses (e.g., TODO:3, DONE:5) to headers.
+    * *Potential Column: LEVEL*: Adding numeric depth would allow models to reconstruct the tree structure without parsing Org stars.
+    * *Dedicated Scheduling Columns*: Add ~DEADLINE~, ~SCHEDULED~, and ~CLOSED~ as dedicated CSV columns for high-performance date-based querying.
+    * *Priority Support*: Support Org-mode priorities (e.g., ~[#A]~, ~[#B]~) as a standalone column.
+    * *Body Preview Control*: Allow the ~PREVIEW~ or a new ~SUMMARY~ column to return a specific number of lines from the body text.
+    * *Property Export*: A ~PROPERTIES~ column that returns all property drawer key-values as a parseable string.
+    * *Date Range Filtering*: Add the ability to filter results by date ranges (e.g., ~SCHEDULED~ or ~DEADLINE~ between Date A and Date B) directly in ~query_items~.

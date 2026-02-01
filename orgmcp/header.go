@@ -1,15 +1,18 @@
 package orgmcp
 
 import (
+	"errors"
 	"fmt"
+	"iter"
+	"os"
+	"slices"
+	"strings"
+
 	"github.com/p3rtang/org-mcp/embeddings"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 	"github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/slice"
-	"iter"
-	"slices"
-	"strings"
 )
 
 type HeaderStatus string
@@ -31,6 +34,31 @@ func StatusFromString(str string) HeaderStatus {
 	}
 
 	return None
+}
+
+func (h *HeaderStatus) UnmarshalJSON(input []byte) error {
+	switch strings.Trim(strings.ToLower(string(input)), "\"") {
+	case "todo":
+		fmt.Fprintf(os.Stderr, "Found todo")
+		*h = Todo
+	case "next":
+		*h = Next
+	case "prog":
+		*h = Prog
+	case "revw":
+		*h = Revw
+	case "done":
+		*h = Done
+	case "delg":
+		*h = Delg
+	case "none":
+	case "":
+		*h = None
+	default:
+		return errors.New("invalid HeaderStatus value")
+	}
+
+	return nil
 }
 
 func (s HeaderStatus) String() string {
@@ -74,7 +102,7 @@ var SPECIAL_TOKENS = []string{"[", ":"}
 var _ Render = (*Header)(nil)
 
 type Header struct {
-	Status   HeaderStatus
+	status   HeaderStatus
 	level    int
 	Progress option.Option[Progress]
 	Tags     option.Option[TagList]
@@ -90,19 +118,22 @@ type Header struct {
 }
 
 func NewHeader(status HeaderStatus, content string) Header {
-	return Header{
-		Status:   status,
+	header := Header{
+		status:   status,
 		Progress: option.None[Progress](),
 		Tags:     option.None[TagList](),
 
-		Parent:     option.None[Render](),
-		children:   []Render{},
-		schedule:   option.None[Schedule](),
-		properties: NewPropertiesWithUID(),
-		embedding:  option.None[embeddings.Embedding](),
+		Parent:    option.None[Render](),
+		children:  []Render{},
+		schedule:  option.None[Schedule](),
+		embedding: option.None[embeddings.Embedding](),
 
 		Content: content,
 	}
+
+	header.properties = NewPropertiesWithUID(&header)
+
+	return header
 }
 
 // TODO: remove str from arguments and parse from reader only (prob make a new constructor)
@@ -124,9 +155,9 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 
 	part, end := next()
 
-	header.Status = StatusFromString(part)
+	header.status = StatusFromString(part)
 
-	if header.Status != None {
+	if header.status != None {
 		part, end = next()
 	}
 
@@ -193,8 +224,8 @@ func (b *Header) RemoveChildren(uids ...Uid) error {
 func (h *Header) Render(builder *strings.Builder, depth int) {
 	builder.WriteString(strings.Repeat("*", h.Level()))
 	builder.WriteString(" ")
-	if h.Status != None {
-		builder.WriteString(h.Status.String())
+	if h.status != None {
+		builder.WriteString(h.status.String())
 		builder.WriteString(" ")
 	}
 	builder.WriteString(h.Content)
@@ -230,8 +261,8 @@ func (h *Header) Render(builder *strings.Builder, depth int) {
 }
 
 func (h *Header) CheckProgress() option.Option[Progress] {
-	if h.Progress.IsNone() && h.Status != None {
-		return option.Some(Progress{done: option.Some(h.Status == Done)})
+	if h.Progress.IsNone() && h.status != None {
+		return option.Some(Progress{done: option.Some(h.status == Done)})
 	}
 
 	return option.Map(h.Progress, func(_ Progress) Progress {
@@ -253,18 +284,33 @@ func (h *Header) CheckProgress() option.Option[Progress] {
 
 		h.Progress = option.Some(progress)
 
-		if h.Progress.AndThen(func(p Progress) bool { return p.Done() }) && h.Status != None {
-			h.Status = Done
-		} else if h.Progress.AndThen(func(p Progress) bool { return p.Prog() }) && h.Status != None && h.Status != Done {
-			h.Status = Prog
+		if h.Progress.AndThen(func(p Progress) bool { return p.Done() }) && h.status != None {
+			h.status = Done
+		} else if h.Progress.AndThen(func(p Progress) bool { return p.Prog() }) && h.status != None && h.status != Done {
+			h.status = Prog
 		}
 
 		return progress
 	})
 }
 
-func (h *Header) Location() int {
-	return h.location
+func (p *Header) Location(table map[Uid]int) (loc int) {
+	if val, ok := table[p.Uid()]; ok {
+		return val
+	}
+
+	if parent, ok := p.Parent.Split(); ok {
+		loc += parent.Location(table)
+
+		for i, child := range parent.ChildrenRec(-1) {
+			if child.Uid() == p.Uid() {
+				loc += i + 1
+				break
+			}
+		}
+	}
+
+	return
 }
 
 func (h *Header) IndentLevel() int {
@@ -293,14 +339,17 @@ func (h *Header) Children() []Render {
 	return h.children
 }
 
-func (b *Header) ChildrenRec() []Render {
-	children := []Render{}
-
-	for _, child := range b.Children() {
-		children = append(children, child.ChildrenRec()...)
+func (b *Header) ChildrenRec(depth int) (children []Render) {
+	if depth == 0 {
+		return
 	}
 
-	return children
+	for _, child := range b.Children() {
+		children = append(children, child)
+		children = append(children, child.ChildrenRec(depth-1)...)
+	}
+
+	return
 }
 
 func (b *Header) Uid() Uid {
@@ -319,14 +368,14 @@ func (h *Header) ParentUid() Uid {
 // A unique UID will be generated and assigned using NewPropertiesWithUID
 func (h *Header) CreateSubheader(title string, status HeaderStatus) *Header {
 	newHeader := &Header{
-		level:      h.Level() + 1,
-		Status:     status,
-		Content:    title,
-		Parent:     option.Some(Render(h)),
-		children:   []Render{},
-		properties: NewPropertiesWithUID(),
+		level:    h.Level() + 1,
+		status:   status,
+		Content:  title,
+		Parent:   option.Some(Render(h)),
+		children: []Render{},
 	}
 
+	newHeader.properties = NewPropertiesWithUID(newHeader)
 	h.children = append(h.children, newHeader)
 
 	return newHeader
@@ -370,4 +419,36 @@ func (h *Header) CompleteCheckboxByIndex(index int) (*Bullet, error) {
 
 	bullet.CompleteCheckbox()
 	return bullet, nil
+}
+
+func (h *Header) Status() HeaderStatus {
+	return h.status
+}
+
+func (h *Header) SetStatus(status HeaderStatus) {
+	h.status = status
+}
+
+func (h *Header) TagList() (list TagList) {
+	if parent, ok := h.Parent.Split(); ok {
+		list = parent.TagList()
+	}
+
+	if tags, ok := h.Tags.Split(); ok {
+		list = append(list, tags...)
+	}
+
+	return
+}
+
+func (h *Header) Preview() string {
+	return h.Content
+}
+
+func (h *Header) Path() string {
+	if parent, ok := h.Parent.Split(); ok {
+		return parent.Path() + "/" + h.Uid().String()
+	}
+
+	return h.Uid().String()
 }

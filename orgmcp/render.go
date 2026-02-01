@@ -11,11 +11,16 @@ type Render interface {
 	IndentLevel() int
 	ChildIndentLevel() int
 	Level() int
+	Location(table map[Uid]int) int
 	AddChildren(...Render) error
 	SetParent(Render) error
 	RemoveChildren(...Uid) error
 	Children() []Render
-	ChildrenRec() []Render
+	ChildrenRec(depth int) []Render
 	Uid() Uid
 	ParentUid() Uid
+	Status() HeaderStatus
+	TagList() TagList
+	Preview() string
+	Path() string
 }

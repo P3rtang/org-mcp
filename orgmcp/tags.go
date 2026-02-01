@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-type Tag string
-
 type TagList []string
 
 func TagListFromString(str string) option.Option[TagList] {

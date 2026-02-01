@@ -34,7 +34,7 @@ var VectorSearch = mcp.Tool{
 			},
 			"path": map[string]any{
 				"type":        "string",
-				"description": "An optional file path, will default to the configured org file.",
+				"description": "An optional file path, will default to the configured org file. (./.tasks.org)",
 			},
 		},
 	},

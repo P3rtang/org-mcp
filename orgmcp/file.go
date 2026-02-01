@@ -7,10 +7,10 @@ import (
 	"io"
 	"maps"
 	"os"
-	"reflect"
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/p3rtang/org-mcp/embeddings"
 	"github.com/p3rtang/org-mcp/utils/itertools"
@@ -29,13 +29,16 @@ type OrgFile struct {
 	name     string
 	children []Render
 
-	items map[Uid]Render
+	items       map[Uid]Render
+	locationMap map[Uid]int
 }
 
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
 
 func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
+	startTime := time.Now()
+
 	org_file := OrgFile{
 		items: map[Uid]Render{},
 	}
@@ -112,35 +115,26 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		}
 	}
 
+	org_file.BuildLocationTable()
+
 	peek_reader.Continue()
 
-	fmt.Fprintf(os.Stderr, "\nFinished parsing org file with %d items\n", len(org_file.items))
+	elapsed := time.Since(startTime)
+	fmt.Fprintf(os.Stderr, "\nFinished parsing org file with %d items in %d.%dms\n\n", len(org_file.items), elapsed.Milliseconds(), elapsed.Microseconds())
 
-	ordered := []Uid{}
-	colSize := make([]int, 2)
+	ordered := slices.Collect(maps.Values(org_file.items))
 
-	for uid, r := range org_file.items {
-		if len(uid.String()) > colSize[1] {
-			colSize[1] = len(uid.String())
-		}
-
-		if len(reflect.TypeOf(r).String()) > colSize[0] {
-			colSize[0] = len(reflect.TypeOf(r).String())
-		}
-
-		ordered = append(ordered, uid)
-	}
-
-	slices.SortFunc(ordered, func(i, j Uid) int {
-		return strings.Compare(i.String(), j.String())
+	slices.SortFunc(ordered, func(i Render, j Render) int {
+		return org_file.locationMap[i.Uid()] - org_file.locationMap[j.Uid()]
 	})
 
-	fmt.Fprintf(os.Stderr, "\n| %-*s | %-*s |\n", colSize[0], "Type", colSize[1], "Uid")
-	fmt.Fprintf(os.Stderr, "+%s+%s+\n", strings.Repeat("-", colSize[0]+2), strings.Repeat("-", colSize[1]+2))
-	for _, item := range ordered {
-		fmt.Fprintf(os.Stderr, "| %-*s | %-*s |\n", colSize[0], reflect.TypeOf(org_file.items[item]), colSize[1], item)
-	}
-	fmt.Fprint(os.Stderr, "\n")
+	fmt.Fprintf(os.Stderr, "%s", PrintTable(ordered, []Column{
+		ColType,
+		ColUid,
+		ColStatus,
+		ColPreview,
+		ColProgress,
+	}))
 
 	return result.Ok(org_file)
 }
@@ -238,7 +232,7 @@ func (of *OrgFile) Render(builder *strings.Builder, depth int) {
 	}
 }
 
-func (of *OrgFile) Location() int {
+func (of *OrgFile) Location(_ map[Uid]int) int {
 	return 0
 }
 
@@ -262,11 +256,16 @@ func (of *OrgFile) Children() []Render {
 	return of.children
 }
 
-func (of *OrgFile) ChildrenRec() []Render {
+func (of *OrgFile) ChildrenRec(depth int) []Render {
 	children := []Render{}
 
+	if depth == 0 {
+		return children
+	}
+
 	for _, child := range of.Children() {
-		children = append(children, child.ChildrenRec()...)
+		children = append(children, child)
+		children = append(children, child.ChildrenRec(depth-1)...)
 	}
 
 	return children
@@ -333,7 +332,7 @@ func (of *OrgFile) GetHeaderByStatus(status HeaderStatus) []*Header {
 	headers := []*Header{}
 
 	for _, child := range of.items {
-		if header, ok := child.(*Header); ok && header.Status == status {
+		if header, ok := child.(*Header); ok && header.Status() == status {
 			headers = append(headers, header)
 		}
 	}
@@ -351,14 +350,14 @@ func (of *OrgFile) GetStatusOverview() map[HeaderStatus]StatusReport {
 
 	for _, child := range of.items {
 		if header, ok := child.(*Header); ok {
-			if header.Status != None {
-				if _, exists := overview[header.Status]; !exists {
-					overview[header.Status] = StatusReport{Count: 0, Ids: []Uid{}}
+			if header.Status() != None {
+				if _, exists := overview[header.Status()]; !exists {
+					overview[header.Status()] = StatusReport{Count: 0, Ids: []Uid{}}
 				}
 
-				overview[header.Status] = StatusReport{
-					Count: overview[header.Status].Count + 1,
-					Ids:   append(overview[header.Status].Ids, header.Uid()),
+				overview[header.Status()] = StatusReport{
+					Count: overview[header.Status()].Count + 1,
+					Ids:   append(overview[header.Status()].Ids, header.Uid()),
 				}
 			}
 		}
@@ -369,6 +368,18 @@ func (of *OrgFile) GetStatusOverview() map[HeaderStatus]StatusReport {
 
 func (of *OrgFile) Uid() Uid {
 	return NewUid(0)
+}
+
+func GetByType[T Render](of *OrgFile) map[Uid]T {
+	mapping := make(map[Uid]T)
+
+	for uid, r := range of.items {
+		if item, ok := r.(T); ok {
+			mapping[uid] = item
+		}
+	}
+
+	return mapping
 }
 
 func GetHeaderRec(header *Header, predicate func(*Header) bool, headers []*Header) []*Header {
@@ -384,4 +395,36 @@ func GetHeaderRec(header *Header, predicate func(*Header) bool, headers []*Heade
 	}
 
 	return headers
+}
+
+func (of *OrgFile) BuildLocationTable() *map[Uid]int {
+	location_table := make(map[Uid]int)
+
+	for _, r := range of.items {
+		location_table[r.Uid()] = r.Location(location_table)
+	}
+
+	of.locationMap = location_table
+
+	return &of.locationMap
+}
+
+func (of *OrgFile) GetLocationTable() *map[Uid]int {
+	return &of.locationMap
+}
+
+func (of *OrgFile) Status() HeaderStatus {
+	return None
+}
+
+func (of *OrgFile) TagList() (list TagList) {
+	return
+}
+
+func (of *OrgFile) Preview() string {
+	return ""
+}
+
+func (of *OrgFile) Path() string {
+	return ""
 }

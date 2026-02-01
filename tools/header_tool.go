@@ -3,9 +3,8 @@ package tools
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
-	"strings"
+	"maps"
+	"slices"
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
@@ -13,9 +12,10 @@ import (
 )
 
 type HeaderInput struct {
-	Headers  []HeaderValue `json:"headers"`
-	Path     string        `json:"path"`
-	ShowDiff bool          `json:"show_diff,omitempty"`
+	Headers  []HeaderValue    `json:"headers"`
+	Path     string           `json:"path"`
+	ShowDiff bool             `json:"show_diff,omitempty"`
+	Columns  []*orgmcp.Column `json:"columns,omitempty"`
 }
 
 type HeaderValue struct {
@@ -31,7 +31,7 @@ var HeaderTool = mcp.Tool{
 	Name: "manage_header",
 	Description: "Add, remove or update headers in an Org file.\n" +
 		"The method parameter defines the action to take: 'add', 'remove', 'update'.\n" +
-		"- 'get': Retrieves the header identified by its uid. All other parameters are ignored. Depth however is unique for the get method and returns children up to that depth.\n" +
+		"For any method you can use a depth parameter to specify how many levels of children to return.\n" +
 		"- 'add': Adds a new header at the specified index under the given parent_uid (pass this in the uid field of the function). Requires 'content' parameter.\n" +
 		"- 'remove': Removes the header identified by its uid.\n" +
 		"- 'update': Updates the header's content, status, or tags. Requires 'content', 'status', or 'tags' parameters.\n\n" +
@@ -51,7 +51,7 @@ var HeaderTool = mcp.Tool{
 						},
 						"method": map[string]any{
 							"type":        "string",
-							"enum":        []string{"get", "add", "remove", "update"},
+							"enum":        []string{"add", "remove", "update"},
 							"description": "The method by which to manage the header.",
 						},
 						"status": map[string]any{
@@ -72,7 +72,7 @@ var HeaderTool = mcp.Tool{
 						},
 						"depth": map[string]any{
 							"type":        "integer",
-							"description": "The depth to return children headers when using 'get' method. 0 means no children, 1 means direct children only, and so on. If omitted, defaults to 1.",
+							"description": "The depth to return children headers. 0 means no children, 1 means direct children only, and so on. If omitted, defaults to 1.",
 						},
 					},
 				},
@@ -85,6 +85,14 @@ var HeaderTool = mcp.Tool{
 			"show_diff": map[string]any{
 				"type":        "boolean",
 				"description": "Whether to return the diff of changes made to the file. Can be used to inform the user of what changed.",
+			},
+			"columns": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "string",
+					"enum": []string{"uid", "content", "status", "tags", "children_count", "parent", "progress"},
+				},
+				"description": "List of columns to include in the output. If not specified, defaults to [UID, Content].",
 			},
 		},
 	},
@@ -114,27 +122,17 @@ var HeaderTool = mcp.Tool{
 			return
 		}
 
-		builder := strings.Builder{}
+		if len(input.Columns) == 0 {
+			uidCol := orgmcp.ColUid
+			contentCol := orgmcp.ColContent
+			input.Columns = []*orgmcp.Column{&uidCol, &contentCol}
+		}
+
+		var ordered []orgmcp.Render
+		results := map[orgmcp.Uid]orgmcp.Render{}
 
 		for _, headerOp := range input.Headers {
 			switch headerOp.Method {
-			case "get":
-				header, ok := orgFile.GetUid(orgmcp.NewUid(headerOp.Uid)).Split()
-				if !ok {
-					err = errors.New("invalid header UID for get")
-					return
-				}
-
-				var depth int
-				if headerOp.Depth == nil {
-					depth = 1
-				} else {
-					depth = *headerOp.Depth
-				}
-
-				header.Render(&builder, depth)
-				resp = append(resp, builder.String())
-				builder.Reset()
 			case "add":
 				parent, ok := orgFile.GetUid(orgmcp.NewUid(headerOp.Uid)).Split()
 				if !ok {
@@ -158,6 +156,17 @@ var HeaderTool = mcp.Tool{
 				newHeader.SetLevel(parent.Level() + 1)
 
 				parent.AddChildren(&newHeader)
+
+				depth := 1
+				if headerOp.Depth != nil {
+					depth = *headerOp.Depth
+				}
+
+				results[newHeader.Uid()] = &newHeader
+
+				for _, child := range newHeader.ChildrenRec(depth) {
+					results[child.Uid()] = child
+				}
 			case "remove":
 				header, ok := orgFile.GetUid(orgmcp.NewUid(headerOp.Uid)).Split()
 				if !ok {
@@ -176,6 +185,17 @@ var HeaderTool = mcp.Tool{
 				if err != nil {
 					return
 				}
+
+				depth := 1
+				if headerOp.Depth != nil {
+					depth = *headerOp.Depth
+				}
+
+				results[header.Uid()] = header
+
+				for _, child := range header.ChildrenRec(depth) {
+					results[child.Uid()] = child
+				}
 			case "update":
 				header, ok := option.Cast[orgmcp.Render, *orgmcp.Header](orgFile.GetUid(orgmcp.NewUid(headerOp.Uid))).Split()
 				if !ok {
@@ -188,12 +208,23 @@ var HeaderTool = mcp.Tool{
 				}
 
 				if headerOp.Status != "" {
-					header.Status = orgmcp.StatusFromString(headerOp.Status)
+					header.SetStatus(orgmcp.StatusFromString(headerOp.Status))
 				}
 
 				if len(headerOp.Tags) != 0 {
 					tags := option.Some(orgmcp.TagList(headerOp.Tags))
 					header.Tags = tags
+				}
+
+				depth := 1
+				if headerOp.Depth != nil {
+					depth = *headerOp.Depth
+				}
+
+				results[header.Uid()] = header
+
+				for _, child := range header.ChildrenRec(depth) {
+					results[child.Uid()] = child
 				}
 			default:
 				err = errors.New("invalid method for header management")
@@ -204,8 +235,15 @@ var HeaderTool = mcp.Tool{
 			}
 		}
 
+		locationTable := orgFile.BuildLocationTable()
+		ordered = append(ordered, slices.Collect(maps.Values(results))...)
+		slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+			return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
+		})
+		resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
+
 		diff, err := writeOrgFileToDisk(orgFile, path)
-		fmt.Fprintf(os.Stderr, "%t", input.ShowDiff)
+
 		if input.ShowDiff {
 			resp = append(resp, diff)
 		}

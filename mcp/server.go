@@ -112,9 +112,8 @@ func (s *Server) Run() error {
 	}
 }
 
-func (s *Server) AddTool(tool Tool, f ToolFunc) {
+func (s *Server) AddTool(tool Tool) {
 	s.tools[tool.Name] = tool
-	s.toolCb[tool.Name] = f
 }
 
 // handleMessage processes a single message
