@@ -13,31 +13,31 @@ func TestHeaderCheckProgressWithStatus(t *testing.T) {
 	cases := []struct {
 		name           string
 		orgContent     string
-		expectedStatus HeaderStatus
+		expectedStatus RenderStatus
 		expectedDone   bool
 	}{
 		{
 			name:           "TODO header with no progress returns progress with done=false",
 			orgContent:     "* TODO Test header",
-			expectedStatus: Todo,
+			expectedStatus: RenderStatus(Todo),
 			expectedDone:   false,
 		},
 		{
 			name:           "DONE header with no progress returns progress with done=true",
 			orgContent:     "* DONE Test header",
-			expectedStatus: Done,
+			expectedStatus: RenderStatus(Done),
 			expectedDone:   true,
 		},
 		{
 			name:           "NEXT header with no progress returns progress with done=false",
 			orgContent:     "* NEXT Test header",
-			expectedStatus: Next,
+			expectedStatus: RenderStatus(Next),
 			expectedDone:   false,
 		},
 		{
 			name:           "PROG header with no progress returns progress with done=false",
 			orgContent:     "* PROG Test header",
-			expectedStatus: Prog,
+			expectedStatus: RenderStatus(Prog),
 			expectedDone:   false,
 		},
 	}
@@ -117,7 +117,7 @@ func TestHeaderCheckProgressDoneStatus(t *testing.T) {
 			originalStatus := h.Status()
 			h.CheckProgress()
 
-			if h.Status() != Done {
+			if h.Status() != RenderStatus(Done) {
 				t.Errorf("expected DONE header to stay DONE, but got %v", h.Status())
 			}
 
@@ -135,7 +135,7 @@ func TestHeaderCheckProgressBasic(t *testing.T) {
 	h := NewHeaderFromString("* TODO Test", nil).Unwrap()
 
 	// Initial state: TODO
-	if h.Status() != Todo {
+	if h.Status() != RenderStatus(Todo) {
 		t.Errorf("expected initial status TODO, got %v", h.Status())
 	}
 
@@ -148,7 +148,7 @@ func TestHeaderCheckProgressBasic(t *testing.T) {
 	}
 
 	// Status should remain TODO since there are no children
-	if h.Status() != Todo {
+	if h.Status() != RenderStatus(Todo) {
 		t.Errorf("expected TODO status to remain after CheckProgress, got %v", h.Status())
 	}
 }

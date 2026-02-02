@@ -10,9 +10,9 @@ import (
 )
 
 type InputSchema struct {
-	Query string `json:"query"`
-	TopN  int    `json:"top_n"`
-	Path  string `json:"path,omitempty"`
+	Query string `json:"query" jsonschema:"description=The search query string.,required=true"`
+	TopN  int    `json:"top_n,omitempty" jsonschema:"description=The number of top relevant headers to return."`
+	Path  string `json:"path,omitempty" jsonschema:"description=An optional file path; will default to the configured org file. (./.tasks.org)"`
 }
 
 var VectorSearch = mcp.Tool{
@@ -21,23 +21,7 @@ var VectorSearch = mcp.Tool{
 		"Returns the top N most relevant headers.\n" +
 		"It is optimal to include as much information as possible in the query, overflowing the text limit is hard. " +
 		"So include context like timeframes, people involved, locations, etc. to get the best results.",
-	InputSchema: map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"query": map[string]any{
-				"type":        "string",
-				"description": "The search query string.",
-			},
-			"top_n": map[string]any{
-				"type":        "number",
-				"description": "The number of top relevant headers to return.",
-			},
-			"path": map[string]any{
-				"type":        "string",
-				"description": "An optional file path, will default to the configured org file. (./.tasks.org)",
-			},
-		},
-	},
+	InputSchema: mcp.GenerateSchema(InputSchema{}),
 	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
 		bytes, err := json.Marshal(args)
 		if err != nil {

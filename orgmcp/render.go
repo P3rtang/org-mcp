@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+type RenderStatus string
+
+func (r RenderStatus) String() string {
+	return string(r)
+}
+
 type Render interface {
 	CheckProgress() option.Option[Progress]
 	Render(builder *strings.Builder, depth int)
@@ -19,8 +25,8 @@ type Render interface {
 	ChildrenRec(depth int) []Render
 	Uid() Uid
 	ParentUid() Uid
-	Status() HeaderStatus
+	Status() RenderStatus
 	TagList() TagList
-	Preview() string
+	Preview(length int) string
 	Path() string
 }

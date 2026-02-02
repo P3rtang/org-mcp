@@ -12,75 +12,26 @@ import (
 )
 
 type ViewItem struct {
-	Uid     string               `json:"uid,omitempty"`
-	Status  *orgmcp.HeaderStatus `json:"status,omitempty"`
-	Content string               `json:"content,omitempty"`
-	Tags    []string             `json:"tags,omitempty"`
-	Depth   *int                 `json:"depth,omitempty"`
+	Uid     string               `json:"uid,omitempty" jsonschema:"description=UID of the header to view. If not provided, all headers are considered."`
+	Status  *orgmcp.RenderStatus `json:"status,omitempty" jsonschema:"description=Filter headers by status (e.g. TODO | DONE). Case insensitive. As well as bullets by their checkbox status (e.g. CHECKED | UNCHECKED)."`
+	Content string               `json:"content,omitempty" jsonschema:"description=Filter headers with a regex match on content. It will only consider the preview of the header content and not any metadata; children; status or other information."`
+	Tags    []string             `json:"tags,omitempty" jsonschema:"description=Filter headers by tags. Only headers containing all specified tags will be returned."`
+	Depth   *int                 `json:"depth,omitempty" jsonschema:"description=Depth of child headers to include. Default is 1 (only direct children)."`
 }
 
 type ViewInput struct {
-	Items   []ViewItem       `json:"items"`
-	Columns []*orgmcp.Column `json:"columns,omitempty"`
-	Path    string           `json:"path,omitempty"`
+	Items   []ViewItem       `json:"items" jsonschema:"description=List of items to view based on their UIDs and filters."`
+	Columns []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified, defaults to [UID, PREVIEW]. Always prefer preview over content to reduce output size, any metadata can be fetched with additional columns. Only use content if the rendered output that the user sees is important."`
+	Path    string           `json:"path,omitempty" jsonschema:"description=An optional file path, will default to the configured org file. (./.tasks.org)"`
 }
 
 var ViewTool = mcp.Tool{
 	Name: "query_items",
-	Description: "View headers, bullets, or other items in the org file based on their UIDs and filters like status and tags. You can specify multiple items to view in a single call." +
-		"Consider using the 'depth' parameter to include child items in the output. The results will be returned in CSV format with the specified columns." +
-		"Each item in the 'items' array functions as an OR operation between items, but an AND operation inside a single item." +
-		"The function can and will return multiple items if they match the criteria specified.",
-	InputSchema: map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"items": map[string]any{
-				"type": "array",
-				"items": map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						"uid": map[string]any{
-							"type":        "string",
-							"description": "UID of the header to view. If not provided, all headers are considered.",
-						},
-						"status": map[string]any{
-							"type":        "string",
-							"description": "Filter headers by status (e.g., TODO, DONE). Case insensitive.",
-						},
-						"tags": map[string]any{
-							"type":        "array",
-							"description": "Filter headers by tags. Only headers containing all specified tags will be returned.",
-							"items": map[string]any{
-								"type": "string",
-							},
-						},
-						"content": map[string]any{
-							"type":        "string",
-							"description": "Filter headers with a regex match on content. It will only consider the preview of the header content and not any metadata, children, status or other information.",
-						},
-						"depth": map[string]any{
-							"type":        "number",
-							"description": "Depth of child headers to include. Default is 1 (only direct children).",
-						},
-					},
-				},
-			},
-			"path": map[string]any{
-				"type":        "string",
-				"description": "An optional file path, will default to the configured org file. (./.tasks.org)",
-			},
-			"columns": map[string]any{
-				"type": "array",
-				"description": "List of columns to include in the output. If not specified, defaults to [UID, PREVIEW]. " +
-					"Always prefer preview over content to reduce output size, any metadata can be fetched with additional columns. " +
-					"Only use content if the rendered output that the user sees is important.",
-				"items": map[string]any{
-					"type": "string",
-					"enum": orgmcp.AllColumns,
-				},
-			},
-		},
-	},
+	Description: "View headers, bullets, or other items in the org file based on their UIDs and filters like status and tags. You can specify multiple items to view in a single call. " +
+		"Consider using the 'depth' parameter to include child items in the output. The results will be returned in CSV format with the specified columns. " +
+		"Each item in the 'items' array functions as an OR operation between items, but an AND operation inside a single item. " +
+		"The function can and will return multiple items if they match the criteria specified. ",
+	InputSchema: mcp.GenerateSchema(ViewInput{}),
 	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
 		bytes, err := json.Marshal(args)
 		if err != nil {
@@ -134,7 +85,7 @@ var ViewTool = mcp.Tool{
 						return nil, err
 					}
 
-					if !reg.MatchString(render.Preview()) {
+					if !reg.MatchString(render.Preview(-1)) {
 						continue
 					}
 				}

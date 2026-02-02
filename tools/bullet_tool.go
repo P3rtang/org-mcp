@@ -12,16 +12,16 @@ import (
 )
 
 type BulletInput struct {
-	Bullets  []BulletValue `json:"bullets,omitempty"`
-	Path     string        `json:"path,omitempty"`
-	ShowDiff bool          `json:"show_diff,omitempty"`
+	Bullets  []BulletValue `json:"bullets,omitempty" jsonschema:"description=List of bullet point operations to perform."`
+	Path     string        `json:"path,omitempty" jsonschema:"description=Optional file path, defaults to ./.tasks.org."`
+	ShowDiff bool          `json:"show_diff,omitempty" jsonschema:"description=Whether to show the diff of changes made to the Org file."`
 }
 
 type BulletValue struct {
-	Uid      string `json:"uid,omitempty"`
-	Method   string `json:"method"`
-	Content  string `json:"content,omitempty"`
-	Checkbox string `json:"checkbox,omitempty"`
+	Uid      string `json:"uid,omitempty" jsonschema:"description=UID of the bullet point to modify. The uid is constructed as 'header_uid + '.b' + bullet_index'. For the 'add' method you should add the header uid instead,required=true"`
+	Method   string `json:"method" jsonschema:"description=The method by which to manage the bullet point.,enum=add;remove;complete;toggle;set_content,required=true"`
+	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
+	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
 }
 
 var BulletTool = mcp.Tool{
@@ -38,50 +38,8 @@ var BulletTool = mcp.Tool{
 		"When targeting a bullet, the uid is constructed as `header_uid + '.b' + bullet_index`.\n" +
 		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like header_uid.b0.b1\n" +
 		"The add method is special as it requires the header_uid to be passed directly without any bullet index. The index will be determined by the tool itself.",
-
-	InputSchema: map[string]any{
-		"type": "object",
-		"properties": map[string]any{
-			"bullets": map[string]any{
-				"type": "array",
-				"items": map[string]any{
-					"type":     "object",
-					"required": []string{"method", "uid"},
-					"properties": map[string]any{
-						"uid": map[string]any{
-							"type":        "string",
-							"description": "UID of the bullet point to modify. The uid is constructed as `header_uid + '.b' + bullet_index`. For the 'add' method you should add the header uid instead",
-						},
-						"method": map[string]any{
-							"type":        "string",
-							"enum":        []string{"add", "remove", "complete", "toggle", "set_content"},
-							"description": "The method by which to manage the bullet point.",
-						},
-						"content": map[string]any{
-							"type":        "string",
-							"description": "Text content of the bullet.",
-						},
-						"checkbox": map[string]any{
-							"type":        "string",
-							"description": "Checkbox status for the new bullet.",
-							// TODO: add partial checked
-							"enum": []string{"None", "Unchecked", "Checked"},
-						},
-					},
-				},
-			},
-			"path": map[string]any{
-				"type":        "string",
-				"description": "Optional file path, defaults to ./.tasks.org.",
-			},
-			"show_diff": map[string]any{
-				"type":        "boolean",
-				"description": "Whether to show the diff of changes made to the Org file.",
-			},
-		},
-	},
-
-	Callback: bulletFunc,
+	InputSchema: mcp.GenerateSchema(BulletInput{}),
+	Callback:    bulletFunc,
 }
 
 func bulletFunc(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {

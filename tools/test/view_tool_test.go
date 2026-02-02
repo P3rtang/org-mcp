@@ -26,7 +26,7 @@ func TestViewTool(t *testing.T) {
 
 	var depth = 0
 	var depth2 = 2
-	var Todo = orgmcp.Todo
+	var Todo = orgmcp.RenderStatus(orgmcp.Todo)
 
 	var testMap = []Test{
 		{

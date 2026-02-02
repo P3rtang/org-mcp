@@ -12,15 +12,15 @@ import (
 	"strings"
 )
 
-type bulletStatus int
+type BulletStatus int
 
 const (
-	NoCheck bulletStatus = iota
+	NoCheck BulletStatus = iota
 	Unchecked
 	Checked
 )
 
-func NewBulletStatus(str string) bulletStatus {
+func NewBulletStatus(str string) BulletStatus {
 	switch strings.ToLower(str) {
 	case "unchecked":
 		return Unchecked
@@ -41,7 +41,7 @@ const (
 )
 
 type Bullet struct {
-	checkbox bulletStatus
+	checkbox BulletStatus
 	content  string
 	prefix   bulletPrefix
 	index    int
@@ -145,7 +145,7 @@ func NewBulletFromString(str string) o.Option[Bullet] {
 	return o.Some(bullet)
 }
 
-func NewBullet(parent Render, status bulletStatus) *Bullet {
+func NewBullet(parent Render, status BulletStatus) *Bullet {
 	prefix := Dash
 	if status == NoCheck {
 		prefix = Star
@@ -329,10 +329,15 @@ func (b *Bullet) HasCheckbox() bool {
 	return b.checkbox != NoCheck
 }
 
-func (b *Bullet) Status() HeaderStatus {
-	return option.Map(b.parent, func(p Render) HeaderStatus {
-		return p.Status()
-	}).UnwrapOr(None)
+func (b *Bullet) Status() RenderStatus {
+	switch b.checkbox {
+	case Unchecked:
+		return "UNCHECKED"
+	case Checked:
+		return "CHECKED"
+	default:
+		return ""
+	}
 }
 
 func (b *Bullet) TagList() (list TagList) {
@@ -343,8 +348,12 @@ func (b *Bullet) TagList() (list TagList) {
 	return
 }
 
-func (b *Bullet) Preview() string {
-	return b.content
+func (b *Bullet) Preview(length int) string {
+	if length < 0 || length >= len(b.content) {
+		return b.content
+	}
+
+	return b.content[:length]
 }
 
 func (b *Bullet) Path() string {

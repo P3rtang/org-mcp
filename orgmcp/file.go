@@ -328,7 +328,7 @@ func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
 	)
 }
 
-func (of *OrgFile) GetHeaderByStatus(status HeaderStatus) []*Header {
+func (of *OrgFile) GetHeaderByStatus(status RenderStatus) []*Header {
 	headers := []*Header{}
 
 	for _, child := range of.items {
@@ -345,12 +345,12 @@ type StatusReport struct {
 	Ids   []Uid `json:"ids"`
 }
 
-func (of *OrgFile) GetStatusOverview() map[HeaderStatus]StatusReport {
-	overview := make(map[HeaderStatus]StatusReport)
+func (of *OrgFile) GetStatusOverview() map[RenderStatus]StatusReport {
+	overview := make(map[RenderStatus]StatusReport)
 
 	for _, child := range of.items {
 		if header, ok := child.(*Header); ok {
-			if header.Status() != None {
+			if header.Status() != RenderStatus(None) {
 				if _, exists := overview[header.Status()]; !exists {
 					overview[header.Status()] = StatusReport{Count: 0, Ids: []Uid{}}
 				}
@@ -413,15 +413,15 @@ func (of *OrgFile) GetLocationTable() *map[Uid]int {
 	return &of.locationMap
 }
 
-func (of *OrgFile) Status() HeaderStatus {
-	return None
+func (of *OrgFile) Status() RenderStatus {
+	return ""
 }
 
 func (of *OrgFile) TagList() (list TagList) {
 	return
 }
 
-func (of *OrgFile) Preview() string {
+func (of *OrgFile) Preview(_ int) string {
 	return ""
 }
 

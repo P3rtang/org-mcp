@@ -116,10 +116,8 @@ func (p *PlainText) ParentUid() Uid {
 	return p.parent.Unwrap().Uid()
 }
 
-func (p *PlainText) Status() HeaderStatus {
-	return option.Map(p.parent, func(p Render) HeaderStatus {
-		return p.Status()
-	}).UnwrapOr(None)
+func (p *PlainText) Status() RenderStatus {
+	return ""
 }
 
 func (p *PlainText) TagList() (list TagList) {
@@ -130,8 +128,12 @@ func (p *PlainText) TagList() (list TagList) {
 	return
 }
 
-func (p *PlainText) Preview() string {
-	return p.content
+func (p *PlainText) Preview(length int) string {
+	if length < 0 || length >= len(p.content) {
+		return p.content
+	}
+
+	return p.content[:length]
 }
 
 func (p *PlainText) Path() string {

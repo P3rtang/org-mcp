@@ -12,7 +12,7 @@ func TestHeaderFromString(t *testing.T) {
 
 	input := "* TODO Example [0/1] :tag1:tag2:"
 	expectedLevel := 1
-	expectedStatus := Todo
+	expectedStatus := RenderStatus(Todo)
 	expectedContent := "Example"
 
 	header := NewHeaderFromString(input, nil).Unwrap()

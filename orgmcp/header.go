@@ -421,8 +421,8 @@ func (h *Header) CompleteCheckboxByIndex(index int) (*Bullet, error) {
 	return bullet, nil
 }
 
-func (h *Header) Status() HeaderStatus {
-	return h.status
+func (h *Header) Status() RenderStatus {
+	return RenderStatus(h.status)
 }
 
 func (h *Header) SetStatus(status HeaderStatus) {
@@ -441,8 +441,12 @@ func (h *Header) TagList() (list TagList) {
 	return
 }
 
-func (h *Header) Preview() string {
-	return h.Content
+func (h *Header) Preview(length int) string {
+	if length < 0 || length >= len(h.Content) {
+		return h.Content
+	}
+
+	return h.Content[:length]
 }
 
 func (h *Header) Path() string {

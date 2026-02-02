@@ -375,3 +375,11 @@
     * *Body Preview Control*: Allow the ~PREVIEW~ or a new ~SUMMARY~ column to return a specific number of lines from the body text.
     * *Property Export*: A ~PROPERTIES~ column that returns all property drawer key-values as a parseable string.
     * *Date Range Filtering*: Add the ability to filter results by date ranges (e.g., ~SCHEDULED~ or ~DEADLINE~ between Date A and Date B) directly in ~query_items~.
+** TODO Derive Tool Input Schema from Go Struct using Reflection :jsonrpc:schema:input:
+   :PROPERTIES:
+   :ID: 15951102
+   :END:
+   - [ ] Use the `reflect` package to traverse Go struct fields and tags.
+   - [ ] Map Go types (string, int, bool, slices, etc.) to JSON Schema types.
+   - [ ] Extract descriptions, required status, and constraints from struct tags (e.g., `jsonschema:"description=..."`).
+   - [ ] Ensure nested structs are handled recursively to build complex input schemas.

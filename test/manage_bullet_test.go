@@ -20,7 +20,7 @@ func TestManageBulletAdd(t *testing.T) {
 
 	// Parse the test content
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")
@@ -85,7 +85,7 @@ func TestManageBulletRemove(t *testing.T) {
 `
 
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")
@@ -132,7 +132,7 @@ func TestManageBulletComplete(t *testing.T) {
 `
 
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")
@@ -175,7 +175,7 @@ func TestManageBulletToggle(t *testing.T) {
 `
 
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")
@@ -226,7 +226,7 @@ func TestManageBulletSetContent(t *testing.T) {
 `
 
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")
@@ -269,7 +269,7 @@ func TestManageBulletSequenceOperations(t *testing.T) {
 `
 
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")
@@ -327,7 +327,7 @@ func TestManageBulletInvalidOperations(t *testing.T) {
 `
 
 	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
-	headers := orgFile.GetHeaderByStatus(None)
+	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
 		t.Fatalf("expected to find at least one header")

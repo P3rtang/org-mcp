@@ -186,13 +186,13 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 	s.state.Initialized = true
 
 	result := InitializeResult{
-		ProtocolVersion: "2024-11-05",
+		ProtocolVersion: "2025-11-25",
 		Capabilities: ServerCapabilities{
 			Tools: s.tools,
 		},
 		ServerInfo: ServerInfo{
 			Name:    "org-mcp",
-			Version: "0.1.0",
+			Version: "0.2.0",
 		},
 		Instructions: `
 		When working with org-mcp, you can use the tool to parse / change org-mode files.
@@ -207,19 +207,11 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 		Implementation begins with extracting the relevant metadata and statuses from the document.
 
 		Direct modification of the org file is discouraged. Use the tooling provided by the org-mcp server to ensure consistency and maintain integrity.
+		Direct reading should be avoided as it may lead to blowing up the context window and losing important information.
 
 		An org file serves as a long-term memory and organizational tool for the project. Always refer to it as the main reference point.
-
-		Most headers in the org files will have a status associated, this indicated priority/status of the task.
-		TODO: still in the backlog
-		NEXT: in the backlog, but next on the agenda
-		PROG: in progress
-		DONE: finalized
-		When starting work on a task or when completing a task make sure to update the status of the associated header
-
-		When query the content like a header by its status, its index will also be returned.
-		This index is also the line number in the tasks file and can be used to modify any content.
-		All children will count up by 1 in line number which will then be assigned as index.
+		It also functions as long term memory between session, this means that any information not stored in the org file will be lost between sessions.
+		Use this together with the programmer to ensure that all important information is captured in the org file.
 		`,
 	}
 

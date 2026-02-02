@@ -61,7 +61,8 @@ func (c Column) Value(r Render, quoteChars string) (val string) {
 	case ColUid:
 		val = string(r.Uid().String())
 	case ColPreview:
-		val = r.Preview()
+		val = r.Preview(-1)
+		val = strings.ReplaceAll(val, "\n", "\\n")
 	case ColContent:
 		var contentBuilder strings.Builder
 		r.Render(&contentBuilder, 0)
@@ -70,11 +71,7 @@ func (c Column) Value(r Render, quoteChars string) (val string) {
 			val = fmt.Sprintf("\"%s\"", val)
 		}
 	case ColStatus:
-		if header, ok := r.(*Header); ok {
-			val = header.Status().String()
-		} else {
-			val = ""
-		}
+		val = r.Status().String()
 	case ColProgress:
 		if p, ok := r.CheckProgress().Split(); ok && p.Total > 0 {
 			val = fmt.Sprintf("%d/%d", p.Complete, p.Total)
