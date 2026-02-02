@@ -10,6 +10,7 @@ import (
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/tools"
+	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
 func TestViewTool(t *testing.T) {
@@ -24,9 +25,13 @@ func TestViewTool(t *testing.T) {
 		expected []any
 	}
 
-	var depth = 0
-	var depth2 = 2
-	var Todo = orgmcp.RenderStatus(orgmcp.Todo)
+	var (
+		depth        = 0
+		depth2       = 2
+		Todo         = orgmcp.RenderStatus(orgmcp.Todo)
+		twoDaysRange = 2
+		startDate    = "2025-12-31"
+	)
 
 	var testMap = []Test{
 		{
@@ -39,7 +44,7 @@ func TestViewTool(t *testing.T) {
 					},
 				},
 			},
-			expected: []any{"UID,CONTENT\\n1,* Root Header..."},
+			expected: []any{"UID,PREVIEW\\n1,Root Header"},
 		},
 		{
 			name: "GetNodeByStatus",
@@ -51,7 +56,7 @@ func TestViewTool(t *testing.T) {
 					},
 				},
 			},
-			expected: []any{"UID,CONTENT\\n2,* TODO Root Header with status..."},
+			expected: []any{"UID,PREVIEW\\n2,Root Header with status"},
 		},
 		{
 			name: "GetSpecificColumns",
@@ -63,9 +68,9 @@ func TestViewTool(t *testing.T) {
 					},
 				},
 				Columns: []*orgmcp.Column{
-					&orgmcp.UidCol,
-					&orgmcp.ProgressCol,
-					&orgmcp.ChildrenCountCol,
+					&orgmcp.ColUidValue,
+					&orgmcp.ColProgressValue,
+					&orgmcp.ColChildrenCountValue,
 				},
 			},
 			expected: []any{"UID,PROGRESS,CHILDREN_COUNT\\n3,1/2,2"},
@@ -80,10 +85,92 @@ func TestViewTool(t *testing.T) {
 					},
 				},
 				Columns: []*orgmcp.Column{
-					&orgmcp.UidCol,
+					&orgmcp.ColUidValue,
 				},
 			},
 			expected: []any{"UID\\n3\\n3.b0\\n3.b1"},
+		},
+		{
+			name: "GetByRegex",
+			input: tools.ViewInput{
+				Items: []tools.ViewItem{
+					{
+						Content: "with status",
+						Depth:   &depth,
+					},
+				},
+				Columns: []*orgmcp.Column{
+					&orgmcp.ColUidValue,
+				},
+			},
+			expected: []any{"UID\\n2"},
+		},
+		{
+			name: "GetByOverdue",
+			input: tools.ViewInput{
+				Items: []tools.ViewItem{
+					{
+						Date: &tools.DateFilter{
+							Match: orgmcp.DeadlineValue,
+						},
+						Depth: &depth,
+					},
+				},
+				Columns: []*orgmcp.Column{
+					&orgmcp.ColUidValue,
+				},
+			},
+			expected: []any{"UID\\n95718900"},
+		},
+		{
+			name: "GetByDateShowClosed",
+			input: tools.ViewInput{
+				Items: []tools.ViewItem{
+					{
+						Date: &tools.DateFilter{
+							Match:      orgmcp.DeadlineValue,
+							ShowClosed: true,
+						},
+						Depth: &depth,
+					},
+				},
+				Columns: []*orgmcp.Column{
+					&orgmcp.ColUidValue,
+				},
+			},
+			expected: []any{"UID\\n95718900\\n95718910"},
+		},
+		{
+			name: "GetByDateRange",
+			input: tools.ViewInput{
+				Items: []tools.ViewItem{
+					{
+						Date: &tools.DateFilter{
+							Match: orgmcp.DeadlineValue,
+							Date:  &startDate,
+							Range: &twoDaysRange,
+						},
+						Depth: &depth,
+					},
+				},
+				Columns: []*orgmcp.Column{
+					&orgmcp.ColUidValue,
+				},
+			},
+			expected: []any{"UID\\n95718900"},
+		},
+		{
+			name: "GetAllColumns",
+			input: tools.ViewInput{
+				Items: []tools.ViewItem{
+					{
+						Uid:   "95718920",
+						Depth: &depth,
+					},
+				},
+				Columns: slice.Ref(orgmcp.AllColumns),
+			},
+			expected: []any{"TYPE,UID,PREVIEW,CONTENT,STATUS,PROGRESS,PARENT,CHILDREN_COUNT,TAGS,LEVEL,PATH,SCHEDULED,DEADLINE,CLOSED\\n*orgmcp.Header,95718920,All columns,* DONE All columns [1/3] :tag:...,DONE,1/3,0,3,tag,1,/95718920,2026-02-02,2026-02-03,2026-02-02"},
 		},
 	}
 

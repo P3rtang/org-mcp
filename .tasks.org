@@ -293,21 +293,27 @@
    :PROPERTIES:
    :ID: 45374501
    :END:
-*** NEXT Date Parsing :date:parsing:
+*** PROG Date Parsing                                             :date:parsing:
     :PROPERTIES:
     :ID: 78268550
     :END:
     - [x] Analyze the org mode syntax for various date formats and ensure compliance with parsing standards.
     - [x] Develop a parser to read CLOSED and SCHEDULED timestamps, ensuring timezone support.
     - [ ] Write tests for parsing various edge cases, such as invalid or incomplete dates.
-*** TODO Date Searching
+*** DONE Date Searching
+    CLOSED: [2026-02-02 Mon 18:52]
     :PROPERTIES:
     :ID: 94835494
     :END:
-    - [ ] Study fuzzy and exact search algorithms for handling date queries in org mode.
-    - [ ] Design a REST endpoint to retrieve org entries based on date constraints (e.g., within a range).
-    - [ ] Create unit tests to validate search results, including handling of corner cases (e.g., NULL dates).
-    - [ ] Design flexible constraints such as allowing before/after X to deduplicate timestamps
+    - [x] Implement exact match searching for SCHEDULED and DEADLINE tags.
+    - [x] Implement range searching (Between A and B) for all timestamp types.
+    - [x] Implement 'Overdue' logic: DEADLINE < Now AND Status != DONE.
+    - [x] Add 'Completed' history search using the CLOSED timestamp.
+    - [x] Support 'Missing' search to find tasks without assigned dates.
+    - [x] Implement `DateFilter` struct inside `ViewItem` for localized date-based queries.
+    - [x] Handle negative `Range` logic: Anchor date becomes the exclusive end-cap for past searches.
+    - [x] Ensure date normalization (midnight-to-midnight) to prevent time-of-day filtering bugs.
+    - [x] Add `ShowClosed` toggle to filter between active agenda and completion history.
 *** TODO Schedule Modification
     :PROPERTIES:
     :ID: 22890236
@@ -318,7 +324,7 @@
    :PROPERTIES:
    :ID: 48165813
    :END:
-** AI Session Context & Tooling Progress
+** AI Session Context & Tooling Progress :context:ai:session:
    :PROPERTIES:
    :ID: 96275729
    :END:
@@ -379,7 +385,10 @@
    :PROPERTIES:
    :ID: 15951102
    :END:
-   - [ ] Use the `reflect` package to traverse Go struct fields and tags.
-   - [ ] Map Go types (string, int, bool, slices, etc.) to JSON Schema types.
-   - [ ] Extract descriptions, required status, and constraints from struct tags (e.g., `jsonschema:"description=..."`).
-   - [ ] Ensure nested structs are handled recursively to build complex input schemas.
+   - [x] Use the `reflect` package to traverse Go struct fields and tags.
+   - [x] Map Go types (string, int, bool, slices, etc.) to JSON Schema types.
+   - [x] Extract descriptions, required status, and constraints from struct tags (e.g., `jsonschema:"description=..."`).
+   - [x] Ensure nested structs are handled recursively to build complex input schemas.
+   - [x] Support `json:",omitempty"` to distinguish between required and optional fields.
+   - [x] Ensure `default` and `enum` values in the schema match the field's JSON type (e.g., numbers instead of strings for int fields).
+   - [ ] Implement a registration helper in `mcp.Server` to simplify tool definition.

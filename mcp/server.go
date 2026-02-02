@@ -186,7 +186,7 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 	s.state.Initialized = true
 
 	result := InitializeResult{
-		ProtocolVersion: "2025-11-25",
+		ProtocolVersion: "2024-11-05",
 		Capabilities: ServerCapabilities{
 			Tools: s.tools,
 		},

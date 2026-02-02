@@ -16,18 +16,31 @@ const (
 	Closed
 )
 
-// func newStatusFromKeyword(kw string) ScheduleStatus {
-// 	switch kw {
-// 	case "DEADLINE":
-// 		return Deadline
-// 	case "SCHEDULED":
-// 		return Scheduled
-// 	case "CLOSED":
-// 		return Closed
-// 	default:
-// 		panic("unreachable")
-// 	}
-// }
+var (
+	DeadlineValue  = "DEADLINE"
+	ScheduledValue = "SCHEDULED"
+	ClosedValue    = "CLOSED"
+)
+
+func NewScheduleStatus(str string) (ScheduleStatus, error) {
+	switch strings.ToUpper(strings.TrimSpace(str)) {
+	case "DEADLINE":
+		return Deadline, nil
+	case "SCHEDULED":
+		return Scheduled, nil
+	case "CLOSED":
+		return Closed, nil
+	default:
+		return 0, nil
+	}
+}
+
+func (s *ScheduleStatus) UnmarshalJSON(data []byte) (err error) {
+	schedule, err := NewScheduleStatus(strings.Trim(string(data), "\""))
+	s = &schedule
+
+	return
+}
 
 func (s ScheduleStatus) String() string {
 	return ScheduleKeywords[s]
@@ -37,8 +50,8 @@ var ScheduleKeywords = []string{"DEADLINE", "SCHEDULED", "CLOSED"}
 var OrderedSchedules = []ScheduleStatus{Scheduled, Deadline, Closed}
 
 type Schedule struct {
-	values map[ScheduleStatus]struct {
-		t        time.Time
+	Values map[ScheduleStatus]struct {
+		T        time.Time
 		withTime bool
 	}
 
@@ -48,8 +61,8 @@ type Schedule struct {
 func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 	var err error
 	schedule := Schedule{}
-	schedule.values = make(map[ScheduleStatus]struct {
-		t        time.Time
+	schedule.Values = make(map[ScheduleStatus]struct {
+		T        time.Time
 		withTime bool
 	})
 
@@ -67,10 +80,10 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 
 	if len(matches) != 0 {
 		if t, err := time.Parse("2006-01-02", matches[1]); err == nil {
-			schedule.values[Scheduled] = struct {
-				t        time.Time
+			schedule.Values[Scheduled] = struct {
+				T        time.Time
 				withTime bool
-			}{t: t, withTime: false}
+			}{T: t, withTime: false}
 		}
 	}
 
@@ -80,10 +93,10 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 
 	if len(matches) != 0 {
 		if t, err := time.Parse("2006-01-02", matches[1]); err == nil {
-			schedule.values[Deadline] = struct {
-				t        time.Time
+			schedule.Values[Deadline] = struct {
+				T        time.Time
 				withTime bool
-			}{t: t, withTime: false}
+			}{T: t, withTime: false}
 		}
 	}
 
@@ -92,23 +105,23 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 
 	if len(matches) != 0 {
 		if t, err := time.Parse("2006-01-02", matches[1]); err == nil {
-			schedule.values[Closed] = struct {
-				t        time.Time
+			schedule.Values[Closed] = struct {
+				T        time.Time
 				withTime bool
-			}{t: t, withTime: false}
+			}{T: t, withTime: false}
 		}
 	}
 
 	if len(matches) > 3 {
 		if t, err := time.Parse("2006-01-02 15:04", matches[1]+matches[3]); err == nil {
-			schedule.values[Closed] = struct {
-				t        time.Time
+			schedule.Values[Closed] = struct {
+				T        time.Time
 				withTime bool
-			}{t: t, withTime: true}
+			}{T: t, withTime: true}
 		}
 	}
 
-	if len(schedule.values) == 0 {
+	if len(schedule.Values) == 0 {
 		return option.None[Schedule]()
 	}
 
@@ -122,8 +135,8 @@ func (s *Schedule) Render(builder *strings.Builder) {
 	builder.WriteString(strings.Repeat(" ", max(s.parent.ChildIndentLevel()-1, 0)))
 
 	for _, status := range OrderedSchedules {
-		t := s.values[status]
-		if t.t.IsZero() {
+		t := s.Values[status]
+		if t.T.IsZero() {
 			continue
 		}
 
@@ -137,13 +150,13 @@ func (s *Schedule) Render(builder *strings.Builder) {
 			builder.WriteRune('<')
 		}
 
-		builder.WriteString(t.t.Format("2006-01-02"))
+		builder.WriteString(t.T.Format("2006-01-02"))
 		builder.WriteRune(' ')
-		builder.WriteString(t.t.Weekday().String()[:3])
+		builder.WriteString(t.T.Weekday().String()[:3])
 
 		if t.withTime {
 			builder.WriteRune(' ')
-			builder.WriteString(t.t.Format("15:04"))
+			builder.WriteString(t.T.Format("15:04"))
 		}
 
 		if status == Closed {

@@ -56,3 +56,12 @@ func Filter[T any](slice []T, f func(T) bool) []T {
 		return acc
 	}, []T{})
 }
+
+func Ref[T any](slice []T) []*T {
+	result := make([]*T, len(slice))
+	for i := range slice {
+		result[i] = &slice[i]
+	}
+
+	return result
+}

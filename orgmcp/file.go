@@ -134,6 +134,8 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		ColStatus,
 		ColPreview,
 		ColProgress,
+		ColScheduled,
+		ColDeadline,
 	}))
 
 	return result.Ok(org_file)

@@ -213,12 +213,16 @@ func (h *Header) SetParent(render Render) error {
 	return nil
 }
 
-func (b *Header) RemoveChildren(uids ...Uid) error {
-	b.children = slice.Filter(b.children, func(r Render) bool {
+func (h *Header) RemoveChildren(uids ...Uid) error {
+	h.children = slice.Filter(h.children, func(r Render) bool {
 		return !slices.Contains(uids, r.Uid())
 	})
 
 	return nil
+}
+
+func (h *Header) Schedule() option.Option[*Schedule] {
+	return option.Ref(&h.schedule)
 }
 
 func (h *Header) Render(builder *strings.Builder, depth int) {

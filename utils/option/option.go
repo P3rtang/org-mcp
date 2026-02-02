@@ -29,7 +29,7 @@ Returns true if the Option does not contain a value, false otherwise.
 
 Inverse of IsSome
 */
-func (o *Option[T]) IsNone() bool {
+func (o Option[T]) IsNone() bool {
 	return !o.set
 }
 
@@ -38,12 +38,20 @@ Returns true if the Option contains a value, false otherwise.
 
 Inverse of IsNone
 */
-func (o *Option[T]) IsSome() bool {
+func (o Option[T]) IsSome() bool {
 	return o.set
 }
 
 func (o Option[T]) Split() (T, bool) {
 	return o.value, o.set
+}
+
+func Ref[T any](o *Option[T]) Option[*T] {
+	if o == nil || o.IsNone() {
+		return None[*T]()
+	}
+
+	return Some(&o.value)
 }
 
 /*

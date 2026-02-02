@@ -22,20 +22,26 @@ const (
 	ColTags          Column = "TAGS"
 	ColLevel         Column = "LEVEL"
 	ColPath          Column = "PATH"
+	ColScheduled     Column = "SCHEDULED"
+	ColDeadline      Column = "DEADLINE"
+	ColClosed        Column = "CLOSED"
 )
 
 var (
-	TypeCol          = ColType
-	UidCol           = ColUid
-	PreviewCol       = ColPreview
-	ContentCol       = ColContent
-	StatusCol        = ColStatus
-	ProgressCol      = ColProgress
-	ParentCol        = ColParent
-	ChildrenCountCol = ColChildrenCount
-	TagsCol          = ColTags
-	LevelCol         = ColLevel
-	PathCol          = ColPath
+	ColTypeValue          = ColType
+	ColUidValue           = ColUid
+	ColPreviewValue       = ColPreview
+	ColContentValue       = ColContent
+	ColStatusValue        = ColStatus
+	ColProgressValue      = ColProgress
+	ColParentValue        = ColParent
+	ColChildrenCountValue = ColChildrenCount
+	ColTagsValue          = ColTags
+	ColLevelValue         = ColLevel
+	ColPathValue          = ColPath
+	ColScheduledValue     = ColScheduled
+	ColDeadlineValue      = ColDeadline
+	ColClosedValue        = ColClosed
 )
 
 var AllColumns = []Column{
@@ -50,6 +56,9 @@ var AllColumns = []Column{
 	ColTags,
 	ColLevel,
 	ColPath,
+	ColScheduled,
+	ColDeadline,
+	ColClosed,
 }
 
 var AllColumnsStr = strings.Join(slice.Map(AllColumns, func(c Column) string { return c.String() }), ", ")
@@ -61,12 +70,13 @@ func (c Column) Value(r Render, quoteChars string) (val string) {
 	case ColUid:
 		val = string(r.Uid().String())
 	case ColPreview:
-		val = r.Preview(-1)
+		val = r.Preview(60)
 		val = strings.ReplaceAll(val, "\n", "\\n")
 	case ColContent:
 		var contentBuilder strings.Builder
 		r.Render(&contentBuilder, 0)
-		val = strings.ReplaceAll(contentBuilder.String(), "\n", "\\n")
+		val = strings.TrimRight(contentBuilder.String(), "\n")
+		val = strings.ReplaceAll(val, "\n", "\\n")
 		if strings.ContainsAny(val, quoteChars) {
 			val = fmt.Sprintf("\"%s\"", val)
 		}
@@ -89,6 +99,27 @@ func (c Column) Value(r Render, quoteChars string) (val string) {
 		val = fmt.Sprintf("%d", r.Level())
 	case ColPath:
 		val = r.Path()
+	case ColScheduled:
+		if header, ok := r.(*Header); ok && header.Schedule().IsSome() {
+			date := header.Schedule().Unwrap().Values[Scheduled]
+			if !date.T.IsZero() {
+				val = date.T.Format("2006-01-02")
+			}
+		}
+	case ColDeadline:
+		if header, ok := r.(*Header); ok && header.Schedule().IsSome() {
+			date := header.Schedule().Unwrap().Values[Deadline]
+			if !date.T.IsZero() {
+				val = date.T.Format("2006-01-02")
+			}
+		}
+	case ColClosed:
+		if header, ok := r.(*Header); ok && header.Schedule().IsSome() {
+			date := header.Schedule().Unwrap().Values[Closed]
+			if !date.T.IsZero() {
+				val = date.T.Format("2006-01-02")
+			}
+		}
 	}
 
 	return
@@ -99,7 +130,9 @@ func (c *Column) String() string {
 }
 
 func (c *Column) UnmarshalJSON(input []byte) error {
-	switch strings.Trim(strings.ToUpper(string(input)), "\"") {
+	col := strings.Trim(strings.ToUpper(string(input)), "\"")
+
+	switch col {
 	case "TYPE":
 		*c = ColType
 	case "UID":
@@ -120,8 +153,16 @@ func (c *Column) UnmarshalJSON(input []byte) error {
 		*c = ColTags
 	case "PATH":
 		*c = ColPath
+	case "LEVEL":
+		*c = ColLevel
+	case "SCHEDULED":
+		*c = ColScheduled
+	case "DEADLINE":
+		*c = ColDeadline
+	case "CLOSED":
+		*c = ColClosed
 	default:
-		return fmt.Errorf("unknown column type, potential values are: %s", AllColumnsStr)
+		return fmt.Errorf("Unknown column type %s\n, potential values are: %s\n", col, AllColumnsStr)
 	}
 
 	return nil
