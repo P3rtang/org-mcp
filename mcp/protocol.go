@@ -15,6 +15,20 @@ type JSONRPCMessage struct {
 	Error   any             `json:"error,omitempty"`
 }
 
+type McpTool interface {
+	GetName() string
+	GetDescription() string
+	GetSchema() map[string]any
+	ToEncode() EncodeTool
+	Execute(map[string]any, FuncOptions) ([]any, error)
+}
+
+type EncodeTool struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	InputSchema map[string]any `json:"inputSchema"`
+}
+
 // Tool defines an MCP tool with its description and input schema
 type Tool struct {
 	Name        string         `json:"name"`
@@ -24,12 +38,82 @@ type Tool struct {
 	Callback func(map[string]any, FuncOptions) ([]any, error) `json:"-"`
 }
 
+func (t *Tool) GetName() string {
+	return t.Name
+}
+
+func (t *Tool) GetDescription() string {
+	return t.Description
+}
+
+func (t *Tool) GetSchema() map[string]any {
+	return t.InputSchema
+}
+
+func (t *Tool) ToEncode() EncodeTool {
+	return EncodeTool{
+		Name:        t.Name,
+		Description: t.Description,
+		InputSchema: t.InputSchema,
+	}
+}
+
+func (t *Tool) Execute(input map[string]any, options FuncOptions) ([]any, error) {
+	return t.Callback(input, options)
+}
+
+type GenericTool[Schema any] struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+
+	Callback func(Schema, FuncOptions) ([]any, error) `json:"-"`
+}
+
+func (g *GenericTool[Schema]) GetName() string {
+	return g.Name
+}
+
+func (g *GenericTool[Schema]) GetDescription() string {
+	return g.Description
+}
+
+func (g *GenericTool[Schema]) GetSchema() map[string]any {
+	var schema Schema
+	return GenerateSchema(schema)
+}
+
+func (g *GenericTool[Schema]) ToEncode() EncodeTool {
+	tool := EncodeTool{
+		Name:        g.Name,
+		Description: g.Description,
+		InputSchema: g.GetSchema(),
+	}
+
+	return tool
+}
+
+func (g *GenericTool[Schema]) Execute(input map[string]any, options FuncOptions) ([]any, error) {
+	var schema Schema
+
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(bytes, &schema)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.Callback(schema, options)
+}
+
 // ServerCapabilities defines what the MCP server can do
 type ServerCapabilities struct {
-	Logging   map[string]any  `json:"logging,omitempty"`
-	Tools     map[string]Tool `json:"tools,omitempty"`
-	Resources map[string]any  `json:"resources,omitempty"`
-	Prompts   map[string]any  `json:"prompts,omitempty"`
+	Logging   map[string]any        `json:"logging,omitempty"`
+	Tools     map[string]EncodeTool `json:"tools,omitempty"`
+	Resources map[string]any        `json:"resources,omitempty"`
+	Prompts   map[string]any        `json:"prompts,omitempty"`
 }
 
 // ServerInfo contains information about the server

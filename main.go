@@ -43,11 +43,12 @@ func main() {
 	// Create and run the MCP server
 	server := mcp.NewServer(os.Stdin, sender, logger)
 
-	server.AddTool(tools.ViewTool)
-	server.AddTool(tools.HeaderTool)
-	server.AddTool(tools.BulletTool)
-	server.AddTool(tools.StatusTool)
-	server.AddTool(tools.VectorSearch)
+	server.AddTool(&tools.ViewTool)
+	server.AddTool(&tools.HeaderTool)
+	server.AddTool(&tools.BulletTool)
+	server.AddTool(&tools.StatusTool)
+	server.AddTool(&tools.VectorSearch)
+	server.AddTool(&tools.TextTool)
 
 	if err := server.Run(); err != nil {
 		logger.Fatalf("Server error: %v", err)

@@ -293,7 +293,7 @@
    :PROPERTIES:
    :ID: 45374501
    :END:
-*** PROG Date Parsing                                             :date:parsing:
+*** PROG Date Parsing :date:parsing:
     :PROPERTIES:
     :ID: 78268550
     :END:
@@ -392,3 +392,8 @@
    - [x] Support `json:",omitempty"` to distinguish between required and optional fields.
    - [x] Ensure `default` and `enum` values in the schema match the field's JSON type (e.g., numbers instead of strings for int fields).
    - [ ] Implement a registration helper in `mcp.Server` to simplify tool definition.
+* Test Header
+  :PROPERTIES:
+  :ID: 56493203
+  :END:
+  This is the updated text  This is a text entry in the header

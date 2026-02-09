@@ -26,8 +26,7 @@ type Server struct {
 	state     ServerState
 	workspace string
 
-	tools  map[string]Tool
-	toolCb map[string]ToolFunc
+	tools map[string]McpTool
 }
 
 // handleSetLoggingLevel handles the setting of logging levels
@@ -75,8 +74,7 @@ func NewServer(reader io.Reader, sender *MessageSender, logger *log.Logger) *Ser
 			Initialized: false,
 		},
 		workspace: *workspace,
-		tools:     map[string]Tool{},
-		toolCb:    map[string]ToolFunc{},
+		tools:     map[string]McpTool{},
 	}
 }
 
@@ -112,8 +110,8 @@ func (s *Server) Run() error {
 	}
 }
 
-func (s *Server) AddTool(tool Tool) {
-	s.tools[tool.Name] = tool
+func (s *Server) AddTool(tool McpTool) {
+	s.tools[tool.GetName()] = tool
 }
 
 // handleMessage processes a single message
@@ -152,20 +150,8 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 
 	default_path := s.workspace + "/.tasks.org"
 
-	if tool := s.toolCb[toolCall.Name]; tool != nil {
-		resp, err := tool(toolCall.Arguments, FuncOptions{DefaultPath: default_path})
-
-		if err != nil {
-			s.sender.SendError(id, -32000, fmt.Sprintf("Tool error: %v", err))
-		} else {
-			s.sender.SendMcpContent(id, resp)
-		}
-
-		return
-	}
-
-	if tool := s.tools[toolCall.Name]; tool.Callback != nil {
-		resp, error := tool.Callback(toolCall.Arguments, FuncOptions{DefaultPath: default_path})
+	if tool := s.tools[toolCall.Name]; tool != nil {
+		resp, error := tool.Execute(toolCall.Arguments, FuncOptions{DefaultPath: default_path})
 
 		fmt.Fprintln(os.Stderr, resp)
 
@@ -185,10 +171,15 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 	s.state.Initialized = true
 
+	encodedTools := map[string]EncodeTool{}
+	for name, tool := range s.tools {
+		encodedTools[name] = tool.ToEncode()
+	}
+
 	result := InitializeResult{
 		ProtocolVersion: "2024-11-05",
 		Capabilities: ServerCapabilities{
-			Tools: s.tools,
+			Tools: encodedTools,
 		},
 		ServerInfo: ServerInfo{
 			Name:    "org-mcp",

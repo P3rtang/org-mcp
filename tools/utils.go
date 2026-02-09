@@ -38,6 +38,10 @@ func writeOrgFileToDisk(of orgmcp.OrgFile, filePath string) (res string, err err
 	of.Render(&builder, -1)
 	newContent := builder.String()
 
+	if !strings.HasSuffix(newContent, "\n") {
+		newContent += "\n"
+	}
+
 	_, err = file.WriteString(newContent)
 	if err != nil {
 		return

@@ -1,0 +1,92 @@
+package tools
+
+import (
+	"fmt"
+
+	"github.com/p3rtang/org-mcp/mcp"
+	"github.com/p3rtang/org-mcp/orgmcp"
+)
+
+type TextInputSchema struct {
+	Values   []TextInputValue `json:"values"`
+	Path     string           `json:"path"`
+	ShowDiff bool             `json:"show_diff"`
+}
+
+type TextInputValue struct {
+	Uid     string `json:"uid"`
+	Method  string `json:"method"`
+	Content string `json:"content"`
+}
+
+var TextTool = mcp.GenericTool[TextInputSchema]{
+	Name: "manage_text",
+	Description: `
+Add, update or remove text content in an Org file.
+Plain text is a special type of content that cannot contain any nested elements.
+It is solely used for storing text content within a header or bullet point.
+
+Most of the time it will be more correct to use a bullet point to store text content as it allows for better organization and structuring of the content.
+But there are situations where plain text is more appropriate, such as large block of text without structure, like github issues etc.
+
+## Methods
+` +
+		"`add`: Adds new text content to the specified parent element. The parent is passed via the uid parameter.\n" +
+		"`update`: Updates the text content of the specified element. The element is identified by its uid.\n" +
+		"`remove`: Removes the text content of the specified element. The element is identified by its uid.\n" +
+		`
+## UID Constructions
+You can target either a header or a bullet point when adding text content. The uid will be the parent itself.
+Otherwise the uid construction is similar to the bullet tool.
+The text index is relative to the parent element, you can have multiple text elements under the same parent.
+The index is based on newline separation, but is deligneated by the parent element.
+
+## Diff
+You always have the options with any modification to show a diff of the changes made.
+This can inform both you as well as the user about what exactly a tool call changed, and always you to undo changes if needed.
+` +
+		"`parent_uid + .t + text_index`\n",
+	Callback: func(input TextInputSchema, options mcp.FuncOptions) (resp []any, err error) {
+		var path string
+		if input.Path == "" {
+			path = options.DefaultPath
+		} else {
+			path = input.Path
+		}
+
+		orgFile, err := mcp.LoadOrgFile(path)
+		if err != nil {
+			return
+		}
+
+		for _, mt := range input.Values {
+			var selected orgmcp.Render
+			var ok bool
+			if selected, ok = orgFile.GetUid(orgmcp.NewUid(mt.Uid)).Split(); !ok {
+				resp = append(resp, fmt.Sprintf("Uid %s not found in %s", mt.Uid, path))
+			}
+
+			switch mt.Method {
+			case "add":
+				newPlainText := orgmcp.NewPlainText(mt.Content)
+				selected.AddChildren(&newPlainText)
+			case "update":
+				if plain, ok := selected.(*orgmcp.PlainText); ok {
+					plain.SetContent(mt.Content)
+				}
+			case "remove":
+				p_uid := selected.ParentUid()
+				if parent, ok := orgFile.GetUid(p_uid).Split(); ok {
+					parent.RemoveChildren(selected.Uid())
+				}
+			}
+		}
+
+		diff, err := writeOrgFileToDisk(orgFile, path)
+		if input.ShowDiff {
+			resp = append(resp, diff)
+		}
+
+		return
+	},
+}
