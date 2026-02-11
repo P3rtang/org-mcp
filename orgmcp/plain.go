@@ -21,6 +21,9 @@ type PlainText struct {
 var _ Render = (*PlainText)(nil)
 
 func NewPlainText(content string) PlainText {
+	if !strings.HasSuffix(content, "\n") {
+		content += "\n"
+	}
 	return PlainText{content: content}
 }
 

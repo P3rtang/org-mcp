@@ -219,8 +219,13 @@ func (s *Server) handleInitialized() {
 
 // handleListTools handles the tools/list request
 func (s *Server) handleListTools(id any, _ json.RawMessage) {
+	encodedTools := map[string]EncodeTool{}
+	for name, tool := range s.tools {
+		encodedTools[name] = tool.ToEncode()
+	}
+
 	response := map[string]any{
-		"tools": slices.Collect(maps.Values(s.tools)),
+		"tools": slices.Collect(maps.Values(encodedTools)),
 	}
 
 	if err := s.sender.SendResponse(id, response); err != nil {

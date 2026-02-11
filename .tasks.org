@@ -2,6 +2,7 @@
   :PROPERTIES:
   :ID: 48524342
   :END:
+  The structural rendering fix is now fully operational. This text is added via the unified toolset to verify that plain text is correctly prioritized over sub-headers.
 ** Headers
    :PROPERTIES:
    :ID: 28028254
@@ -392,8 +393,42 @@
    - [x] Support `json:",omitempty"` to distinguish between required and optional fields.
    - [x] Ensure `default` and `enum` values in the schema match the field's JSON type (e.g., numbers instead of strings for int fields).
    - [ ] Implement a registration helper in `mcp.Server` to simplify tool definition.
-* Test Header
+   This is the main project container for the Org-MCP server.
+   It organizes tasks related to parsing, searching, and managing Emacs Org-mode files via the Model Context Protocol.* Test Header
   :PROPERTIES:
   :ID: 56493203
   :END:
   This is the updated text  This is a text entry in the header
+** TODO Movement and Reordering
+   SCHEDULED: <2026-02-14 Sat> DEADLINE: <2026-02-15 Sun>
+   :PROPERTIES:
+   :ID: 65811682
+   :END:
+   * *Problem*: Currently moving requires a ~remove~ and then an ~add~, which is inefficient and loses state if not done carefully.
+   * *Constraint*: Moving an item changes its index, which in turn changes the UIDs for Bullets and PlainText (e.g., ~.b0~ becomes ~.b1~).
+   * *Idea*: Implement a ~move~ tool that takes a ~source_uid~, ~target_parent_uid~, and ~target_index~.
+   * *Implementation*: Need a ~MoveChild(uid Uid, targetParent Uid, index int)~ method in ~OrgFile~.
+*** TODO Phase 1: Internal Logic (Foundation)
+    :PROPERTIES:
+    :ID: 41461318
+    :END:
+    - [ ] Extend the ~Render~ interface in ~orgmcp/render.go~ with ~MoveChild(source Uid, targetIndex int)~.
+    - [ ] Implement ~MoveChild~ in ~Header~, ~Bullet~, and ~OrgFile~ to support reordering within the same parent.
+    - [ ] Implement a global ~Move(source Uid, targetParent Uid, targetIndex int)~ in ~OrgFile~ to handle cross-parent movement.
+    - [ ] Ensure ~Header.SetLevel~ is called recursively when a header is reparented to a new depth.
+*** TODO Phase 2: MCP Tool Implementation
+    :PROPERTIES:
+    :ID: 62507500
+    :END:
+    - [ ] Create a new ~move_item~ tool in a new file ~tools/move_tool.go~.
+    - [ ] Define the input schema: ~source_uid~ (string, required), ~target_parent_uid~ (string, required), ~target_index~ (int, optional).
+    - [ ] Support semantic targets like ~"top"~ or ~"bottom"~ for the ~target_index~ to make it easier for LLMs.
+    - [ ] Support *Relative Mode*: Add ~before_uid~ and ~after_uid~ as optional alternatives to ~target_index~.
+    - [ ] Support *Swap Mode*: Implement a specific method to atomically exchange the positions of two UIDs.
+*** TODO Phase 3: Validation & Tests
+    :PROPERTIES:
+    :ID: 41514169
+    :END:
+    - [ ] Unit test: Reordering bullets within a single header and verifying UID updates (e.g., .b0 -> .b1).
+    - [ ] Unit test: Moving a header between two different parent headers and verifying structural integrity.
+    - [ ] Integration test: Using the MCP tool to move a bullet and checking the diff output.

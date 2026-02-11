@@ -13,7 +13,7 @@ import (
 
 type BulletInput struct {
 	Bullets  []BulletValue `json:"bullets,omitempty" jsonschema:"description=List of bullet point operations to perform."`
-	Path     string        `json:"path,omitempty" jsonschema:"description=Optional file path, defaults to ./.tasks.org."`
+	Path     string        `json:"path,omitempty" jsonschema:"description=Optional file path; defaults to ./.tasks.org."`
 	ShowDiff bool          `json:"show_diff,omitempty" jsonschema:"description=Whether to show the diff of changes made to the Org file."`
 }
 

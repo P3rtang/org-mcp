@@ -2,21 +2,22 @@ package tools
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
 )
 
 type TextInputSchema struct {
-	Values   []TextInputValue `json:"values"`
-	Path     string           `json:"path"`
-	ShowDiff bool             `json:"show_diff"`
+	Texts    []TextInputValue `json:"texts" jsonschema:"description=The list of text modifications to perform"`
+	Path     string           `json:"path" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
+	ShowDiff bool             `json:"show_diff" jsonschema:"description=Whether to show a diff of the changes made; default is false,required=false"`
 }
 
 type TextInputValue struct {
-	Uid     string `json:"uid"`
-	Method  string `json:"method"`
-	Content string `json:"content"`
+	Uid     string `json:"uid" jsonschema:"description=The UID of the element to modify. This can be either a header or a bullet point. When adding text content the UID will refer to the parent element under which the text will be added."`
+	Method  string `json:"method" jsonschema:"description=The method of modification to perform (add; update or remove). When adding text content the method must be 'add'.,enum=add;update;remove"`
+	Content string `json:"content,omitempty" jsonschema:"description=The text content to add or update. When using the 'remove' method this field is ignored."`
 }
 
 var TextTool = mcp.GenericTool[TextInputSchema]{
@@ -59,18 +60,29 @@ This can inform both you as well as the user about what exactly a tool call chan
 			return
 		}
 
-		for _, mt := range input.Values {
+		for _, mt := range input.Texts {
 			var selected orgmcp.Render
 			var ok bool
 			if selected, ok = orgFile.GetUid(orgmcp.NewUid(mt.Uid)).Split(); !ok {
 				resp = append(resp, fmt.Sprintf("Uid %s not found in %s", mt.Uid, path))
+				continue
 			}
 
 			switch mt.Method {
 			case "add":
+				if strings.Contains(mt.Content, "\n") {
+					resp = append(resp, "Content for update method should not contain newlines. You should update each text element separately. As a fallback the newlines will be replaced with spaces.")
+					mt.Content = strings.ReplaceAll(mt.Content, "\n", " ")
+				}
+
 				newPlainText := orgmcp.NewPlainText(mt.Content)
 				selected.AddChildren(&newPlainText)
 			case "update":
+				if strings.Contains(mt.Content, "\n") {
+					resp = append(resp, "Content for update method should not contain newlines. You should update each text element separately. As a fallback the newlines will be replaced with spaces.")
+					mt.Content = strings.ReplaceAll(mt.Content, "\n", " ")
+				}
+
 				if plain, ok := selected.(*orgmcp.PlainText); ok {
 					plain.SetContent(mt.Content)
 				}

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/p3rtang/org-mcp/embeddings"
-	"github.com/p3rtang/org-mcp/utils/itertools"
 	"github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/slice"
@@ -258,10 +257,24 @@ func (h *Header) Render(builder *strings.Builder, depth int) {
 
 	h.properties.Render(builder)
 
-	children := itertools.FromSlice(h.children)
-	itertools.ForEach(children, func(child Render) {
+	var body []Render
+	var subheaders []Render
+
+	for _, child := range h.children {
+		if _, ok := child.(*Header); ok {
+			subheaders = append(subheaders, child)
+		} else {
+			body = append(body, child)
+		}
+	}
+
+	for _, child := range body {
 		child.Render(builder, depth-1)
-	})
+	}
+
+	for _, child := range subheaders {
+		child.Render(builder, depth-1)
+	}
 }
 
 func (h *Header) CheckProgress() option.Option[Progress] {

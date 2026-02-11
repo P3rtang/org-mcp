@@ -83,13 +83,11 @@ func (g *GenericTool[Schema]) GetSchema() map[string]any {
 }
 
 func (g *GenericTool[Schema]) ToEncode() EncodeTool {
-	tool := EncodeTool{
+	return EncodeTool{
 		Name:        g.Name,
 		Description: g.Description,
 		InputSchema: g.GetSchema(),
 	}
-
-	return tool
 }
 
 func (g *GenericTool[Schema]) Execute(input map[string]any, options FuncOptions) ([]any, error) {

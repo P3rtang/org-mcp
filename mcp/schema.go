@@ -26,8 +26,7 @@ func GenerateSchema(v any) map[string]any {
 
 func generateTypeSchema(t reflect.Type) map[string]any {
 	// Handle pointers by getting the underlying type
-	isPointer := t.Kind() == reflect.Ptr
-	if isPointer {
+	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 
@@ -58,17 +57,15 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 
 			fieldSchema := generateTypeSchema(field.Type)
 
-			// Field is required if:
-			// 1. It's not a pointer
-			// 2. It doesn't have omitempty
-			// 3. It's not explicitly marked as required=false in jsonschema tag
-			isRequired := !isPointer && !omitempty && field.Type.Kind() != reflect.Ptr
+			// Field is required if it's not a pointer and doesn't have omitempty.
+			// This can be overridden by the jsonschema tag.
+			isRequired := field.Type.Kind() != reflect.Ptr && !omitempty
 
 			// Parse jsonschema tags
 			jsTag := field.Tag.Get("jsonschema")
 			if jsTag != "" {
-				parts := strings.SplitSeq(jsTag, ",")
-				for part := range parts {
+				parts := strings.Split(jsTag, ",")
+				for _, part := range parts {
 					kv := strings.SplitN(part, "=", 2)
 					if len(kv) == 2 {
 						key, val := kv[0], kv[1]

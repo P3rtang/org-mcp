@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
@@ -41,12 +42,7 @@ func TestGenerateSchema(t *testing.T) {
 	}
 
 	isRequired := func(name string) bool {
-		for _, r := range required {
-			if r == name {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(required, name)
 	}
 
 	if !isRequired("name") {

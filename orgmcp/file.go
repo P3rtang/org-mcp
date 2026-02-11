@@ -229,7 +229,22 @@ func (of *OrgFile) Render(builder *strings.Builder, depth int) {
 		return
 	}
 
+	var headers []Render
+	var content []Render
+
 	for _, child := range of.children {
+		if _, ok := child.(*Header); ok {
+			headers = append(headers, child)
+		} else {
+			content = append(content, child)
+		}
+	}
+
+	for _, child := range content {
+		child.Render(builder, depth-1)
+	}
+
+	for _, child := range headers {
 		child.Render(builder, depth-1)
 	}
 }
