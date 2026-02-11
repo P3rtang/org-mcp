@@ -1,0 +1,53 @@
+# Skill: Architectural Review & Strategic Brainstorming (Phase 1)
+
+This skill defines the "Phase 1" process for auditing complex features, troubleshooting legacy systems, or brainstorming high-level initiatives. It is designed to bridge the gap between abstract requirements and technical execution, serving as a source of truth for both engineering teams and non-technical stakeholders.
+
+## Objective
+To transform a high-level request into a concrete roadmap by identifying existing infrastructure, defining data requirements, and establishing a realistic timeline for implementation. For this you will use the org-mcp server to manage the process. An org file is a text file that contains a list of tasks and their dependencies. It is used to manage the process of transforming a high-level request into a concrete roadmap.
+It is imperative to ensure that no actual work is done until the roadmap is approved by the stakeholders, this would be a waste of resources and might lead to wasted effort.
+
+## 1. Discovery & Context Mapping
+Before proposing solutions, you must establish the "Current State" of the system.
+
+- **Knowledge Consolidation**: Compile existing documentation, READMEs, and relevant code comments into the central planning tool (e.g., the `.tasks.org` file). This ensures all context—technical and historical—is available in one place for both the human programmer and future AI models.
+
+- **System Inventory**: Identify the core services, databases, and APIs involved. Mapping the existing "Source of Truth" is critical to avoid duplication.
+- **Dependency Analysis**: Review existing documentation and task history. Often, newer initiatives depend on the completion of legacy refactors or follow a logical progression established by previous engineering decisions.
+- **Code/Infrastructure Audit**: Perform a deep dive into the relevant modules. Understand the data models (structs/schemas) and how they currently communicate.
+
+## 2. Requirement Distillation
+Break down the request into functional and technical components to ensure alignment across the organization.
+
+- **Functional Requirements**: What must the user/system be able to *do*? (Targeted at product/non-technical stakeholders).
+- **Technical Constraints**: What are the performance, security, or scalability limits? (Targeted at engineering).
+- **Gap Analysis**: Explicitly list what is missing. Is it a new data field in a database? A new endpoint? Or an entirely new service?
+
+## 3. Data & Resource Mapping
+Document exactly what resources are available and what must be created from scratch.
+
+| Component | Status | Location/Owner | Action Required |
+| :--- | :--- | :--- | :--- |
+| **Logic/Algorithms** | Existing/New | `src/logic/...` | (e.g., "Extend parser to handle X") |
+| **API/Interface** | Existing/New | `api/v1/...` | (e.g., "Add field Y to JSON schema") |
+| **Data Storage** | Existing/New | `DB: Table_Name` | (e.g., "Migrate schema to include Z") |
+
+## 4. Strategic Execution Plan (The Roadmap)
+Once the review is complete, output a multi-stage plan that provides clarity for all parties:
+
+1. **Phase 1: Foundation (Structural Changes)**: Low-level changes (data models, infrastructure setup) that enable the feature.
+2. **Phase 2: Logic & Integration**: Implementation of the core business logic and internal APIs.
+3. **Phase 3: Validation & Testing**: Strategy for ensuring reliability (Unit, Integration, and UAT).
+4. **Phase 4: Deployment & Documentation**: Steps for rollout and updating end-user or developer guides.
+
+## 5. Stakeholder Communication (The Timeline)
+Translate technical complexity into a "Reasonable Timeline" for non-technical stakeholders:
+
+- **Estimated Effort**: High/Medium/Low.
+- **Critical Path**: Identify the "bottleneck" tasks that could delay the project.
+- **Milestones**: Define 2-3 key dates where progress can be demonstrated.
+
+## Tips for Success
+- **Org-as-Plan Philosophy**: Treat the Org file (or central task list) as the living source of truth. It is not just a log of what was done, but the primary planning tool that guides the work of both humans and AI.
+- **Look for "Prior Art"**: Check if similar problems have been solved elsewhere in the organization to maintain consistency.
+- **Avoid "Scope Creep"**: Use this phase to define the *boundaries* of the task. If a requirement is too large, suggest a "v2" for the future.
+- **Logical Progression**: Ensure the plan respects the natural order of operations (e.g., don't plan the UI before the API data structure is finalized).

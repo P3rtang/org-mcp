@@ -40,25 +40,40 @@ var ViewTool = mcp.Tool{
 	Name: "query_items",
 	Description: `
 # query_items
-View and filter Org items.
+  View and filter Org items.
 
 ## Arguments
-- items: Array of filters (OR logic between items).
-	- uid: string (optional)
-	- status: "TODO" | "DONE" | "CHECKED" | ...
-	- content: string (regex match)
-	- tags: Array<string> (all tags must be present)
-	- date_filter:
-		- match: "SCHEDULED" | "DEADLINE" | "CLOSED"
-		- range: number (days, negative for past)
-		- show_closed: boolean
-	- depth: number (optional, defaults to 1), determines how many levels of children to include in the CSV.
-- columns: Array<"uid" | "preview" | "status" | "tags" | "path">
-- path: string (defaults to ./.tasks.org), unless you encounter errors about file not found or otherwise specified leave this empty.
+  - items: Array of filters (OR logic between items).
+    - uid: string (optional)
+    - status: "TODO" | "DONE" | "CHECKED" | ...
+    - content: string (regex match)
+    - tags: Array<string> (all tags must be present)
+    - date_filter:
+      - match: "SCHEDULED" | "DEADLINE" | "CLOSED"
+      - range: number (days, negative for past)
+      - show_closed: boolean
+    - depth: number (optional, defaults to 1), determines how many levels of children to include in the CSV.
+  - columns: An array of column names an exhaustive list will be show later in this description
+  - path: string (defaults to ./.tasks.org), unless you encounter errors about file not found or otherwise specified leave this empty.
 
 ## Summary
-Returns a CSV of matching items. Use 'PREVIEW' to keep context small.
-	`,
+  Returns a CSV of matching items. Use 'PREVIEW' to keep context small.
+
+## Columns
+  - UID: Unique identifier for the header.
+  - PREVIEW: A short preview of the header content (first 60 characters).
+  - CONTENT: The full content of the header, including all text and metadata. Use with caution as it can be very large.
+  - PARENT: The UID of the parent header, if any.
+  - LEVEL: The depth level of the header in the org file (e.g. 1 for top-level headers, 2 for their children, etc.).
+  - STATUS: The TODO or checkbox status of the header (e.g. TODO, DONE, CHECKED, UNCHECKED).
+  - TAGS: A comma-separated list of tags associated with the header.
+  - PROGRESS: The progress of the header/bullet formatted as "X/Y" where X is the number of completed child items and Y is the total number of child items.
+  - SCHEDULED: The scheduled date of the header, if any.
+  - DEADLINE: The deadline date of the header, if any.
+  - CLOSED: The closed date of the header, if any.
+  - CHILDREN_COUNT: The number of child headers under this header.
+  - PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
+`,
 	InputSchema: mcp.GenerateSchema(ViewInput{}),
 	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
 		bytes, err := json.Marshal(args)

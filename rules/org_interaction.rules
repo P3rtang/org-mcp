@@ -1,0 +1,81 @@
+# AI Mastery: Interacting with Org-MCP
+
+This guide provides strategies and "tricks" for AI models to efficiently interact with the Org-MCP server. By following these patterns, you can treat Org files as structured databases rather than flat text files.
+
+## 1. The "Zero-Depth" Navigation Pattern
+Instead of reading the entire file with `read_file`, use the hierarchical power of `query_items`.
+
+### The "Global Outline" Trick
+To see the entire project structure without the noise of the body content:
+- **UID**: `0`
+- **Depth**: `-1`
+- **Columns**: `["LEVEL", "STATUS", "PREVIEW"]`
+
+This returns a perfectly formatted tree of all headers and bullets, preserving document order. 
+
+> [!IMPORTANT]
+> **Use Sparingly**: This can result in a very large output for long Org files. Only use this "0 -1" trick if other targeted navigation methods (like `status_overview` or limited-depth queries) are insufficient for your current task.
+
+## 2. Surgical Context Retrieval
+When you find a task you want to work on, don't just query that UID. Query it and its immediate surroundings to understand the "Why".
+
+- **The Neighborhood Query**: Query the specific UID with `depth: 1` and include the `PATH` column. This shows you the parent breadcrumbs and the direct sub-tasks (bullets) in one go.
+
+## 3. Mastering Columns for Efficiency
+The `query_items` tool is expensive in terms of tokens if you request everything. Be selective:
+
+| Column | Best Use Case |
+| :--- | :--- |
+| `PREVIEW` | Human-readable title. Use this for "seeing" the task list. |
+| `CONTENT` | Raw Org source. Use this *only* when you need to read the specific notes or code blocks. |
+| `PATH` | GPS for the file. Use this to find where a search result "lives". |
+| `CHILDREN_COUNT` | Identification. Quickly see if a header is a leaf node or a category. |
+
+## 4. The Quick-Look Status
+If you want a high-level summary of the project's health without listing every item, use `status_overview`. It returns the counts and UIDs for all items grouped by their status (DONE, TODO, PROG, etc.). This is perfect for identifying which areas of the project need the most attention.
+
+## 5. Search Strategies
+Instead of `grep`, use the native search capabilities:
+
+- **Regex Search**: You can use regex in the `content` field of `query_items` to find patterns across all items.
+- **Combined Filters**: You can filter by `status` (e.g., `TODO`) AND `content` (e.g., `Markdown`) to find specific actionable items.
+- **Vector Search**: When looking for concepts rather than exact words (e.g., "how do I handle errors" when the text might say "exception management"), use the `vector_search` tool. It uses embeddings to find semantically similar entries.
+
+## 6. Precise Editing and Modification
+The MCP server provides dedicated tools for modifying the Org file. Avoid manually editing the file text if a tool exists.
+
+### Header Management (`manage_header`)
+Use this to change a header's status, tags, or content. It is safer than raw text editing because it preserves Org-mode property drawers and structure.
+
+### Bullet Management (`manage_bullet`)
+This is a swiss-army knife for checklists:
+- **Add**: Insert new bullets at specific indices.
+- **Complete/Toggle**: Change checkbox states.
+- **Remove**: Delete bullets by index.
+- **Bulk Operations**: You can perform multiple operations (like completing three different bullets) in a single tool call by providing multiple items in the list.
+
+## 7. Working with Bullets vs. Headers
+- **Headers (Levels 1-N)**: Use these for major project sections or tasks with unique IDs.
+- **Bullets (UIDs like `123.b0`)**: Use these for checklists and sub-steps.
+- **The Index Rule**: Bullets are indexed by their position within their parent header. If you add or delete bullets, always re-query the header to get the updated indices.
+
+## 8. Avoiding the `read_file` Trap
+The `read_file` tool is for humans or for emergency debugging. As an AI, `read_file` is counter-productive because:
+1. It forces you to parse Org-mode syntax yourself (Regex, Property drawers, etc.).
+2. It lacks the UID mapping needed for the `manage_header` or `manage_bullet` tools.
+3. It uses more tokens for less structured data.
+
+**Always prefer `query_items` with specific columns.**
+
+## 9. Efficient Updates
+When completing tasks:
+1. **Deduplicate**: If you are finishing three sub-tasks, send one `manage_bullet` call with all three indices.
+2. **Status Sync**: The server automatically synchronizes header progress. If you complete all bullets in a "TODO" header, the server will likely move it to "DONE". Trust this logic.
+
+## Summary Checklist
+- [ ] **Health Check**: Run `status_overview` to see project distribution.
+- [ ] **Orientation**: `UID: 0, Depth: -1, Columns: [LEVEL, STATUS, PREVIEW]`.
+- [ ] **Concept Search**: Use `vector_search` for semantic queries.
+- [ ] **Specific Search**: `query_items` with `content` regex and `status` filters.
+- [ ] **Inspection**: `query_items` with `UID: [TargetID], Depth: 1, Columns: [CONTENT]`.
+- [ ] **Action**: Use `manage_header` or `manage_bullet` for all structural changes.

@@ -1,0 +1,4 @@
+# Org-mcp
+## Path
+By default you do not have to specify a file path for any of the tools.
+The file used will always be the .tasks.org file in the root of the project which is correct here.
