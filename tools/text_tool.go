@@ -10,13 +10,13 @@ import (
 
 type TextInputSchema struct {
 	Texts    []TextInputValue `json:"texts" jsonschema:"description=The list of text modifications to perform"`
-	Path     string           `json:"path" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
-	ShowDiff bool             `json:"show_diff" jsonschema:"description=Whether to show a diff of the changes made; default is false,required=false"`
+	Path     string           `json:"path,omitempty" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
+	ShowDiff bool             `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,required=false"`
 }
 
 type TextInputValue struct {
 	Uid     string `json:"uid" jsonschema:"description=The UID of the element to modify. This can be either a header or a bullet point. When adding text content the UID will refer to the parent element under which the text will be added."`
-	Method  string `json:"method" jsonschema:"description=The method of modification to perform (add; update or remove). When adding text content the method must be 'add'.,enum=add;update;remove"`
+	Method  string `json:"method" jsonschema:"description=The method of modification to perform (add; update or remove). When adding text content the method must be 'add'.;enum=add;update;remove"`
 	Content string `json:"content,omitempty" jsonschema:"description=The text content to add or update. When using the 'remove' method this field is ignored."`
 }
 

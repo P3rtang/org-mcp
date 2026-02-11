@@ -290,6 +290,15 @@
      :PROPERTIES:
      :ID: 13815625
      :END:
+*** TODO Paragraph consolidation (Block Parsing)
+    :PROPERTIES:
+    :ID: 18065620
+    :END:
+    - [ ] Modify ~NewPlainTextFromReader~ in ~orgmcp/plain.go~ to peek at subsequent lines.
+    - [ ] Logic: Continue consuming if the next line has the same indentation and no ~*~ or ~-~ prefix.
+    - [ ] Update ~PlainText.Render~ to ensure internal newlines are preserved correctly.
+    - [ ] Ensure ~PlainText.Uid~ logic remains stable with multi-line blocks.
+    - [ ] Add unit tests in ~test/files/plain_text.org~ for multi-line paragraph verification.
 ** Dates and schedules
    :PROPERTIES:
    :ID: 45374501

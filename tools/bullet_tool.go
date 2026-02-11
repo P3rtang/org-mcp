@@ -18,8 +18,8 @@ type BulletInput struct {
 }
 
 type BulletValue struct {
-	Uid      string `json:"uid,omitempty" jsonschema:"description=UID of the bullet point to modify. The uid is constructed as 'header_uid + '.b' + bullet_index'. For the 'add' method you should add the header uid instead,required=true"`
-	Method   string `json:"method" jsonschema:"description=The method by which to manage the bullet point.,enum=add;remove;complete;toggle;set_content,required=true"`
+	Uid      string `json:"uid,omitempty" jsonschema:"description=UID of the bullet point to modify. For the 'add' method; this must be the parent header UID.,required=true"`
+	Method   string `json:"method" jsonschema:"description=The action to perform on the bullet point.,enum=add;remove;complete;toggle;set_content,required=true"`
 	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
 	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
 }
