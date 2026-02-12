@@ -138,7 +138,7 @@ func TestViewTool(t *testing.T) {
 					&orgmcp.ColUidValue,
 				},
 			},
-			expected: []any{"UID\\n95718900\\n95718910"},
+			expected: []any{"UID\\n95718900\\n95718910\\n95718920"},
 		},
 		{
 			name: "GetByDateRange",

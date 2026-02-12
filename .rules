@@ -3,46 +3,42 @@
 ## Your role
 
 You will assist in writing and brainstorming ideas for an MCP server written in golang.
-The goal of the MCP server is to give ai models the ability to interact with Emacs org mode files.
+The goal of the MCP server is to give AI models the ability to interact with Emacs Org-mode files.
 
-## Tasks
+## Tasks & Source of Truth
 
-Tasks will be added to the .tasks.org file.
-Checking status progress etc. should be done through the existing org-mcp server.
-While not complete yet it serves as a test for this project as well.
+- **Main Source of Truth**: The `.tasks.org` file is the primary coordination point for both humans and AI models. Always keep it updated.
+- **Task Management**: Use the existing `org-mcp` server tools to manage tasks. Do not specify a file path as the default is correctly set to `.tasks.org`.
+- **Workflow**: Never do more than one task at a time. When a task is complete and its progress is saved to the Org file, use `attempt_completion` and wait for feedback.
 
-Always remember that .tasks.org is your main source of truth and is worked on by everyone. Programmers and models like you.
+## AI-Native Interaction Patterns
 
-Never do more than one task at a time.
-When a task is done and its progress has been saved to the tasks file, you should `attempt_completion` and wait for user feedback.
+### 1. Structural Integrity & Surgical Edits
+- **Tool Preference**: Always prefer `manage_header`, `manage_bullet`, and `manage_text` over generic file editing tools (like `edit_file`). These tools preserve property drawers, UIDs, and Org-mode syntax.
+- **Self-Verification**: Always use `show_diff: true` in management calls. This provides high-fidelity feedback on structural changes and eliminates the need for redundant `query_items` calls.
+- **Bulk Operations**: Group related changes (e.g., adding multiple sub-tasks) into a single tool call. This is more token-efficient and ensures atomicity.
 
-## Project overview
+### 2. UID Stability & Navigation
+- **Persistent IDs**: Headers have stable UUIDs in their property drawers. Use these as primary anchors.
+- **Unstable UIDs**: Bullet and Text UIDs (e.g., `header.b0`) are index-based and change when items are added or removed. Treat them as stale after any structural modification and re-query the parent to get updated indices.
+- **Discovery**: Use `status_overview` for a health check and `query_items` with limited depth and specific columns (`PREVIEW`, `STATUS`, `PATH`) for efficient navigation.
 
-The MCP server will provide a RESTful API that allows AI models to read, write, and manipulate org mode files.
-The server will be built using golang for performance and scalability.
+### 3. The "Roadmap First" Philosophy
+- **Phase 1 Review**: For complex features, perform an architectural review. Create a high-level header with a multi-phase roadmap of sub-tasks (Foundation, Logic, Validation, Deployment) before implementing any code.
+- **Context Preservation**: Use the `:context:ai:session:` tag to mark headers containing key decisions, tool performance notes, or design philosophy for future sessions.
 
-## Key features
+## Project Overview
 
-1. **Header Management**: The server will support reading and writing org mode headers, allowing changes in status TODO, PROG, DONE etc.
-2. **Content Manipulation**: The server will allow adding, editing, and deleting content within org mode files.
-3. **Tagging System**: The server will support adding and removing tags from org mode entries.
-4. **Search Functionality**: The server will provide search capabilities to find specific entries, based on status, a uid property tag, or header tags.
-5. **Version Control**: The server will maintain version history for org mode files, allowing users to revert to previous versions if needed.
+The MCP server provides a RESTful API (via JSON-RPC over MCP) that allows AI models to read, write, and manipulate Org-mode files.
 
-## Technologies
+### Key Features
+1. **Header Management**: Full CRUD support for headers including status transitions (TODO, PROG, DONE).
+2. **Content Manipulation**: Detailed control over bullets, checklists, and plain text.
+3. **Metadata & Properties**: Automatic handling of property drawers, tags, and scheduling (DEADLINE, SCHEDULED, CLOSED).
+4. **Search Functionality**: Regex-based querying and semantic vector search for concept discovery.
 
-- Golang: For building the MCP server.
-- RESTful API: For communication between AI models and the MCP server.
-- Emacs Org Mode: The file format that the MCP server will interact with.
-
-## Coding standards
-
-- Follow Go conventions and best practices.
-- Write clean, maintainable, and well-documented code.
-- Implement error handling and logging.
-- Write unit tests to ensure code quality and reliability.
-- Use version control (e.g., Git) for code management.
-
-## Org mcp server
-
-- Do not specify a file path as the default file is correctly set in this project to .tasks.org
+## Coding Standards (Golang)
+- Follow standard Go conventions and best practices.
+- Implement robust error handling and descriptive logging.
+- Write unit tests for all new internal logic (e.g., parser changes, movement logic).
+- Use version control (Git) for code management.

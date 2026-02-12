@@ -11,7 +11,7 @@ To see the entire project structure without the noise of the body content:
 - **Depth**: `-1`
 - **Columns**: `["LEVEL", "STATUS", "PREVIEW"]`
 
-This returns a perfectly formatted tree of all headers and bullets, preserving document order. 
+This returns a perfectly formatted tree of all headers and bullets, preserving document order.
 
 > [!IMPORTANT]
 > **Use Sparingly**: This can result in a very large output for long Org files. Only use this "0 -1" trick if other targeted navigation methods (like `status_overview` or limited-depth queries) are insufficient for your current task.
@@ -30,6 +30,7 @@ The `query_items` tool is expensive in terms of tokens if you request everything
 | `CONTENT` | Raw Org source. Use this *only* when you need to read the specific notes or code blocks. |
 | `PATH` | GPS for the file. Use this to find where a search result "lives". |
 | `CHILDREN_COUNT` | Identification. Quickly see if a header is a leaf node or a category. |
+| `LEVEL` | Tree reconstruction. Use this to understand nesting depth without parsing stars. |
 
 ## 4. The Quick-Look Status
 If you want a high-level summary of the project's health without listing every item, use `status_overview`. It returns the counts and UIDs for all items grouped by their status (DONE, TODO, PROG, etc.). This is perfect for identifying which areas of the project need the most attention.
@@ -44,6 +45,16 @@ Instead of `grep`, use the native search capabilities:
 ## 6. Precise Editing and Modification
 The MCP server provides dedicated tools for modifying the Org file. Avoid manually editing the file text if a tool exists.
 
+### The "Self-Verifying" Edit Pattern
+- **Show Diff**: Always set `show_diff: true` in `manage_*` calls. This provides immediate structural feedback, confirming that your edit landed exactly where you intended without needing a follow-up query.
+- **Bulk Operations**: Group multiple updates (e.g., adding 5 sub-tasks or completing multiple bullets) into a single tool call. This ensures atomicity and is significantly more token-efficient.
+
+### Styling and markup
+| style | markup | description |
+| bold | *{bold_text}* | surround text with a single asterisk |
+| monospace | ~{monospaced}~ | surround text with a tilde |
+| italics | /{italicized}/ | surround text with slashes |
+
 ### Header Management (`manage_header`)
 Use this to change a header's status, tags, or content. It is safer than raw text editing because it preserves Org-mode property drawers and structure.
 
@@ -57,7 +68,7 @@ This is a swiss-army knife for checklists:
 ## 7. Working with Bullets vs. Headers
 - **Headers (Levels 1-N)**: Use these for major project sections or tasks with unique IDs.
 - **Bullets (UIDs like `123.b0`)**: Use these for checklists and sub-steps.
-- **The Index Rule**: Bullets are indexed by their position within their parent header. If you add or delete bullets, always re-query the header to get the updated indices.
+- **The Index Rule**: Bullets and text items are indexed by position. **These UIDs are unstable**. If you add, remove, or move items, the indices of surrounding bullets change. Always re-query the parent header to get updated UIDs before performing subsequent bullet edits.
 
 ## 8. Avoiding the `read_file` Trap
 The `read_file` tool is for humans or for emergency debugging. As an AI, `read_file` is counter-productive because:
@@ -74,8 +85,7 @@ When completing tasks:
 
 ## Summary Checklist
 - [ ] **Health Check**: Run `status_overview` to see project distribution.
-- [ ] **Orientation**: `UID: 0, Depth: -1, Columns: [LEVEL, STATUS, PREVIEW]`.
 - [ ] **Concept Search**: Use `vector_search` for semantic queries.
 - [ ] **Specific Search**: `query_items` with `content` regex and `status` filters.
 - [ ] **Inspection**: `query_items` with `UID: [TargetID], Depth: 1, Columns: [CONTENT]`.
-- [ ] **Action**: Use `manage_header` or `manage_bullet` for all structural changes.
+- [ ] **Action**: Use `manage_header` or `manage_bullet` with `show_diff: true` for all structural changes.

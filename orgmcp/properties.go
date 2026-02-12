@@ -157,3 +157,19 @@ func (p *Properties) Render(sb *strings.Builder) {
 	sb.WriteString(strings.Repeat(" ", p.IndentLevel()))
 	sb.WriteString(":END:\n")
 }
+
+func (p *Properties) RenderMarkdown(builder *strings.Builder) {
+	index := 0
+
+	builder.WriteString("<!-- ")
+	for k, v := range p.content {
+		fmt.Fprintf(builder, "%s: %s", k, v.String())
+
+		if index < len(p.content)-1 {
+			builder.WriteString("; ")
+			index += 1
+		}
+	}
+
+	builder.WriteString("-->\n")
+}

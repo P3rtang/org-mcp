@@ -33,6 +33,32 @@ func main() {
 	// Setup logging to stderr so it doesn't interfere with stdout (which is used for MCP protocol)
 	logger := log.New(os.Stderr, "[org-mcp] ", log.LstdFlags|log.Lshortfile)
 
+	// Check if the export flag is set and print the export format if so
+	if len(os.Args) > 1 && os.Args[1] == "--export" {
+		file, err := os.Open(".tasks.org")
+		if err != nil {
+			logger.Fatalf("Failed to open .tasks.org: %v", err)
+		}
+
+		orgFile, err := orgmcp.OrgFileFromReader(file).Split()
+		if err != nil {
+			logger.Fatalf("Failed to parse .tasks.org: %v", err)
+		}
+
+		file.Close()
+
+		builder := strings.Builder{}
+		orgFile.RenderMarkdown(&builder, -1)
+
+		out, err := os.Create("out.md")
+		if err != nil {
+			logger.Fatalf("Failed to create out.md: %v", err)
+		}
+
+		_, err = out.WriteString(builder.String())
+		return
+	}
+
 	// Create a message sender that encodes and sends JSON to stdout
 	// Using a persistent encoder for better performance and proper flushing
 	encoder := json.NewEncoder(os.Stdout)

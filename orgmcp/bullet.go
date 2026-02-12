@@ -224,6 +224,18 @@ func (b *Bullet) Level() int {
 	return option.Map(b.parent, func(r Render) int { return r.Level() }).UnwrapOr(0)
 }
 
+func (b *Bullet) BulletLevel() int {
+	level := 1
+
+	if parent, ok := b.parent.Split(); ok {
+		if parentBullet, ok := parent.(*Bullet); ok {
+			level += parentBullet.BulletLevel()
+		}
+	}
+
+	return level
+}
+
 func (p *Bullet) Location(table map[Uid]int) (loc int) {
 	if val, ok := table[p.Uid()]; ok {
 		return val

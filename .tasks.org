@@ -250,10 +250,10 @@
     - [x] Add a children field to the bullet struct
     - [ ] Assign a progress to a bullet point
     - [ ] Allow partially completed bullets =[-]=
-    - [X] Parse bullet children from the reader by peeking
+    - [x] Parse bullet children from the reader by peeking
     - [ ] Bullet points can have progress counters =[0/2]=
-    - [X] Children are always indented by 2 spaces
-    - [X] IDs should still be calculated by the index inside the header
+    - [x] Children are always indented by 2 spaces
+    - [x] IDs should still be calculated by the index inside the header
 ** Plain content
    :PROPERTIES:
    :ID: 18319364
@@ -335,10 +335,15 @@
     - [ ] Support adding new schedules while validating for allowed date ranges.
     - [ ] Implement endpoint to modify dates (schedule adjustments) dynamically
 *** TODO Allow reoccurring tasks
+    :PROPERTIES:
+    :ID: 15953659
+    :END:
 ** Markdown rendering
    :PROPERTIES:
    :ID: 48165813
    :END:
+   - [x] Implement colored statuses in Markdown export using LaTeX syntax (e.g., $\color{red}{\textsf{TODO}}$) controlled by the ~MARKDOWN_COLOR~ environment flag.
+   - [x] Implement regex-based conversion for Org font styles (*bold*, //italics//, ~code~) to Markdown (**bold**, *italics*, `code`) in the renderer.
 ** AI Session Context & Tooling Progress :context:ai:session:
    :PROPERTIES:
    :ID: 96275729
@@ -348,6 +353,8 @@
    * Added ~PREVIEW~ and ~TAGS~ (comma-quoted) columns to separate core text from Org-syntax noise.
    * Confirmed regex filtering on ~CONTENT~ matches against the ~PREVIEW~ text.
    * Verified that ~manage_header~ handles sequential updates and queries in a single multi-item request.
+   * Verified that ~show_diff: true~ provides high-fidelity feedback for structural changes, reducing the need for follow-up ~query_items~ calls.
+   * Confirmed that bullet and text UIDs are unstable (index-based) and must be re-queried after any structural modification.
 *** Data Formats & CSV Optimization
     :PROPERTIES:
     :ID: 32788174
@@ -368,7 +375,7 @@
     :END:
     * The ~PATH~ column provides a token-efficient 'GPS' using UIDs (e.g., ~//ROOT/PARENT/ID~) to map hierarchy without repeating long titles.
     * Metadata columns like ~PARENT~ and ~CHILDREN_COUNT~ allow the model to navigate the tree structure without deep-reading content.
-*** DONE Implemented CSV Columns [10/10]
+*** DONE Implemented CSV Columns [12/12]
     :PROPERTIES:
     :ID: 42321214
     :END:
@@ -382,6 +389,8 @@
     - [x] ~CHILDREN_COUNT~: Number of direct children under the item.
     - [x] ~TAGS~: Comma-separated list of tags, quoted for CSV safety (e.g., ~"tag1,tag2"~).
     - [x] ~PATH~: Hierarchical stack of UIDs from root to item (e.g., ~//UID1/UID2/ID~).
+    - [x] ~LEVEL~: Numeric depth of the item (e.g., 1, 2, 3) to allow tree reconstruction without parsing stars.
+    - [x] ~SCHEDULED~ / ~DEADLINE~ / ~CLOSED~: Dedicated date columns for high-performance scheduling queries.
 *** Design Philosophy & Future Ideas
     :PROPERTIES:
     :ID: 74856328
@@ -396,6 +405,8 @@
     * *Body Preview Control*: Allow the ~PREVIEW~ or a new ~SUMMARY~ column to return a specific number of lines from the body text.
     * *Property Export*: A ~PROPERTIES~ column that returns all property drawer key-values as a parseable string.
     * *Date Range Filtering*: Add the ability to filter results by date ranges (e.g., ~SCHEDULED~ or ~DEADLINE~ between Date A and Date B) directly in ~query_items~.
+    * *Bulk Operation Efficiency*: Using multi-item tool calls (e.g., adding 4 sub-headers in one ~manage_header~ call) is significantly more token-efficient than sequential calls.
+    * *Surgical Editing Pattern*: Prefer ~manage_bullet~ and ~manage_header~ over ~edit_file~ to preserve property drawers and structural metadata automatically.
 ** TODO Derive Tool Input Schema from Go Struct using Reflection :jsonrpc:schema:input:
    :PROPERTIES:
    :ID: 15951102
@@ -489,3 +500,12 @@
    - [ ] Implement "Neighborhood" responses: Optionally return the parent and its immediate children after an add/move operation to verify hierarchy.
    - [ ] Evaluate making ~show_diff: true~ the default or more prominent in the tool output to encourage surgical editing.
    - [ ] Improve tool documentation/schemas to explicitly suggest bulk operations for better token efficiency and state consistency.
+   - [ ] Implement an ~output_format~ flag for ~query_items~ supporting CSV (default), Markdown, and Raw (Org) to allow switching between machine-efficient and human-readable views.
+** TODO Tag Management & Discovery Improvements
+   :PROPERTIES:
+   :ID: 71742063
+   :END:
+   - [ ] Implement a ~list_tags~ tool or a ~TAGS~ summary in ~status_overview~ to provide a global view of all used tags.
+   - [ ] Allow filtering ~query_items~ by multiple tags (AND/OR logic) to improve discovery.
+   - [ ] Add a "Tag Cloud" or frequency count to help AI models understand the "Hot Topics" of a project.
+   * *Context*: Finding the AI session header was difficult because searching for specific tags (like ~:context:ai:session:~) isn't currently a first-class discovery mechanism.

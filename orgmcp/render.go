@@ -11,9 +11,8 @@ func (r RenderStatus) String() string {
 	return string(r)
 }
 
-type Render interface {
+type RenderBase interface {
 	CheckProgress() option.Option[Progress]
-	Render(builder *strings.Builder, depth int)
 	IndentLevel() int
 	ChildIndentLevel() int
 	Level() int
@@ -29,4 +28,19 @@ type Render interface {
 	TagList() TagList
 	Preview(length int) string
 	Path() string
+}
+
+type RenderOrg interface {
+	RenderBase
+	Render(builder *strings.Builder, depth int)
+}
+
+type RenderMarkdown interface {
+	RenderBase
+	RenderMarkdown(builder *strings.Builder, depth int)
+}
+
+type Render interface {
+	RenderMarkdown
+	RenderOrg
 }
