@@ -173,6 +173,7 @@ var ViewTool = mcp.Tool{
 		})
 
 		resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
+		_, err = writeOrgFileToDisk(orgFile, path)
 
 		return
 	},

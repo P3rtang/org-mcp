@@ -242,7 +242,7 @@
      - [x] Change header status automatically from =NEXT=/=TODO= to =PROG= if a single checkbox is set
      - [x] Change header status to =DONE= if =CheckProgress= has =Done()= as true.
      - [x] Unit test new functionality
-*** PROG Bullet children [1/7]
+*** PROG Bullet children [4/7]
     SCHEDULED: <2026-01-26 Mon> DEADLINE: <2026-02-02 Mon>
     :PROPERTIES:
     :ID: 90135268
@@ -250,10 +250,10 @@
     - [x] Add a children field to the bullet struct
     - [ ] Assign a progress to a bullet point
     - [ ] Allow partially completed bullets =[-]=
-    - [ ] Parse bullet children from the reader by peeking
+    - [X] Parse bullet children from the reader by peeking
     - [ ] Bullet points can have progress counters =[0/2]=
-    - [ ] Children are always indented by 2 spaces
-    - [ ] IDs should still be calculated by the index inside the header
+    - [X] Children are always indented by 2 spaces
+    - [X] IDs should still be calculated by the index inside the header
 ** Plain content
    :PROPERTIES:
    :ID: 18319364
@@ -269,24 +269,28 @@
     - [x] Unit test =Text= parsing
     - [x] Unit test rendering of =Text=
     - [x] Test the MCP integration by fetching a header and checking whether the plain text is returned as well.
-*** TODO Plain text modification
-    SCHEDULED: <2026-01-31 Sat> DEADLINE: <2026-02-02 Mon>
+*** DONE Plain text modification
+    SCHEDULED: <2026-01-31 Sat> DEADLINE: <2026-02-02 Mon> CLOSED: [2026-02-12 Thu 20:43]
     :PROPERTIES:
     :ID: 73284623
     :END:
-**** TODO add method
+**** DONE add method
+     CLOSED: [2026-02-12 Thu 20:43]
      :PROPERTIES:
      :ID: 46348459
      :END:
-**** TODO modify method
+**** DONE modify method
+     CLOSED: [2026-02-12 Thu 20:43]
      :PROPERTIES:
      :ID: 71553477
      :END:
-**** TODO remove method
+**** DONE remove method
+     CLOSED: [2026-02-12 Thu 20:43]
      :PROPERTIES:
      :ID: 71251836
      :END:
-**** TODO testing
+**** DONE testing
+     CLOSED: [2026-02-12 Thu 20:43]
      :PROPERTIES:
      :ID: 13815625
      :END:
@@ -330,6 +334,7 @@
     :END:
     - [ ] Support adding new schedules while validating for allowed date ranges.
     - [ ] Implement endpoint to modify dates (schedule adjustments) dynamically
+*** TODO Allow reoccurring tasks
 ** Markdown rendering
    :PROPERTIES:
    :ID: 48165813
@@ -441,3 +446,46 @@
     - [ ] Unit test: Reordering bullets within a single header and verifying UID updates (e.g., .b0 -> .b1).
     - [ ] Unit test: Moving a header between two different parent headers and verifying structural integrity.
     - [ ] Integration test: Using the MCP tool to move a bullet and checking the diff output.
+** TODO Exporting & Integration (Notion)
+   :PROPERTIES:
+   :ID: 11607416
+   :END:
+   * *Goal*: Enable exporting Org-mode content to Notion for work collaboration.
+   * *Current State*: Purely CRUD on local .org files.
+   * *Dependency*: Requires Notion API access and mapping logic from Org hierarchy to Notion blocks.
+*** TODO Phase 1: Foundation & Notion API Integration
+    :PROPERTIES:
+    :ID: 3680641
+    :END:
+    - [ ] Research Notion API go client libraries (or use raw HTTP).
+    - [ ] Implement authentication handling (Environment variables or MCP configuration).
+    - [ ] Define a ~NotionExporter~ struct to manage the connection and state.
+*** TODO Phase 2: Core Export Logic & Mapping
+    :PROPERTIES:
+    :ID: 7874898
+    :END:
+    - [ ] Implement mapping from Org Level to Notion Block Type (e.g., Level 1 -> Header 1, Level 2 -> Header 2).
+    - [ ] Map Org Bullets to Notion ~bulleted_list_item~ blocks.
+    - [ ] Support basic rich text conversion (Bold, Italics, Monospace).
+*** TODO Phase 3: Advanced Mapping & Database Support
+    :PROPERTIES:
+    :ID: 432400
+    :END:
+    - [ ] Implement Org Property Drawer to Notion Database Property mapping.
+    - [ ] Support recursive child export (preserving hierarchy).
+    - [ ] Handle Org Status mapping to Notion 'Status' or 'Checkbox' properties.
+*** TODO Phase 4: Validation & Tooling
+    :PROPERTIES:
+    :ID: 79855549
+    :END:
+    - [ ] Create ~export_to_notion~ MCP tool.
+    - [ ] Implement unit tests for the block converter.
+    - [ ] Integration tests with a test Notion workspace.
+** TODO Tool Design & AI UX Improvements
+   :PROPERTIES:
+   :ID: 30384709
+   :END:
+   - [ ] Standardize tool returns: Ensure all ~manage_*~ tools return a CSV of affected items (currently ~manage_bullet~ and ~manage_text~ can return empty strings).
+   - [ ] Implement "Neighborhood" responses: Optionally return the parent and its immediate children after an add/move operation to verify hierarchy.
+   - [ ] Evaluate making ~show_diff: true~ the default or more prominent in the tool output to encourage surgical editing.
+   - [ ] Improve tool documentation/schemas to explicitly suggest bulk operations for better token efficiency and state consistency.
