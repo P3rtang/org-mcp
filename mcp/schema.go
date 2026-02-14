@@ -64,8 +64,8 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 			// Parse jsonschema tags
 			jsTag := field.Tag.Get("jsonschema")
 			if jsTag != "" {
-				parts := strings.Split(jsTag, ",")
-				for _, part := range parts {
+				parts := strings.SplitSeq(jsTag, ",")
+				for part := range parts {
 					kv := strings.SplitN(part, "=", 2)
 					if len(kv) == 2 {
 						key, val := kv[0], kv[1]

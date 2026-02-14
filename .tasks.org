@@ -55,7 +55,10 @@
      :END:
      - [ ] insert properties to the map
      - [ ] delete properties from the map
-     - [ ] modify properties in the map
+     - [x] modify properties in the map
+     Test text for manage_text
+     Test text for manage_text
+     Another test text
 **** TODO modification of schedule tags
      :PROPERTIES:
      :ID: 88799343
@@ -407,7 +410,7 @@
     * *Date Range Filtering*: Add the ability to filter results by date ranges (e.g., ~SCHEDULED~ or ~DEADLINE~ between Date A and Date B) directly in ~query_items~.
     * *Bulk Operation Efficiency*: Using multi-item tool calls (e.g., adding 4 sub-headers in one ~manage_header~ call) is significantly more token-efficient than sequential calls.
     * *Surgical Editing Pattern*: Prefer ~manage_bullet~ and ~manage_header~ over ~edit_file~ to preserve property drawers and structural metadata automatically.
-** TODO Derive Tool Input Schema from Go Struct using Reflection :jsonrpc:schema:input:
+** PROG Derive Tool Input Schema from Go Struct using Reflection :jsonrpc:schema:input:
    :PROPERTIES:
    :ID: 15951102
    :END:
@@ -417,13 +420,13 @@
    - [x] Ensure nested structs are handled recursively to build complex input schemas.
    - [x] Support `json:",omitempty"` to distinguish between required and optional fields.
    - [x] Ensure `default` and `enum` values in the schema match the field's JSON type (e.g., numbers instead of strings for int fields).
-   - [ ] Implement a registration helper in `mcp.Server` to simplify tool definition.
-   This is the main project container for the Org-MCP server.
-   It organizes tasks related to parsing, searching, and managing Emacs Org-mode files via the Model Context Protocol.* Test Header
-  :PROPERTIES:
-  :ID: 56493203
-  :END:
-  This is the updated text  This is a text entry in the header
+   - [x] Implement a registration helper in `mcp.Server` to simplify tool definition.
+   - [ ] Support `oneOf` in the schema definition for fields that can have multiple valid schemas (e.g., specific constants with titles).
+   - [ ] Support `anyOf` in the schema definition for fields that can have multiple valid schemas selected (e.g., multiple flags or options).
+   - [ ] Support `minLength` and `maxLength` for string length constraints.
+   - [ ] Support `pattern` for regex validation on strings.
+   - [ ] Support `format` for string formats (email, uri, date-time, etc.).
+   - [ ] Support `minimum` and `maximum` for numeric bounds.
 ** TODO Movement and Reordering
    SCHEDULED: <2026-02-14 Sat> DEADLINE: <2026-02-15 Sun>
    :PROPERTIES:
@@ -492,7 +495,7 @@
     - [ ] Create ~export_to_notion~ MCP tool.
     - [ ] Implement unit tests for the block converter.
     - [ ] Integration tests with a test Notion workspace.
-** TODO Tool Design & AI UX Improvements
+** TODO Tool Design & AI UX Improvements :ux:ui:design:
    :PROPERTIES:
    :ID: 30384709
    :END:
@@ -501,11 +504,37 @@
    - [ ] Evaluate making ~show_diff: true~ the default or more prominent in the tool output to encourage surgical editing.
    - [ ] Improve tool documentation/schemas to explicitly suggest bulk operations for better token efficiency and state consistency.
    - [ ] Implement an ~output_format~ flag for ~query_items~ supporting CSV (default), Markdown, and Raw (Org) to allow switching between machine-efficient and human-readable views.
-** TODO Tag Management & Discovery Improvements
+*** TODO Response Metadata Enhancement
+    :PROPERTIES:
+    :ID: 71585143
+    :END:
+    - [ ] operation: operation type (add/remove/update) - helps AI understand what happened
+    - [x] items_affected: count of items modified - quick count without parsing CSV
+    - [ ] execution_time_ms: operation duration in milliseconds for performance debugging
+    - [ ] timestamp: RFC3339 timestamp for auditing and debugging
+    - [ ] Consider: backward compatibility - make metadata optional via output_format flag
+    - [x] Scope: Which tools need metadata? (manage_header, manage_bullet, manage_text, query_items, all?)
+    - [ ] Format alternatives: (A) metadata object at array start, (B) wrapper around response, (C) new CSV fields
+    - [ ] Backward compatibility: Existing AI workflows must not break - consider output_format flag to toggle
+    - [ ] Prior art: Research other MCP servers for similar response metadata patterns
+    - [ ] v2 considerations: Response versioning, schema evolution, streaming metrics
+*** TODO Enhanced Change Metadata in Tool Responses: Add old/new values for Progress and Status columns in CSV output
+    :PROPERTIES:
+    :ID: 27819683
+    :END:
+    - [ ] Include Progress column with old→new values (e.g., "0/3" -> "2/3") showing what changed
+    - [ ] Include Status column with old→new values (e.g., "TODO" -> "PROG") showing status transitions
+    - [ ] Include UID of the header/bullet that changed
+    - [ ] Include Preview of both old and new values for context
+    - [ ] Apply to manage_bullet responses (after complete/toggle/remove operations)
+    - [ ] Apply to manage_header responses (after status changes)
+    - [ ] Make it work with existing output_format flag (CSV, Markdown, Raw)
+** DONE Tag Management & Discovery Improvements
+   CLOSED: [2026-02-14 Sat 14:30]
    :PROPERTIES:
    :ID: 71742063
    :END:
-   - [ ] Implement a ~list_tags~ tool or a ~TAGS~ summary in ~status_overview~ to provide a global view of all used tags.
-   - [ ] Allow filtering ~query_items~ by multiple tags (AND/OR logic) to improve discovery.
-   - [ ] Add a "Tag Cloud" or frequency count to help AI models understand the "Hot Topics" of a project.
+   - [x] Implement a ~list_tags~ tool or a ~TAGS~ summary in ~status_overview~ to provide a global view of all used tags.
+   - [x] Allow filtering ~query_items~ by multiple tags (AND/OR logic) to improve discovery.
+   - [x] Add a "Tag Cloud" or frequency count to help AI models understand the "Hot Topics" of a project.
    * *Context*: Finding the AI session header was difficult because searching for specific tags (like ~:context:ai:session:~) isn't currently a first-class discovery mechanism.

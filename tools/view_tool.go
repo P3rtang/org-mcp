@@ -16,7 +16,7 @@ import (
 
 type ViewItem struct {
 	Uid     string               `json:"uid,omitempty" jsonschema:"description=UID of the header to view. If not provided, all headers are considered."`
-	Status  *orgmcp.RenderStatus `json:"status,omitempty" jsonschema:"description=Filter headers by status (e.g. TODO | DONE). Case insensitive. As well as bullets by their checkbox status (e.g. CHECKED | UNCHECKED)."`
+	Status  *orgmcp.RenderStatus `json:"status,omitempty" jsonschema:"description=Filter headers by status (e.g. TODO ; DONE). Case insensitive. As well as bullets by their checkbox status (e.g. CHECKED ; UNCHECKED)."`
 	Content string               `json:"content,omitempty" jsonschema:"description=Filter headers with a regex match on content. It will only consider the preview of the header content and not any metadata; children; status or other information."`
 	Tags    []string             `json:"tags,omitempty" jsonschema:"description=Filter headers by tags. Only headers containing all specified tags will be returned."`
 	Depth   *int                 `json:"depth,omitempty" jsonschema:"description=Depth of child headers to include. Default is 1 (only direct children)."`
@@ -25,7 +25,7 @@ type ViewItem struct {
 
 type ViewInput struct {
 	Items   []ViewItem       `json:"items" jsonschema:"description=List of items to view based on their UIDs and filters.,required=true"`
-	Columns []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified, defaults to [UID, PREVIEW]. Always prefer preview over content to reduce output size, any metadata can be fetched with additional columns. Only use content if the rendered output that the user sees is important."`
+	Columns []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID ; PREVIEW]."`
 	Path    string           `json:"path,omitempty" jsonschema:"description=An optional file path; will default to ./.tasks.org"`
 }
 
@@ -53,26 +53,11 @@ var ViewTool = mcp.Tool{
       - range: number (days, negative for past)
       - show_closed: boolean
     - depth: number (optional, defaults to 1), determines how many levels of children to include in the CSV.
-  - columns: An array of column names an exhaustive list will be show later in this description
   - path: string (defaults to ./.tasks.org), unless you encounter errors about file not found or otherwise specified leave this empty.
+  - columns: Array of column names to include in the output CSV. Defaults to [UID ; PREVIEW]. See the columns section below for available columns.
 
 ## Summary
-  Returns a CSV of matching items. Use 'PREVIEW' to keep context small.
-
-## Columns
-  - UID: Unique identifier for the header.
-  - PREVIEW: A short preview of the header content (first 60 characters).
-  - CONTENT: The full content of the header, including all text and metadata. Use with caution as it can be very large.
-  - PARENT: The UID of the parent header, if any.
-  - LEVEL: The depth level of the header in the org file (e.g. 1 for top-level headers, 2 for their children, etc.).
-  - STATUS: The TODO or checkbox status of the header (e.g. TODO, DONE, CHECKED, UNCHECKED).
-  - TAGS: A comma-separated list of tags associated with the header.
-  - PROGRESS: The progress of the header/bullet formatted as "X/Y" where X is the number of completed child items and Y is the total number of child items.
-  - SCHEDULED: The scheduled date of the header, if any.
-  - DEADLINE: The deadline date of the header, if any.
-  - CLOSED: The closed date of the header, if any.
-  - CHILDREN_COUNT: The number of child headers under this header.
-  - PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
+  Returns a CSV of matching items. See the columns section in the common instructions for what columns you can specify.
 `,
 	InputSchema: mcp.GenerateSchema(ViewInput{}),
 	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
@@ -128,7 +113,8 @@ var ViewTool = mcp.Tool{
 						return nil, err
 					}
 
-					if !reg.MatchString(render.Preview(-1)) {
+					preview := render.Preview(-1)
+					if !reg.MatchString(preview) {
 						continue
 					}
 				}

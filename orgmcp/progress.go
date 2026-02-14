@@ -50,6 +50,14 @@ func ProgressFromString(str string) option.Option[Progress] {
 	})
 }
 
+func (p *Progress) Equal(other Progress) bool {
+	if p.done.IsSome() && other.done.IsSome() && p.done.Unwrap() != other.done.Unwrap() {
+		return false
+	}
+
+	return p.Total == other.Total && p.Complete == other.Complete
+}
+
 func (p *Progress) Render(builder *strings.Builder) {
 	fmt.Fprintf(builder, "[%d/%d]", p.Complete, p.Total)
 }

@@ -2,16 +2,21 @@ package tools
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
 type TextInputSchema struct {
-	Texts    []TextInputValue `json:"texts" jsonschema:"description=The list of text modifications to perform"`
-	Path     string           `json:"path,omitempty" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
-	ShowDiff bool             `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,required=false"`
+	Texts        []TextInputValue `json:"texts" jsonschema:"description=The list of text modifications to perform"`
+	Path         string           `json:"path,omitempty" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
+	ShowDiff     bool             `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,required=false"`
+	ShowAffected *bool            `json:"show_affected,omitempty" jsonschema:"description=Whether to include the affected items in the response. This will include all items that were modified as well as their children.,default=true,required=false"`
+	Columns      []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID ; PREVIEW]."`
 }
 
 type TextInputValue struct {
@@ -60,6 +65,9 @@ This can inform both you as well as the user about what exactly a tool call chan
 			return
 		}
 
+		affectedCount := 0
+		affectedItems := map[orgmcp.Uid]orgmcp.Render{}
+
 		for _, mt := range input.Texts {
 			var selected orgmcp.Render
 			var ok bool
@@ -77,6 +85,13 @@ This can inform both you as well as the user about what exactly a tool call chan
 
 				newPlainText := orgmcp.NewPlainText(mt.Content)
 				selected.AddChildren(&newPlainText)
+
+				affectedItems[selected.Uid()] = selected
+				for _, child := range selected.ChildrenRec(-1) {
+					affectedItems[child.Uid()] = child
+				}
+
+				affectedCount += 1
 			case "update":
 				if strings.Contains(mt.Content, "\n") {
 					resp = append(resp, "Content for update method should not contain newlines. You should update each text element separately. As a fallback the newlines will be replaced with spaces.")
@@ -85,13 +100,38 @@ This can inform both you as well as the user about what exactly a tool call chan
 
 				if plain, ok := selected.(*orgmcp.PlainText); ok {
 					plain.SetContent(mt.Content)
+					affectedItems[plain.Uid()] = plain
+					affectedCount += 1
 				}
 			case "remove":
 				p_uid := selected.ParentUid()
 				if parent, ok := orgFile.GetUid(p_uid).Split(); ok {
 					parent.RemoveChildren(selected.Uid())
 				}
+
+				affectedItems[selected.Uid()] = selected
+				for _, child := range selected.ChildrenRec(-1) {
+					affectedItems[child.Uid()] = child
+				}
+
+				affectedCount += 1
 			}
+		}
+
+		ordered := []orgmcp.Render{}
+
+		if input.ShowAffected == nil || *input.ShowAffected == true {
+			locationTable := orgFile.BuildLocationTable()
+			ordered = append(ordered, itertools.Collect(maps.Values(affectedItems))...)
+
+			slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+				return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
+			})
+
+			resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
+			resp = append(resp, map[string]any{
+				"affected_count": affectedCount,
+			})
 		}
 
 		diff, err := writeOrgFileToDisk(orgFile, path)

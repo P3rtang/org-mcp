@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"encoding/json"
 	"errors"
 	"maps"
 	"slices"
@@ -15,7 +14,7 @@ type HeaderInput struct {
 	Headers  []HeaderValue    `json:"headers" jsonschema:"description=List of header operations to perform. Multiple operations can be performed in a single call."`
 	Path     string           `json:"path,omitempty" jsonschema:"description=The file path to the Org file to modify. It will target the ./.tasks.org by default and you don't have to pass this in unless you want to target a different file.,required=false"`
 	ShowDiff bool             `json:"show_diff,omitempty" jsonschema:"description=Whether to return the diff of changes made to the file. Can be used to inform the user of what changed.,required=false"`
-	Columns  []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID | CONTENT]."`
+	Columns  []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID | PREVIEW]."`
 }
 
 type HeaderValue struct {
@@ -27,7 +26,7 @@ type HeaderValue struct {
 	Depth   *int     `json:"depth,omitempty" jsonschema:"description=The depth to return children headers. 0 means no children; 1 means direct children only and so on. If omitted defaults to 1."`
 }
 
-var HeaderTool = mcp.Tool{
+var HeaderTool = mcp.GenericTool[HeaderInput]{
 	Name: "manage_header",
 	Description: "Add; remove or update headers in an Org file.\n" +
 		"The method parameter defines the action to take: 'add'; 'remove'; 'update'.\n" +
@@ -36,20 +35,7 @@ var HeaderTool = mcp.Tool{
 		"- 'remove': Removes the header identified by its uid.\n" +
 		"- 'update': Updates the header's content; status; or tags. Requires 'content'; 'status'; or 'tags' parameters.\n\n" +
 		"It is recommended to pass uid's as string to the function. While they will almost certainly be numbers; this is not guaranteed.",
-	InputSchema: mcp.GenerateSchema(HeaderInput{}),
-	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
-		var input HeaderInput
-
-		bytes, err := json.Marshal(args)
-		if err != nil {
-			return
-		}
-
-		err = json.Unmarshal(bytes, &input)
-		if err != nil {
-			return
-		}
-
+	Callback: func(input HeaderInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 
 		if input.Path == "" {

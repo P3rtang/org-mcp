@@ -383,6 +383,18 @@ func (of *OrgFile) GetStatusOverview() map[RenderStatus]StatusReport {
 	return overview
 }
 
+func (of *OrgFile) GetTagOverview() map[string]int {
+	tagMap := make(map[string]int)
+
+	for _, child := range of.items {
+		for _, item := range child.TagList() {
+			tagMap[item] += 1
+		}
+	}
+
+	return tagMap
+}
+
 func (of *OrgFile) Uid() Uid {
 	return NewUid(0)
 }

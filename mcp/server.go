@@ -14,6 +14,7 @@ import (
 
 type FuncOptions struct {
 	DefaultPath string
+	Logger      *log.Logger
 }
 
 type ToolFunc func(map[string]any, FuncOptions) ([]any, error)
@@ -85,7 +86,8 @@ func (s *Server) Run() error {
 
 		// write the method to a log file
 		file, _ := os.OpenFile("org-mcp.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		fmt.Fprintf(file, "%s", line)
+		s.log.SetOutput(file)
+		s.log.Printf("%s", line)
 
 		if err != nil {
 			if err == io.EOF {
@@ -148,11 +150,14 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 		return
 	}
 
+	s.log.Printf("Tool call: %s with arguments %v", toolCall.Name, toolCall.Arguments)
+
 	default_path := s.workspace + "/.tasks.org"
 
 	if tool := s.tools[toolCall.Name]; tool != nil {
-		resp, error := tool.Execute(toolCall.Arguments, FuncOptions{DefaultPath: default_path})
+		resp, error := tool.Execute(toolCall.Arguments, FuncOptions{DefaultPath: default_path, Logger: s.log})
 
+		s.log.Printf("Tool response: %v, error: %v", resp, error)
 		fmt.Fprintln(os.Stderr, resp)
 
 		if error != nil {
@@ -186,24 +191,40 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 			Version: "0.2.0",
 		},
 		Instructions: `
-		When working with org-mcp, you can use the tool to parse / change org-mode files.
-		This should be used to increase your understanding of the project, tasks and notes.
+When working with org-mcp, you can use the tool to parse / change org-mode files.
+This should be used to increase your understanding of the project, tasks and notes.
 
-		Tooling to traverse headers, extract metadata, and update statuses are available.
-		Using these tools has the benifit of keeping the org-mode file consistent and reducing the amount of data in the context window.
-		Since targeted updates and queries are possible, there is no need to pass the entire file contents back and forth.
+Tooling to traverse headers, extract metadata, and update statuses are available.
+Using these tools has the benifit of keeping the org-mode file consistent and reducing the amount of data in the context window.
+Since targeted updates and queries are possible, there is no need to pass the entire file contents back and forth.
 
-		The org-mode file is the single source of truth for both the programmer and the LLM.
-		Every task, bullet point, or step must be added to the document.
-		Implementation begins with extracting the relevant metadata and statuses from the document.
+The org-mode file is the single source of truth for both the programmer and the LLM.
+Every task, bullet point, or step must be added to the document.
+Implementation begins with extracting the relevant metadata and statuses from the document.
 
-		Direct modification of the org file is discouraged. Use the tooling provided by the org-mcp server to ensure consistency and maintain integrity.
-		Direct reading should be avoided as it may lead to blowing up the context window and losing important information.
+Direct modification of the org file is discouraged. Use the tooling provided by the org-mcp server to ensure consistency and maintain integrity.
+Direct reading should be avoided as it may lead to blowing up the context window and losing important information.
 
-		An org file serves as a long-term memory and organizational tool for the project. Always refer to it as the main reference point.
-		It also functions as long term memory between session, this means that any information not stored in the org file will be lost between sessions.
-		Use this together with the programmer to ensure that all important information is captured in the org file.
-		`,
+An org file serves as a long-term memory and organizational tool for the project. Always refer to it as the main reference point.
+It also functions as long term memory between session, this means that any information not stored in the org file will be lost between sessions.
+Use this together with the programmer to ensure that all important information is captured in the org file.
+
+Possible column to specify in a return are the following
+  - columns: An array of column names an exhaustive list will be show later in this description
+	- UID: Unique identifier for the org item.
+	- PREVIEW: A short preview of the header content (first 60 characters).
+	- CONTENT: The full content of the header, including all text and metadata. Use with caution as it can be very large.
+	- PARENT: The UID of the parent header, if any.
+	- LEVEL: The depth level of the header in the org file (e.g. 1 for top-level headers, 2 for their children, etc.).
+	- STATUS: The TODO or checkbox status of the header or bullet (e.g. TODO, DONE, CHECKED, UNCHECKED).
+	- TAGS: A comma-separated list of tags associated with the header.
+	- PROGRESS: The progress of the header/bullet formatted as "X/Y" where X is the number of completed child items and Y is the total number of child items.
+	- SCHEDULED: The scheduled date of the header, if any.
+	- DEADLINE: The deadline date of the header, if any.
+	- CLOSED: The closed date of the header, if any.
+	- CHILDREN_COUNT: The number of child headers under this header or bullet.
+	- PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
+`,
 	}
 
 	if err := s.sender.SendResponse(id, result); err != nil {
