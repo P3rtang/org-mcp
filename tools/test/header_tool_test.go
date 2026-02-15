@@ -36,7 +36,7 @@ func TestHeaderGetMethod(t *testing.T) {
 				t.Errorf("failed to marshal input: %v", err)
 			}
 
-			var inputMap map[string]any
+			var inputMap tools.HeaderInput
 			err = json.Unmarshal(jsonStr, &inputMap)
 
 			res, err := tools.HeaderTool.Callback(inputMap, mcp.FuncOptions{DefaultPath: "./test.org"})

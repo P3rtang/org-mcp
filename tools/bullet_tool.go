@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strings"
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/utils/itertools"
-	"github.com/p3rtang/org-mcp/utils/option"
 )
 
 type BulletInput struct {
@@ -59,45 +57,35 @@ func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err err
 		return nil, fmt.Errorf("error loading org file: %v", err)
 	}
 
-	builder := strings.Builder{}
-
 	affectedCount := 0
 	affectedItems := map[orgmcp.Uid]orgmcp.Render{}
 
 	for _, b := range input.Bullets {
+		selected, ok := orgFile.GetUid(orgmcp.NewUid(b.Uid)).Split()
+		if !ok {
+			resp = append(resp, fmt.Sprintf("Uid %s not found in %s", b.Uid, path))
+			continue
+		}
+
 		switch b.Method {
 		case "add":
-			header, ok := orgFile.GetUid(orgmcp.NewUid(b.Uid)).Split()
-			if !ok {
-				return nil, errors.New("Invalid header uid for adding bullet, do not include bullet index.")
-			}
+			currentProgress := selected.CheckProgress()
 
-			currentProgress := header.CheckProgress()
-
-			bullet := orgmcp.NewBullet(header, orgmcp.NewBulletStatus(b.Checkbox))
+			bullet := orgmcp.NewBullet(selected, orgmcp.NewBulletStatus(b.Checkbox))
 			bullet.SetContent(b.Content)
 
-			if header.CheckProgress().AndThen(func(p orgmcp.Progress) bool {
+			if selected.CheckProgress().AndThen(func(p orgmcp.Progress) bool {
 				return currentProgress.IsSome() && p.Equal(currentProgress.Unwrap())
 			}) {
 				affectedCount += 1
 			}
-
-			affectedItems[header.Uid()] = header
-			for _, child := range header.ChildrenRec(1) {
-				affectedItems[child.Uid()] = child
-			}
-
-			affectedCount += 1
 		case "remove":
-			bullet := orgFile.GetUid(orgmcp.NewUid(b.Uid))
-
-			header_uid, ok := option.Map(bullet, func(b orgmcp.Render) orgmcp.Uid { return b.ParentUid() }).Split()
+			header, ok := orgFile.GetUid(selected.ParentUid()).Split()
 			if !ok {
-				return nil, errors.New("invalid bullet uid; cannot find parent header")
+				resp = append(resp, fmt.Sprintf("Parent header for bullet with UID %s not found in %s, skipping removal.", b.Uid, path))
+				continue
 			}
 
-			header := orgFile.GetUid(header_uid).Unwrap()
 			currentProgress := header.CheckProgress()
 
 			header.RemoveChildren(orgmcp.NewUid(b.Uid))
@@ -108,23 +96,17 @@ func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err err
 			}) {
 				affectedCount += 1
 			}
-
-			affectedItems[header.Uid()] = header
-			for _, child := range header.ChildrenRec(1) {
-				affectedItems[child.Uid()] = child
-			}
-
-			affectedCount += 1
 		case "complete":
-			bullet, ok := option.Cast[orgmcp.Render, *orgmcp.Bullet](orgFile.GetUid(orgmcp.NewUid(b.Uid))).Split()
+			bullet, ok := selected.(*orgmcp.Bullet)
 			if !ok {
-				err = errors.New("invalid bullet uid for set_content")
-				return
+				resp = append(resp, fmt.Sprintf("UID %s does not correspond to a bullet in %s, skipping completion.", b.Uid, path))
+				continue
 			}
 
 			header, ok := orgFile.GetUid(bullet.Uid()).Split()
 			if !ok {
-				return nil, errors.New("invalid bullet uid; cannot find parent header")
+				resp = append(resp, fmt.Sprintf("Parent header for bullet with UID %s not found in %s, skipping completion.", b.Uid, path))
+				continue
 			}
 
 			currentProgress := header.CheckProgress()
@@ -135,35 +117,32 @@ func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err err
 			}) {
 				affectedCount += 1
 			}
-
-			affectedItems[header.Uid()] = header
-			for _, child := range header.ChildrenRec(1) {
-				affectedItems[child.Uid()] = child
-			}
-
-			affectedCount += 1
 		case "toggle":
-			bullet, ok := option.Cast[orgmcp.Render, *orgmcp.Bullet](orgFile.GetUid(orgmcp.NewUid(b.Uid))).Split()
+			bullet, ok := selected.(*orgmcp.Bullet)
 			if !ok {
-				err = errors.New("invalid bullet uid for set_content")
-				return
+				resp = append(resp, fmt.Sprintf("UID %s does not correspond to a bullet in %s, skipping toggle.", b.Uid, path))
+				continue
 			}
 
+			header, ok := orgFile.GetUid(bullet.Uid()).Split()
+			if !ok {
+				resp = append(resp, fmt.Sprintf("Parent header for bullet with UID %s not found in %s, skipping completion.", b.Uid, path))
+				continue
+			}
+
+			currentProgress := header.CheckProgress()
 			bullet.ToggleCheckbox()
 
-			orgFile.GetUid(bullet.ParentUid()).Then(func(r orgmcp.Render) {
-				r.CheckProgress()
-
-				affectedItems[r.Uid()] = r
-				for _, child := range r.ChildrenRec(1) {
-					affectedItems[child.Uid()] = child
-				}
-			})
+			if header.CheckProgress().AndThen(func(p orgmcp.Progress) bool {
+				return currentProgress.IsSome() && p.Equal(currentProgress.Unwrap())
+			}) {
+				affectedCount += 1
+			}
 		case "set_content":
-			bullet, ok := option.Cast[orgmcp.Render, *orgmcp.Bullet](orgFile.GetUid(orgmcp.NewUid(b.Uid))).Split()
+			bullet, ok := selected.(*orgmcp.Bullet)
 			if !ok {
-				err = errors.New("invalid bullet uid for set_content")
-				return
+				resp = append(resp, fmt.Sprintf("UID %s does not correspond to a bullet in %s, skipping content update.", b.Uid, path))
+				continue
 			}
 
 			bullet.SetContent(b.Content)
@@ -173,7 +152,12 @@ func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err err
 			return nil, errors.New("invalid method; must be 'add', 'remove', 'complete', 'toggle' or 'set_content'")
 		}
 
-		builder.Reset()
+		affectedItems[selected.Uid()] = selected
+		for _, child := range selected.ChildrenRec(1) {
+			affectedItems[child.Uid()] = child
+		}
+
+		affectedCount += 1
 	}
 
 	ordered := []orgmcp.Render{}

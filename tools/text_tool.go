@@ -85,13 +85,6 @@ This can inform both you as well as the user about what exactly a tool call chan
 
 				newPlainText := orgmcp.NewPlainText(mt.Content)
 				selected.AddChildren(&newPlainText)
-
-				affectedItems[selected.Uid()] = selected
-				for _, child := range selected.ChildrenRec(-1) {
-					affectedItems[child.Uid()] = child
-				}
-
-				affectedCount += 1
 			case "update":
 				if strings.Contains(mt.Content, "\n") {
 					resp = append(resp, "Content for update method should not contain newlines. You should update each text element separately. As a fallback the newlines will be replaced with spaces.")
@@ -102,20 +95,26 @@ This can inform both you as well as the user about what exactly a tool call chan
 					plain.SetContent(mt.Content)
 					affectedItems[plain.Uid()] = plain
 					affectedCount += 1
+				} else {
+					resp = append(resp, fmt.Sprintf("Uid %s is not a plain text element, cannot update content", mt.Uid))
 				}
+
+				continue
 			case "remove":
 				p_uid := selected.ParentUid()
 				if parent, ok := orgFile.GetUid(p_uid).Split(); ok {
 					parent.RemoveChildren(selected.Uid())
+				} else {
+					resp = append(resp, fmt.Sprintf("Could not find parent for uid %s, skipping removal", mt.Uid))
 				}
-
-				affectedItems[selected.Uid()] = selected
-				for _, child := range selected.ChildrenRec(-1) {
-					affectedItems[child.Uid()] = child
-				}
-
-				affectedCount += 1
 			}
+
+			affectedItems[selected.Uid()] = selected
+			for _, child := range selected.ChildrenRec(-1) {
+				affectedItems[child.Uid()] = child
+			}
+
+			affectedCount += 1
 		}
 
 		ordered := []orgmcp.Render{}
