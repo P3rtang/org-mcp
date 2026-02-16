@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -52,7 +53,7 @@ You always have the options with any modification to show a diff of the changes 
 This can inform both you as well as the user about what exactly a tool call changed, and always you to undo changes if needed.
 ` +
 		"`parent_uid + .t + text_index`\n",
-	Callback: func(input TextInputSchema, options mcp.FuncOptions) (resp []any, err error) {
+	Callback: func(ctx context.Context, input TextInputSchema, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {
 			path = options.DefaultPath
@@ -60,7 +61,7 @@ This can inform both you as well as the user about what exactly a tool call chan
 			path = input.Path
 		}
 
-		orgFile, err := mcp.LoadOrgFile(path)
+		orgFile, err := mcp.LoadOrgFile(ctx, path)
 		if err != nil {
 			return
 		}
@@ -133,7 +134,7 @@ This can inform both you as well as the user about what exactly a tool call chan
 			})
 		}
 
-		diff, err := writeOrgFileToDisk(orgFile, path)
+		diff, err := mcp.WriteOrgFileToDisk(ctx, orgFile, path)
 		if input.ShowDiff {
 			resp = append(resp, diff)
 		}

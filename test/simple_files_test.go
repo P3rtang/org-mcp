@@ -1,10 +1,12 @@
 package main
 
 import (
-	. "github.com/p3rtang/org-mcp/orgmcp"
+	"context"
 	"os"
 	"strings"
 	"testing"
+
+	. "github.com/p3rtang/org-mcp/orgmcp"
 )
 
 // TestSimpleFileFromReader tests parsing the simple.org example file
@@ -19,7 +21,7 @@ func TestSimpleFileFromReader(t *testing.T) {
 	defer file.Close()
 
 	// Parse the file
-	orgFileResult := OrgFileFromReader(file)
+	orgFileResult := OrgFileFromReader(context.TODO(), file)
 
 	// Verify that the result is Ok
 	if !orgFileResult.IsOk() {
@@ -44,7 +46,7 @@ func TestSimpleFileRender(t *testing.T) {
 	}
 	defer file.Close()
 
-	orgFileResult := OrgFileFromReader(file)
+	orgFileResult := OrgFileFromReader(context.TODO(), file)
 
 	// Check if parsing was successful
 	if !orgFileResult.IsOk() {
@@ -74,7 +76,7 @@ func TestSimpleFileProgress(t *testing.T) {
 	}
 	defer file.Close()
 
-	orgFileResult := OrgFileFromReader(file)
+	orgFileResult := OrgFileFromReader(context.TODO(), file)
 
 	// Check if parsing was successful
 	if !orgFileResult.IsOk() {
@@ -129,7 +131,7 @@ func TestSimpleFileLocation(t *testing.T) {
 	}
 	defer file.Close()
 
-	orgFileResult := OrgFileFromReader(file)
+	orgFileResult := OrgFileFromReader(context.TODO(), file)
 
 	// Check if parsing was successful
 	if !orgFileResult.IsOk() {
@@ -152,7 +154,7 @@ func TestSimpleFileGetTag(t *testing.T) {
 	file, _ := os.Open("./files/simple.org")
 	defer file.Close()
 
-	orgFile := OrgFileFromReader(file).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), file).Unwrap()
 
 	// Test getting a header by tag "title"
 	titleHeader := orgFile.GetTag("title")

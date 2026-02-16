@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -15,7 +16,7 @@ func TestBulletFileFromReader(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	// Open the example file
-	_, err := mcp.LoadOrgFile("./files/bullets.org")
+	_, err := mcp.LoadOrgFile(context.TODO(), "./files/bullets.org")
 
 	if err != nil {
 		t.Fatalf("failed to load bullets.org: %v", err)
@@ -32,7 +33,7 @@ func TestBulletFileRender(t *testing.T) {
 		t.Fatalf("failed to read bullets.org: %v", err)
 	}
 
-	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile(context.TODO(), "./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to load bullets.org: %v", err)
 	}
@@ -53,7 +54,7 @@ func TestBulletFileRender(t *testing.T) {
 func TestBulletFileProgress(t *testing.T) {
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
-	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile(context.TODO(), "./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to load bullets.org: %v", err)
 	}
@@ -98,7 +99,7 @@ func TestBulletFileHeadersHaveBullets(t *testing.T) {
 
 	os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
-	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile(context.TODO(), "./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to load bullets.org: %v", err)
 	}
@@ -141,7 +142,7 @@ func TestBulletIndexing(t *testing.T) {
 
 	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
-	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile(context.TODO(), "./files/bullets.org")
 	if err != nil {
 		t.Fatalf("failed to load bullets.org: %v", err)
 	}
@@ -233,7 +234,7 @@ func TestBulletFileConsistency(t *testing.T) {
 	}
 	defer file1.Close()
 
-	orgFile1 := OrgFileFromReader(file1).Unwrap()
+	orgFile1 := OrgFileFromReader(context.TODO(), file1).Unwrap()
 	builder1 := strings.Builder{}
 	orgFile1.Render(&builder1, -1)
 	rendered1 := builder1.String()
@@ -245,7 +246,7 @@ func TestBulletFileConsistency(t *testing.T) {
 	}
 	defer file2.Close()
 
-	orgFile2 := OrgFileFromReader(file2).Unwrap()
+	orgFile2 := OrgFileFromReader(context.TODO(), file2).Unwrap()
 	builder2 := strings.Builder{}
 	orgFile2.Render(&builder2, -1)
 	rendered2 := builder2.String()
@@ -310,7 +311,7 @@ func TestBulletFileConsistency(t *testing.T) {
 // }
 
 func TestBulletComplete(t *testing.T) {
-	orgFile, err := mcp.LoadOrgFile("./files/bullets.org")
+	orgFile, err := mcp.LoadOrgFile(context.TODO(), "./files/bullets.org")
 
 	type Test struct {
 		name      string

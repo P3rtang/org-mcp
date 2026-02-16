@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -43,7 +44,7 @@ var BulletTool = mcp.GenericTool[BulletInput]{
 	Callback: bulletFunc,
 }
 
-func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err error) {
+func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions) (resp []any, err error) {
 	var path string
 
 	if input.Path == "" {
@@ -52,7 +53,7 @@ func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err err
 		path = input.Path
 	}
 
-	orgFile, err := loadOrgFile(path)
+	orgFile, err := mcp.LoadOrgFile(ctx, path)
 	if err != nil {
 		return nil, fmt.Errorf("error loading org file: %v", err)
 	}
@@ -175,7 +176,7 @@ func bulletFunc(input BulletInput, options mcp.FuncOptions) (resp []any, err err
 		})
 	}
 
-	diff, err := writeOrgFileToDisk(orgFile, path)
+	diff, err := mcp.WriteOrgFileToDisk(ctx, orgFile, path)
 
 	if input.ShowDiff {
 		resp = append(resp, diff)

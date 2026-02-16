@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -39,7 +40,7 @@ func TestHeaderGetMethod(t *testing.T) {
 			var inputMap tools.HeaderInput
 			err = json.Unmarshal(jsonStr, &inputMap)
 
-			res, err := tools.HeaderTool.Callback(inputMap, mcp.FuncOptions{DefaultPath: "./test.org"})
+			res, err := tools.HeaderTool.Callback(context.TODO(), inputMap, mcp.FuncOptions{DefaultPath: "./test.org"})
 			if err != nil {
 				t.Errorf("HeaderTool failed: %v", err)
 			}

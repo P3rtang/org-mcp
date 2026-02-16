@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type DefinedSchema interface {
+	GetSchema() map[string]any
+}
+
 // GenerateSchema takes a Go struct and returns a JSON Schema map suitable for MCP tool inputSchema.
 // It uses reflection to inspect struct fields and looks for `json` and `jsonschema` tags.
 //
@@ -25,6 +29,11 @@ func GenerateSchema(v any) map[string]any {
 }
 
 func generateTypeSchema(t reflect.Type) map[string]any {
+	if t.Implements(reflect.TypeOf((*DefinedSchema)(nil)).Elem()) {
+		instance := reflect.New(t).Interface().(DefinedSchema)
+		return instance.GetSchema()
+	}
+
 	// Handle pointers by getting the underlying type
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -79,6 +88,9 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 							fieldSchema["enum"] = castSliceToType(enums, field.Type)
 						case "default":
 							fieldSchema["default"] = castToType(val, field.Type)
+						case "anyOf":
+							anyOfTypes := strings.Split(val, ";")
+							fieldSchema["anyOf"] = castAnyOfToType(anyOfTypes, field.Type)
 						}
 					}
 				}
@@ -166,6 +178,14 @@ func castSliceToType(vals []string, t reflect.Type) []any {
 	res := make([]any, len(vals))
 	for i, v := range vals {
 		res[i] = castToType(v, t)
+	}
+	return res
+}
+
+func castAnyOfToType(vals []string, _ reflect.Type) []any {
+	res := make([]any, len(vals))
+	for i, v := range vals {
+		res[i] = generateTypeSchema(reflect.TypeOf(v))
 	}
 	return res
 }

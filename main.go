@@ -1,9 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/tools"
 	"github.com/p3rtang/org-mcp/utils/diff"
+	"github.com/p3rtang/org-mcp/utils/logging"
 )
 
 // GetDiffOnly renders the OrgFile and returns a diff against the current disk content
@@ -30,19 +32,36 @@ func GetDiffOnly(of orgmcp.OrgFile, filePath string) (diffStr string, err error)
 }
 
 func main() {
+	ctx := context.Background()
+
 	// Setup logging to stderr so it doesn't interfere with stdout (which is used for MCP protocol)
-	logger := log.New(os.Stderr, "[org-mcp] ", log.LstdFlags|log.Lshortfile)
+	logger := slog.New(&logging.OrgMcpLogHandler{})
+	ctx = context.WithValue(ctx, "logger", logger)
+	logger.Info("Starting org-mcp server")
 
 	// Check if the export flag is set and print the export format if so
-	if len(os.Args) > 1 && os.Args[1] == "--export" {
-		file, err := os.Open(".tasks.org")
-		if err != nil {
-			logger.Fatalf("Failed to open .tasks.org: %v", err)
+	if len(os.Args) > 1 && os.Args[1] == "export" {
+		f := ".tasks.org"
+		o := "out.md"
+
+		if len(os.Args) > 2 {
+			f = os.Args[2]
 		}
 
-		orgFile, err := orgmcp.OrgFileFromReader(file).Split()
+		if len(os.Args) > 3 {
+			o = os.Args[3]
+		}
+
+		file, err := os.Open(f)
 		if err != nil {
-			logger.Fatalf("Failed to parse .tasks.org: %v", err)
+			logger.Error(fmt.Sprintf("Failed to open %s: %v", f, err))
+			os.Exit(1)
+		}
+
+		orgFile, err := orgmcp.OrgFileFromReader(ctx, file).Split()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to parse %s: %v", f, err))
+			os.Exit(1)
 		}
 
 		file.Close()
@@ -50,9 +69,10 @@ func main() {
 		builder := strings.Builder{}
 		orgFile.RenderMarkdown(&builder, -1)
 
-		out, err := os.Create("out.md")
+		out, err := os.Create(o)
 		if err != nil {
-			logger.Fatalf("Failed to create out.md: %v", err)
+			logger.Error(fmt.Sprintf("Failed to create %s: %v", o, err))
+			os.Exit(1)
 		}
 
 		_, err = out.WriteString(builder.String())
@@ -76,7 +96,8 @@ func main() {
 	server.AddTool(&tools.VectorSearch)
 	server.AddTool(&tools.TextTool)
 
-	if err := server.Run(); err != nil {
-		logger.Fatalf("Server error: %v", err)
+	if err := server.Run(ctx); err != nil {
+		logger.Error(fmt.Sprintf("Server error: %v", err))
+		os.Exit(1)
 	}
 }

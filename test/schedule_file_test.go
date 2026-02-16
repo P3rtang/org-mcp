@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/p3rtang/org-mcp/orgmcp"
+	"context"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/p3rtang/org-mcp/orgmcp"
 )
 
 func TestFileReproduction(t *testing.T) {
@@ -18,7 +20,7 @@ func TestFileReproduction(t *testing.T) {
 		t.Fatalf("failed to read file: %v", err)
 	}
 
-	of := orgmcp.OrgFileFromReader(strings.NewReader(string(content)))
+	of := orgmcp.OrgFileFromReader(context.TODO(), strings.NewReader(string(content)))
 
 	if of.IsErr() {
 		t.Fatalf("failed to parse org file: %v", of.UnwrapErr())

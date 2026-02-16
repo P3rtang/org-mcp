@@ -1,7 +1,7 @@
 package tools
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"maps"
 	"os"
@@ -24,9 +24,39 @@ type ViewItem struct {
 }
 
 type ViewInput struct {
-	Items   []ViewItem       `json:"items" jsonschema:"description=List of items to view based on their UIDs and filters.,required=true"`
-	Columns []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID ; PREVIEW]."`
-	Path    string           `json:"path,omitempty" jsonschema:"description=An optional file path; will default to ./.tasks.org"`
+	Items   []ViewItem `json:"items" jsonschema:"description=List of items to view based on their UIDs and filters.,required=true"`
+	Columns ColumnList `json:"columns,omitempty"`
+	Path    string     `json:"path,omitempty" jsonschema:"description=An optional file path; will default to ./.tasks.org"`
+}
+
+type ColumnList []*orgmcp.Column
+
+func (cl ColumnList) GetSchema() map[string]any {
+	return map[string]any{
+		"description": `
+## Description
+List of columns to include in the output. If not specified defaults to [UID ; PREVIEW].
+
+## Available columns
+  - TYPE: The type of the item (e.g. headline, list item, etc.)
+  - UID: The unique identifier of the item.
+  - PREVIEW: A short preview of the item's content (first 100 characters).
+  - CONTENT: The full content of the item, including all text and metadata.
+  - STATUS: The status of the item (e.g. TODO, DONE, CHECKED, UNCHECKED).
+  - PROGRESS: For items with children, the percentage of completed children.
+  - PARENT: The UID of the parent item, if any.
+  - CHILDREN_COUNT: The number of direct children this item has.
+  - LEVEL: The level of the item in the hierarchy (1 for top-level headers, 2 for their children, etc.)
+  - PATH: The file path of the item.
+  - SCHEDULED: The scheduled date of the item, if any.
+  - DEADLINE: The deadline date of the item, if any.
+  - CLOSED: The closed date of the item, if any.
+`,
+		"type": "array",
+		"items": map[string]any{
+			"type": "string",
+		},
+	}
 }
 
 type DateFilter struct {
@@ -36,7 +66,7 @@ type DateFilter struct {
 	Range      *int    `json:"range,omitempty" jsonschema:"description=The range in days to consider. For example you could request all deadlines this week by setting date to today and range to 7. Range can be negative and can be used in combination with the ommited date to get the week ahead or behind. For example, setting range to -7 will get all deadlines in the past week. When a negative range is used, the date will be considered the end date of the range and not included but up to."`
 }
 
-var ViewTool = mcp.Tool{
+var ViewTool = mcp.GenericTool[ViewInput]{
 	Name: "query_items",
 	Description: `
 # query_items
@@ -59,21 +89,7 @@ var ViewTool = mcp.Tool{
 ## Summary
   Returns a CSV of matching items. See the columns section in the common instructions for what columns you can specify.
 `,
-	InputSchema: mcp.GenerateSchema(ViewInput{}),
-	Callback: func(args map[string]any, options mcp.FuncOptions) (resp []any, err error) {
-		bytes, err := json.Marshal(args)
-		if err != nil {
-			return nil, fmt.Errorf("error marshalling header input: %v", err)
-		}
-
-		fmt.Fprintf(os.Stderr, "ViewTool called with input %s.\n", string(bytes))
-
-		var input ViewInput
-		err = json.Unmarshal(bytes, &input)
-		if err != nil {
-			return
-		}
-
+	Callback: func(ctx context.Context, input ViewInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {
 			path = options.DefaultPath
@@ -81,7 +97,7 @@ var ViewTool = mcp.Tool{
 			path = input.Path
 		}
 
-		orgFile, err := mcp.LoadOrgFile(path)
+		orgFile, err := mcp.LoadOrgFile(ctx, path)
 		if err != nil {
 			return
 		}
@@ -159,7 +175,7 @@ var ViewTool = mcp.Tool{
 		})
 
 		resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
-		_, err = writeOrgFileToDisk(orgFile, path)
+		_, err = mcp.WriteOrgFileToDisk(ctx, orgFile, path)
 
 		return
 	},

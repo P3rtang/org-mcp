@@ -103,21 +103,33 @@ func (c Column) Value(r Render, quoteChars string) (val string) {
 		if header, ok := r.(*Header); ok && header.Schedule().IsSome() {
 			date := header.Schedule().Unwrap().Values[Scheduled]
 			if !date.T.IsZero() {
-				val = date.T.Format("2006-01-02")
+				if date.withTime {
+					val = date.T.Format("2006-01-02 15:04")
+				} else {
+					val = date.T.Format("2006-01-02")
+				}
 			}
 		}
 	case ColDeadline:
 		if header, ok := r.(*Header); ok && header.Schedule().IsSome() {
 			date := header.Schedule().Unwrap().Values[Deadline]
 			if !date.T.IsZero() {
-				val = date.T.Format("2006-01-02")
+				if date.withTime {
+					val = date.T.Format("2006-01-02 15:04")
+				} else {
+					val = date.T.Format("2006-01-02")
+				}
 			}
 		}
 	case ColClosed:
 		if header, ok := r.(*Header); ok && header.Schedule().IsSome() {
 			date := header.Schedule().Unwrap().Values[Closed]
 			if !date.T.IsZero() {
-				val = date.T.Format("2006-01-02")
+				if date.withTime {
+					val = date.T.Format("2006-01-02 15:04")
+				} else {
+					val = date.T.Format("2006-01-02")
+				}
 			}
 		}
 	}

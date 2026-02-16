@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 )
@@ -20,7 +21,7 @@ type McpTool interface {
 	GetDescription() string
 	GetSchema() map[string]any
 	ToEncode() EncodeTool
-	Execute(map[string]any, FuncOptions) ([]any, error)
+	Execute(context.Context, map[string]any, FuncOptions) ([]any, error)
 }
 
 type EncodeTool struct {
@@ -66,7 +67,7 @@ type GenericTool[Schema any] struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
-	Callback func(Schema, FuncOptions) ([]any, error) `json:"-"`
+	Callback func(context.Context, Schema, FuncOptions) ([]any, error) `json:"-"`
 }
 
 func (g *GenericTool[Schema]) GetName() string {
@@ -90,7 +91,7 @@ func (g *GenericTool[Schema]) ToEncode() EncodeTool {
 	}
 }
 
-func (g *GenericTool[Schema]) Execute(input map[string]any, options FuncOptions) ([]any, error) {
+func (g *GenericTool[Schema]) Execute(ctx context.Context, input map[string]any, options FuncOptions) ([]any, error) {
 	var schema Schema
 
 	bytes, err := json.Marshal(input)
@@ -103,7 +104,7 @@ func (g *GenericTool[Schema]) Execute(input map[string]any, options FuncOptions)
 		return nil, err
 	}
 
-	return g.Callback(schema, options)
+	return g.Callback(ctx, schema, options)
 }
 
 // ServerCapabilities defines what the MCP server can do

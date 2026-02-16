@@ -1,6 +1,8 @@
 package tools
 
 import (
+	"context"
+
 	"github.com/p3rtang/org-mcp/mcp"
 )
 
@@ -20,7 +22,7 @@ Remember however that tags are recursive children will inherit the tags of their
 so a header with the tag "project" and a child header without any tags will still be counted as having the "project" tag.
 `,
 
-	Callback: func(input StatusInputSchema, options mcp.FuncOptions) (resp []any, err error) {
+	Callback: func(ctx context.Context, input StatusInputSchema, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {
 			path = options.DefaultPath
@@ -28,7 +30,7 @@ so a header with the tag "project" and a child header without any tags will stil
 			path = input.Path
 		}
 
-		orgFile, err := mcp.LoadOrgFile(path)
+		orgFile, err := mcp.LoadOrgFile(ctx, path)
 		if err != nil {
 			return
 		}
@@ -38,7 +40,7 @@ so a header with the tag "project" and a child header without any tags will stil
 			"tag_overview":    orgFile.GetTagOverview(),
 		}}
 
-		_, err = writeOrgFileToDisk(orgFile, path)
+		_, err = mcp.WriteOrgFileToDisk(ctx, orgFile, path)
 
 		return
 	},

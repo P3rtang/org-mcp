@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/p3rtang/org-mcp/embeddings"
 	"github.com/p3rtang/org-mcp/utils/option"
@@ -94,6 +95,8 @@ const (
 	Done HeaderStatus = "DONE"
 	Delg HeaderStatus = "DELG"
 )
+
+var DoneStatuses = []HeaderStatus{Revw, Done, Delg}
 
 var SPECIAL_TOKENS = []string{"[", ":"}
 
@@ -244,7 +247,6 @@ func (h *Header) Render(builder *strings.Builder, depth int) {
 	})
 
 	if depth == 0 {
-		builder.WriteString("...")
 		builder.WriteRune('\n')
 		return
 	}
@@ -443,6 +445,10 @@ func (h *Header) Status() RenderStatus {
 }
 
 func (h *Header) SetStatus(status HeaderStatus) {
+	if slices.Contains(DoneStatuses, status) && !slices.Contains(DoneStatuses, h.status) {
+		h.schedule = option.Some(h.schedule.UnwrapOr(NewSchedule(h)).AppendSchedule(Closed, time.Now(), true))
+	}
+
 	h.status = status
 }
 

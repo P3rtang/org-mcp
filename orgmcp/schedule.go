@@ -1,11 +1,14 @@
 package orgmcp
 
 import (
-	"github.com/p3rtang/org-mcp/utils/option"
-	"github.com/p3rtang/org-mcp/utils/reader"
+	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/reader"
 )
 
 type ScheduleStatus int
@@ -58,6 +61,16 @@ type Schedule struct {
 	parent *Header
 }
 
+func NewSchedule(parent *Header) Schedule {
+	return Schedule{
+		Values: make(map[ScheduleStatus]struct {
+			T        time.Time
+			withTime bool
+		}),
+		parent: parent,
+	}
+}
+
 func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 	var err error
 	schedule := Schedule{}
@@ -100,7 +113,7 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 		}
 	}
 
-	r = regexp.MustCompile(`.*CLOSED: \[(.*? )(.*? )?(.*?)?\].*`)
+	r = regexp.MustCompile(`.*CLOSED: \[(.*?)( .*?)?( .*?)?\].*`)
 	matches = r.FindStringSubmatch(content)
 
 	if len(matches) != 0 {
@@ -114,6 +127,7 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 
 	if len(matches) > 3 {
 		if t, err := time.Parse("2006-01-02 15:04", matches[1]+matches[3]); err == nil {
+			fmt.Fprintf(os.Stderr, "Parsed closed time with time: %s\n", t)
 			schedule.Values[Closed] = struct {
 				T        time.Time
 				withTime bool
@@ -167,4 +181,16 @@ func (s *Schedule) Render(builder *strings.Builder) {
 	}
 
 	builder.WriteString("\n")
+}
+
+func (s Schedule) AppendSchedule(status ScheduleStatus, t time.Time, withTime bool) Schedule {
+	s.Values[status] = struct {
+		T        time.Time
+		withTime bool
+	}{
+		T:        t,
+		withTime: withTime,
+	}
+
+	return s
 }

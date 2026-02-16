@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -343,7 +344,7 @@ func TestPlainTextFileUid(t *testing.T) {
 	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	file, _ := os.OpenFile("./files/plain_text.org", os.O_RDONLY, 0644)
-	of, err := orgmcp.OrgFileFromReader(file).Split()
+	of, err := orgmcp.OrgFileFromReader(context.TODO(), file).Split()
 
 	if err != nil {
 		t.Fatalf("failed to parse org file: %v", err)

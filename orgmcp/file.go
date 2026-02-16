@@ -2,9 +2,11 @@ package orgmcp
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"maps"
 	"os"
 	"slices"
@@ -36,7 +38,7 @@ type OrgFile struct {
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
 
-func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
+func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] {
 	startTime := time.Now()
 
 	org_file := OrgFile{
@@ -120,7 +122,10 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 	peek_reader.Continue()
 
 	elapsed := time.Since(startTime)
-	fmt.Fprintf(os.Stderr, "\nFinished parsing org file with %d items in %d.%dms\n\n", len(org_file.items), elapsed.Milliseconds(), elapsed.Microseconds())
+
+	if logger, ok := ctx.Value("logger").(*slog.Logger); ok {
+		logger.Info(fmt.Sprintf("Finished parsing org file with %d items in %d.%dms", len(org_file.items), elapsed.Milliseconds(), elapsed.Microseconds()))
+	}
 
 	ordered := slices.Collect(maps.Values(org_file.items))
 
@@ -136,6 +141,7 @@ func OrgFileFromReader(r io.Reader) result.Result[OrgFile] {
 		ColProgress,
 		ColScheduled,
 		ColDeadline,
+		ColClosed,
 	}))
 
 	return result.Ok(org_file)

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -176,15 +177,7 @@ func TestViewTool(t *testing.T) {
 
 	for _, tt := range testMap {
 		t.Run(tt.name, func(t *testing.T) {
-			jsonStr, err := json.Marshal(tt.input)
-			if err != nil {
-				t.Errorf("failed to marshal input: %v", err)
-			}
-
-			var inputMap map[string]any
-			err = json.Unmarshal(jsonStr, &inputMap)
-
-			res, err := tools.ViewTool.Callback(inputMap, mcp.FuncOptions{DefaultPath: "./test.org"})
+			res, err := tools.ViewTool.Callback(context.TODO(), tt.input, mcp.FuncOptions{DefaultPath: "./test.org"})
 			if err != nil {
 				t.Errorf("HeaderTool failed: %v", err)
 			}

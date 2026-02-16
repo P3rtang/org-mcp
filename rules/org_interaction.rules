@@ -22,15 +22,25 @@ When you find a task you want to work on, don't just query that UID. Query it an
 - **The Neighborhood Query**: Query the specific UID with `depth: 1` and include the `PATH` column. This shows you the parent breadcrumbs and the direct sub-tasks (bullets) in one go.
 
 ## 3. Mastering Columns for Efficiency
-The `query_items` tool is expensive in terms of tokens if you request everything. Be selective:
+When using `query_items` or some other tools, you can specify these columns for efficient data retrieval:
 
-| Column | Best Use Case |
+| Column | Description |
 | :--- | :--- |
-| `PREVIEW` | Human-readable title. Use this for "seeing" the task list. |
-| `CONTENT` | Raw Org source. Use this *only* when you need to read the specific notes or code blocks. |
-| `PATH` | GPS for the file. Use this to find where a search result "lives". |
-| `CHILDREN_COUNT` | Identification. Quickly see if a header is a leaf node or a category. |
-| `LEVEL` | Tree reconstruction. Use this to understand nesting depth without parsing stars. |
+| `UID` | Unique identifier for the org item |
+| `PREVIEW` | Short preview of header content (first 60 characters) |
+| `CONTENT` | Full content including text and metadata. Use with caution - can be large |
+| `PARENT` | UID of the parent header, if any |
+| `LEVEL` | Depth level in org file (1 for top-level, 2 for children, etc.) |
+| `STATUS` | TODO or checkbox status (TODO, DONE, CHECKED, UNCHECKED) |
+| `TAGS` | Comma-separated list of tags |
+| `PROGRESS` | Progress formatted as "X/Y" (completed/total child items) |
+| `SCHEDULED` | Scheduled date, if any |
+| `DEADLINE` | Deadline date, if any |
+| `CLOSED` | Closed date, if any |
+| `CHILDREN_COUNT` | Number of child headers |
+| `PATH` | Hierarchical path as UID strings separated by "/" |
+
+**Pro tip**: Use specific columns instead of `CONTENT` to reduce token usage. For status checks, use `STATUS`. For dates, use `SCHEDULED`, `DEADLINE`, or `CLOSED` directly instead of parsing from `CONTENT`.
 
 ## 4. The Quick-Look Status
 If you want a high-level summary of the project's health without listing every item, use `status_overview`. It returns the counts and UIDs for all items grouped by their status (DONE, TODO, PROG, etc.). This is perfect for identifying which areas of the project need the most attention.
@@ -89,3 +99,4 @@ When completing tasks:
 - [ ] **Specific Search**: `query_items` with `content` regex and `status` filters.
 - [ ] **Inspection**: `query_items` with `UID: [TargetID], Depth: 1, Columns: [CONTENT]`.
 - [ ] **Action**: Use `manage_header` or `manage_bullet` with `show_diff: true` for all structural changes.
+

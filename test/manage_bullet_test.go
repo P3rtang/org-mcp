@@ -1,10 +1,12 @@
 package main
 
 import (
-	. "github.com/p3rtang/org-mcp/orgmcp"
+	"context"
 	"os"
 	"strings"
 	"testing"
+
+	. "github.com/p3rtang/org-mcp/orgmcp"
 )
 
 // TestManageBulletAdd tests adding bullets with and without checkboxes
@@ -19,7 +21,7 @@ func TestManageBulletAdd(t *testing.T) {
 `
 
 	// Parse the test content
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
@@ -84,7 +86,7 @@ func TestManageBulletRemove(t *testing.T) {
 :END:
 `
 
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
@@ -131,7 +133,7 @@ func TestManageBulletComplete(t *testing.T) {
 :END:
 `
 
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
@@ -174,7 +176,7 @@ func TestManageBulletToggle(t *testing.T) {
 :END:
 `
 
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
@@ -225,7 +227,7 @@ func TestManageBulletSetContent(t *testing.T) {
 :END:
 `
 
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
@@ -268,7 +270,7 @@ func TestManageBulletSequenceOperations(t *testing.T) {
 :END:
 `
 
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {
@@ -326,7 +328,7 @@ func TestManageBulletInvalidOperations(t *testing.T) {
 :END:
 `
 
-	orgFile := OrgFileFromReader(strings.NewReader(testContent)).Unwrap()
+	orgFile := OrgFileFromReader(context.TODO(), strings.NewReader(testContent)).Unwrap()
 	headers := orgFile.GetHeaderByStatus(RenderStatus(None))
 
 	if len(headers) == 0 {

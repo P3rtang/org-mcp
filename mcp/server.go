@@ -2,19 +2,21 @@ package mcp
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"maps"
-	"os"
 	"slices"
+	"strings"
+	"time"
 )
 
 type FuncOptions struct {
 	DefaultPath string
-	Logger      *log.Logger
+	Logger      *slog.Logger
 }
 
 type ToolFunc func(map[string]any, FuncOptions) ([]any, error)
@@ -23,7 +25,7 @@ type ToolFunc func(map[string]any, FuncOptions) ([]any, error)
 type Server struct {
 	reader    *bufio.Reader
 	sender    *MessageSender
-	log       *log.Logger
+	log       *slog.Logger
 	state     ServerState
 	workspace string
 
@@ -43,7 +45,7 @@ func (s *Server) handleSetLoggingLevel(id any, params json.RawMessage) {
 
 	switch logParams.Level {
 	case "debug", "info", "warn", "error":
-		s.log.Printf("Logging level set to %s", logParams.Level)
+		s.log.Debug(fmt.Sprintf("Logging level set to %s", logParams.Level))
 		// Note: Actual logger level adjustment would be implemented here
 		s.sender.SendResponse(id, map[string]any{"status": "success"})
 	default:
@@ -60,7 +62,7 @@ type ServerState struct {
 type Handler func(params json.RawMessage) (any, error)
 
 // NewServer creates a new MCP server
-func NewServer(reader io.Reader, sender *MessageSender, logger *log.Logger) *Server {
+func NewServer(reader io.Reader, sender *MessageSender, logger *slog.Logger) *Server {
 	flag.Parse()
 	workspace := flag.String("workspace", "", "Path to the current workspace, when using relative file paths this is the root directory.")
 	if *workspace == "" {
@@ -80,21 +82,16 @@ func NewServer(reader io.Reader, sender *MessageSender, logger *log.Logger) *Ser
 }
 
 // Run starts the server and begins listening for messages
-func (s *Server) Run() error {
+func (s *Server) Run(ctx context.Context) error {
 	for {
 		line, err := s.reader.ReadString('\n')
 
-		// write the method to a log file
-		file, _ := os.OpenFile("org-mcp.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		s.log.SetOutput(file)
-		s.log.Printf("%s", line)
-
 		if err != nil {
 			if err == io.EOF {
-				s.log.Println("Connection closed")
+				s.log.Info("Connection closed")
 				return nil
 			}
-			s.log.Printf("Error reading message: %v\n", err)
+			s.log.Error(fmt.Sprintf("Error reading message: %v\n", err))
 			continue
 		}
 
@@ -102,13 +99,15 @@ func (s *Server) Run() error {
 			continue
 		}
 
+		s.log.Info(strings.TrimSpace(line))
+
 		var msg JSONRPCMessage
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			s.log.Printf("Error parsing JSON: %v\n", err)
+			s.log.Error(fmt.Sprintf("Error parsing JSON: %v\n", err))
 			continue
 		}
 
-		s.handleMessage(msg)
+		s.handleMessage(ctx, msg)
 	}
 }
 
@@ -117,7 +116,7 @@ func (s *Server) AddTool(tool McpTool) {
 }
 
 // handleMessage processes a single message
-func (s *Server) handleMessage(msg JSONRPCMessage) {
+func (s *Server) handleMessage(ctx context.Context, msg JSONRPCMessage) {
 	switch msg.Method {
 	case "initialize":
 		s.handleInitialize(msg.ID, msg.Params)
@@ -126,7 +125,7 @@ func (s *Server) handleMessage(msg JSONRPCMessage) {
 	case "tools/list":
 		s.handleListTools(msg.ID, msg.Params)
 	case "tools/call":
-		s.handleToolCall(msg.ID, msg.Params)
+		s.handleToolCall(ctx, msg.ID, msg.Params)
 	case "logging/setLevel":
 		s.handleSetLoggingLevel(msg.ID, msg.Params)
 	case "ping":
@@ -139,7 +138,7 @@ func (s *Server) handleMessage(msg JSONRPCMessage) {
 }
 
 // handleToolCall processes tool call requests
-func (s *Server) handleToolCall(id any, params json.RawMessage) {
+func (s *Server) handleToolCall(ctx context.Context, id any, params json.RawMessage) {
 	var toolCall struct {
 		Name      string         `json:"name"`
 		Arguments map[string]any `json:"arguments"`
@@ -150,15 +149,20 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 		return
 	}
 
-	s.log.Printf("Tool call: %s with arguments %v", toolCall.Name, toolCall.Arguments)
+	s.log.Debug("Tool call: %s with arguments %v", toolCall.Name, toolCall.Arguments)
 
 	default_path := s.workspace + "/.tasks.org"
 
 	if tool := s.tools[toolCall.Name]; tool != nil {
-		resp, error := tool.Execute(toolCall.Arguments, FuncOptions{DefaultPath: default_path, Logger: s.log})
+		startTime := time.Now()
 
-		s.log.Printf("Tool response: %v, error: %v", resp, error)
-		fmt.Fprintln(os.Stderr, resp)
+		resp, error := tool.Execute(ctx, toolCall.Arguments, FuncOptions{DefaultPath: default_path, Logger: s.log})
+
+		if error != nil {
+			s.log.Warn(fmt.Sprintf("Tool error: %v", error))
+		}
+
+		s.log.Info(fmt.Sprintf("Tool executed in %v, response: %v", time.Since(startTime), resp))
 
 		if error != nil {
 			s.sender.SendError(id, -32000, fmt.Sprintf("Tool error: %v", error))
@@ -169,6 +173,7 @@ func (s *Server) handleToolCall(id any, params json.RawMessage) {
 		return
 	}
 
+	s.log.Warn(fmt.Sprintf("Unknown tool: %s", toolCall.Name))
 	s.sender.SendError(id, -32601, fmt.Sprintf("Unknown tool: %s", toolCall.Name))
 }
 
@@ -209,8 +214,11 @@ An org file serves as a long-term memory and organizational tool for the project
 It also functions as long term memory between session, this means that any information not stored in the org file will be lost between sessions.
 Use this together with the programmer to ensure that all important information is captured in the org file.
 
+## Columns
+!!IMPORTANT!!
+Tools with output that can be large have the option to specify columns to return in the response.
+This allows you to get only the relevant information without blowing up the context window.
 Possible column to specify in a return are the following
-  - columns: An array of column names an exhaustive list will be show later in this description
 	- UID: Unique identifier for the org item.
 	- PREVIEW: A short preview of the header content (first 60 characters).
 	- CONTENT: The full content of the header, including all text and metadata. Use with caution as it can be very large.
@@ -228,14 +236,14 @@ Possible column to specify in a return are the following
 	}
 
 	if err := s.sender.SendResponse(id, result); err != nil {
-		s.log.Printf("Error sending initialize response: %v\n", err)
+		s.log.Error(fmt.Sprintf("Error sending initialize response: %v\n", err))
 	}
-	s.log.Println("Initialize completed successfully")
+	s.log.Error("Initialize completed successfully")
 }
 
 // handleInitialized handles the initialized notification
 func (s *Server) handleInitialized() {
-	s.log.Println("Client confirmed initialization")
+	s.log.Info("Client confirmed initialization")
 }
 
 // handleListTools handles the tools/list request
@@ -250,12 +258,12 @@ func (s *Server) handleListTools(id any, _ json.RawMessage) {
 	}
 
 	if err := s.sender.SendResponse(id, response); err != nil {
-		s.log.Printf("Error sending tools list response: %v\n", err)
+		s.log.Error(fmt.Sprintf("Error sending tools list response: %v\n", err))
 	}
 }
 
 func (s *Server) handlePing(id any) {
 	if err := s.sender.SendResponse(id, map[string]any{}); err != nil {
-		s.log.Printf("Error sending ping response: %v\n", err)
+		s.log.Error(fmt.Sprintf("Error sending ping response: %v\n", err))
 	}
 }

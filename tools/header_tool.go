@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"errors"
 	"maps"
 	"slices"
@@ -35,7 +36,7 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 		"- 'remove': Removes the header identified by its uid.\n" +
 		"- 'update': Updates the header's content; status; or tags. Requires 'content'; 'status'; or 'tags' parameters.\n\n" +
 		"It is recommended to pass uid's as string to the function. While they will almost certainly be numbers; this is not guaranteed.",
-	Callback: func(input HeaderInput, options mcp.FuncOptions) (resp []any, err error) {
+	Callback: func(ctx context.Context, input HeaderInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 
 		if input.Path == "" {
@@ -44,7 +45,7 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 			path = input.Path
 		}
 
-		orgFile, err := mcp.LoadOrgFile(path)
+		orgFile, err := mcp.LoadOrgFile(ctx, path)
 		if err != nil {
 			return
 		}
@@ -169,7 +170,7 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 		})
 		resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
 
-		diff, err := writeOrgFileToDisk(orgFile, path)
+		diff, err := mcp.WriteOrgFileToDisk(ctx, orgFile, path)
 
 		if input.ShowDiff {
 			resp = append(resp, diff)

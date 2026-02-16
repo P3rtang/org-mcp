@@ -34,7 +34,8 @@
      :PROPERTIES:
      :ID: 82181185
      :END:
-**** NEXT automatically set CLOSED tag
+**** DONE automatically set CLOSED tag
+     CLOSED: [2026-02-16 Mon 17:03]
      :PROPERTIES:
      :ID: 14898686
      :END:
@@ -45,10 +46,10 @@
          The data model already parses CLOSED tags,
          so the implementation should focus on updating the header's properties during status changes
          and ensuring this is reflected in both the in-memory structure and the persisted org file.
-     - [ ] Identify where status transitions occur in the code (e.g., from TODO/PROG to DONE).
-     - [ ] Implement logic during status transitions to set CLOSED to the current timestamp.
-     - [ ] Write unit tests to validate that the CLOSED tag logic works properly.
-     - [ ] Document implementation details and edge cases in project documentation.
+     - [x] Identify where status transitions occur in the code (e.g., from TODO/PROG to DONE).
+     - [x] Implement logic during status transitions to set CLOSED to the current timestamp.
+     - [x] Write unit tests to validate that the CLOSED tag logic works properly.
+     - [x] Document implementation details and edge cases in project documentation.
 **** TODO modification of properties
      :PROPERTIES:
      :ID: 55803461
@@ -88,16 +89,6 @@
     :PROPERTIES:
     :ID: 8406955
     :END:
-**** TODO Fuzzy search implementation plan
-     :PROPERTIES:
-     :ID: 51483267
-     :END:
-     - [ ] Analyze requirements for fuzzy header/content search in org mode files (should the search match any header line, content, or both?).
-     - [ ] Evaluate and choose a Go fuzzy matching library or method (e.g., github.com/lithammer/fuzzysearch, or custom scoring).
-     - [ ] Design a RESTful API endpoint for fuzzy search (input fields: search string, optional filters like status/tags, limit, etc.; output: matched headers with score and context).
-     - [ ] Implement search handler in mcp/server.go using the chosen algorithm on in-memory parsed org structure, scoring/returning best matches.
-     - [ ] Add unit and integration tests for different types of queries, edge cases, and expected matches.
-     - [ ] Document fuzzy search usage and add examples to API docs/test file.
 **** DONE Vector search
      :PROPERTIES:
      :ID: 04236728
@@ -410,7 +401,21 @@
     * *Date Range Filtering*: Add the ability to filter results by date ranges (e.g., ~SCHEDULED~ or ~DEADLINE~ between Date A and Date B) directly in ~query_items~.
     * *Bulk Operation Efficiency*: Using multi-item tool calls (e.g., adding 4 sub-headers in one ~manage_header~ call) is significantly more token-efficient than sequential calls.
     * *Surgical Editing Pattern*: Prefer ~manage_bullet~ and ~manage_header~ over ~edit_file~ to preserve property drawers and structural metadata automatically.
-** PROG Derive Tool Input Schema from Go Struct using Reflection :jsonrpc:schema:input:
+    - [ ] *Persistent Memory*: Use the org file itself as persistent memory for AI sessions. Track session context, files being worked on, known bugs, and 'known unknowns' (edge cases that don't work). This addresses AI limitations around persistent mental workspace and goal tracking across interactions.
+    - [ ] *Bug Pattern: CLOSED schedule parsing*: When parsing CLOSED timestamps in `schedule.go`, the regex `.*CLOSED: \[(.*? )(.*? )?(.*?)?\].*` had a trailing space in the first capture group. This caused `time.Parse("2006-01-02", matches[1])` to fail on dates without times. Fixed by changing to `(.*?)` to exclude the trailing space.
+*** TODO Task History Tracking in Properties :design:
+    :PROPERTIES:
+    :ID: 21285539
+    :END:
+    - [ ] Problem: AI models lose context when tasks span multiple sessions. When tunnel vision sets in, the AI forgets what was attempted before.
+    - [ ] Solution: Store task history in the :PROPERTIES: drawer of each header. Properties are collapsed by default so they don't clutter the visual org file view.
+    - [ ] Property format: :HISTORY: [{"action": "create", "field": "status", "old": null, "new": "TODO", "timestamp": "..."}, ...]
+    - [ ] Actions to track: CREATE, UPDATE (status, content, tags), DELETE, MOVE
+    - [ ] New tool: history_tool that returns CSV with columns: UID, ACTION, FIELD, OLD_VALUE, NEW_VALUE, TIMESTAMP
+    - [ ] Tool filters: by UID, by date range, by action type
+    - [ ] Implementation: When any manage_* tool modifies a header, append to the :HISTORY: property before writing to disk
+** DONE Derive Tool Input Schema from Go Struct using Reflection :jsonrpc:schema:input:
+   CLOSED: [2026-02-16 Mon 15:54]
    :PROPERTIES:
    :ID: 15951102
    :END:
@@ -421,13 +426,13 @@
    - [x] Support `json:",omitempty"` to distinguish between required and optional fields.
    - [x] Ensure `default` and `enum` values in the schema match the field's JSON type (e.g., numbers instead of strings for int fields).
    - [x] Implement a registration helper in `mcp.Server` to simplify tool definition.
-   - [ ] Support `oneOf` in the schema definition for fields that can have multiple valid schemas (e.g., specific constants with titles).
-   - [ ] Support `anyOf` in the schema definition for fields that can have multiple valid schemas selected (e.g., multiple flags or options).
-   - [ ] Support `minLength` and `maxLength` for string length constraints.
-   - [ ] Support `pattern` for regex validation on strings.
-   - [ ] Support `format` for string formats (email, uri, date-time, etc.).
-   - [ ] Support `minimum` and `maximum` for numeric bounds.
-** TODO Movement and Reordering
+   - [x] Support `oneOf` in the schema definition for fields that can have multiple valid schemas (e.g., specific constants with titles).
+   - [x] Support `anyOf` in the schema definition for fields that can have multiple valid schemas selected (e.g., multiple flags or options).
+   - [x] Support `minLength` and `maxLength` for string length constraints.
+   - [x] Support `pattern` for regex validation on strings.
+   - [x] Support `format` for string formats (email, uri, date-time, etc.).
+   - [x] Support `minimum` and `maximum` for numeric bounds.
+** NEXT Movement and Reordering :move:order:
    SCHEDULED: <2026-02-14 Sat> DEADLINE: <2026-02-15 Sun>
    :PROPERTIES:
    :ID: 65811682
@@ -460,7 +465,7 @@
     - [ ] Unit test: Reordering bullets within a single header and verifying UID updates (e.g., .b0 -> .b1).
     - [ ] Unit test: Moving a header between two different parent headers and verifying structural integrity.
     - [ ] Integration test: Using the MCP tool to move a bullet and checking the diff output.
-** TODO Exporting & Integration (Notion)
+** TODO Exporting & Integration (Notion) :export:notion:
    :PROPERTIES:
    :ID: 11607416
    :END:
@@ -495,40 +500,50 @@
     - [ ] Create ~export_to_notion~ MCP tool.
     - [ ] Implement unit tests for the block converter.
     - [ ] Integration tests with a test Notion workspace.
-** TODO Tool Design & AI UX Improvements :ux:ui:design:
+** PROG Tool Design & AI UX Improvements [3/7] :ux:ui:design:
    :PROPERTIES:
    :ID: 30384709
    :END:
-   - [ ] Standardize tool returns: Ensure all ~manage_*~ tools return a CSV of affected items (currently ~manage_bullet~ and ~manage_text~ can return empty strings).
-   - [ ] Implement "Neighborhood" responses: Optionally return the parent and its immediate children after an add/move operation to verify hierarchy.
-   - [ ] Evaluate making ~show_diff: true~ the default or more prominent in the tool output to encourage surgical editing.
+   - [x] Standardize tool returns: Ensure all ~manage_*~ tools return a CSV of affected items (currently ~manage_bullet~ and ~manage_text~ can return empty strings).
+   - [x] Implement "Neighborhood" responses: Optionally return the parent and its immediate children after an add/move operation to verify hierarchy.
    - [ ] Improve tool documentation/schemas to explicitly suggest bulk operations for better token efficiency and state consistency.
    - [ ] Implement an ~output_format~ flag for ~query_items~ supporting CSV (default), Markdown, and Raw (Org) to allow switching between machine-efficient and human-readable views.
-*** TODO Response Metadata Enhancement
+*** DONE Response Metadata Enhancement [9/9]
+    CLOSED: [2026-02-15 Sun 21:47]
     :PROPERTIES:
     :ID: 71585143
     :END:
-    - [ ] operation: operation type (add/remove/update) - helps AI understand what happened
     - [x] items_affected: count of items modified - quick count without parsing CSV
-    - [ ] execution_time_ms: operation duration in milliseconds for performance debugging
-    - [ ] timestamp: RFC3339 timestamp for auditing and debugging
-    - [ ] Consider: backward compatibility - make metadata optional via output_format flag
+    - [x] execution_time_ms: log operation duration in milliseconds for performance debugging to the log file
+    - [x] timestamp: RFC3339 timestamp for auditing and debugging
+    - [x] Consider: backward compatibility - make metadata optional via output_format flag
     - [x] Scope: Which tools need metadata? (manage_header, manage_bullet, manage_text, query_items, all?)
-    - [ ] Format alternatives: (A) metadata object at array start, (B) wrapper around response, (C) new CSV fields
-    - [ ] Backward compatibility: Existing AI workflows must not break - consider output_format flag to toggle
-    - [ ] Prior art: Research other MCP servers for similar response metadata patterns
-    - [ ] v2 considerations: Response versioning, schema evolution, streaming metrics
+    - [x] Format alternatives: (A) metadata object at array start, (B) wrapper around response, (C) new CSV fields
+    - [x] Backward compatibility: Existing AI workflows must not break - consider output_format flag to toggle
+    - [x] Prior art: Research other MCP servers for similar response metadata patterns
+    - [x] v2 considerations: Response versioning, schema evolution, streaming metrics
 *** TODO Enhanced Change Metadata in Tool Responses: Add old/new values for Progress and Status columns in CSV output
     :PROPERTIES:
     :ID: 27819683
     :END:
-    - [ ] Include Progress column with old→new values (e.g., "0/3" -> "2/3") showing what changed
-    - [ ] Include Status column with old→new values (e.g., "TODO" -> "PROG") showing status transitions
+    - [ ] Include Progress column with old -> new values (e.g., "0/3" -> "2/3") showing what changed
+    - [ ] Include Status column with old -> new values (e.g., "TODO" -> "PROG") showing status transitions
     - [ ] Include UID of the header/bullet that changed
     - [ ] Include Preview of both old and new values for context
     - [ ] Apply to manage_bullet responses (after complete/toggle/remove operations)
     - [ ] Apply to manage_header responses (after status changes)
     - [ ] Make it work with existing output_format flag (CSV, Markdown, Raw)
+*** TODO Add a log access tool for debugging
+    :PROPERTIES:
+    :ID: 11489108
+    :END:
+    - [ ] Filter by log level (ERROR, WARN, INFO, DEBUG)
+    - [ ] Filter by date/time range
+    - [ ] Keyword search in log messages
+    - [ ] Get recent N entries (tail -n style)
+    - [ ] Filter by source/module
+    - [ ] Error-only view (show only ERROR level)
+    - [ ] Tail mode (follow logs in real-time)
 ** DONE Tag Management & Discovery Improvements
    CLOSED: [2026-02-14 Sat 14:30]
    :PROPERTIES:

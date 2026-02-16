@@ -1,10 +1,12 @@
 package main
 
 import (
-	. "github.com/p3rtang/org-mcp/orgmcp"
+	"context"
 	"os"
 	"strings"
 	"testing"
+
+	. "github.com/p3rtang/org-mcp/orgmcp"
 )
 
 // TestBulletToggleCheckbox tests toggling checkbox state from Unchecked to Checked
@@ -392,7 +394,7 @@ func TestCheckboxInBulletFile(t *testing.T) {
 	}
 	defer file.Close()
 
-	orgFileResult := OrgFileFromReader(file)
+	orgFileResult := OrgFileFromReader(context.TODO(), file)
 	if !orgFileResult.IsOk() {
 		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
 	}
@@ -497,7 +499,7 @@ func TestCheckboxCompleteInBulletFile(t *testing.T) {
 	}
 	defer file.Close()
 
-	orgFileResult := OrgFileFromReader(file)
+	orgFileResult := OrgFileFromReader(context.TODO(), file)
 	if !orgFileResult.IsOk() {
 		t.Fatalf("expected OrgFileFromReader to return Ok, got Err")
 	}
