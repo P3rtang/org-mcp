@@ -37,6 +37,8 @@ var serveCmd = cobra.Command{
 	Long: `
 Starts the MCP server which listens for incoming messages and responds accordingly.
 The server uses a message sender that encodes messages as JSON and sends them to stdout.
+
+This command can be simply run without the "serve" subcommand, as it is the default action when running "org-mcp".
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()

@@ -171,7 +171,7 @@ func TestViewTool(t *testing.T) {
 				},
 				Columns: slice.Ref(orgmcp.AllColumns),
 			},
-			expected: []any{"TYPE,UID,PREVIEW,CONTENT,STATUS,PROGRESS,PARENT,CHILDREN_COUNT,TAGS,LEVEL,PATH,SCHEDULED,DEADLINE,CLOSED\\n*orgmcp.Header,95718920,All columns,* DONE All columns [1/3] :tag:...,DONE,1/3,0,3,tag,1,/95718920,2026-02-02,2026-02-03,2026-02-02"},
+			expected: []any{"TYPE,UID,PREVIEW,CONTENT,STATUS,PROGRESS,PARENT,CHILDREN_COUNT,TAGS,LEVEL,PATH,SCHEDULED,DEADLINE,CLOSED\\n*orgmcp.Header,95718920,All columns,* DONE All columns [1/3] :tag:,DONE,1/3,0,3,tag,1,/95718920,2026-02-02,2026-02-03,2026-02-02 18:16"},
 		},
 	}
 

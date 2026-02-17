@@ -28,6 +28,8 @@ type RenderBase interface {
 	TagList() TagList
 	Preview(length int) string
 	Path() string
+	Insert(int, Render) error
+	Move(MoveOperation) error
 }
 
 type RenderOrg interface {

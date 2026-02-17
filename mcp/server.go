@@ -227,18 +227,18 @@ Possible column to specify in a return are the following
 	- STATUS: The TODO or checkbox status of the header or bullet (e.g. TODO, DONE, CHECKED, UNCHECKED).
 	- TAGS: A comma-separated list of tags associated with the header.
 	- PROGRESS: The progress of the header/bullet formatted as "X/Y" where X is the number of completed child items and Y is the total number of child items.
+	- CHILDREN_COUNT: The number of child headers under this header or bullet.
+	- PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
 	- SCHEDULED: The scheduled date of the header, if any.
 	- DEADLINE: The deadline date of the header, if any.
 	- CLOSED: The closed date of the header, if any.
-	- CHILDREN_COUNT: The number of child headers under this header or bullet.
-	- PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
 `,
 	}
 
 	if err := s.sender.SendResponse(id, result); err != nil {
 		s.log.Error(fmt.Sprintf("Error sending initialize response: %v\n", err))
 	}
-	s.log.Error("Initialize completed successfully")
+	s.log.Info("Initialize completed successfully")
 }
 
 // handleInitialized handles the initialized notification
