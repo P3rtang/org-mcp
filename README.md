@@ -1,8 +1,6 @@
 # org-mcp
 
 <p>
-  <a href="https://glama.ai/mcp/servers"><img src="https://glama.ai/mcp/servers/org-mcp/badge" alt="MCP Server"></a>
-  <a href="https://github.com/p3rtang/org-mcp/releases"><img src="https://img.shields.io/github/v/release/p3rtang/org-mcp" alt="Release"></a>
   <a href="https://github.com/p3rtang/org-mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/p3rtang/org-mcp" alt="License"></a>
 </p>
 
