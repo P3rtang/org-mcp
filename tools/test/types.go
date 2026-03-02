@@ -10,6 +10,7 @@ type ManageHeaderTest struct {
 
 type ManageBulletTest struct {
 	name     string
+	file     string
 	input    tools.BulletInput
 	expected []any
 }

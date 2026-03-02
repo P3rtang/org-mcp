@@ -152,6 +152,19 @@ func NewBullet(parent Render, status BulletStatus) *Bullet {
 	return bullet
 }
 
+func NewSingleBullet(content string, status BulletStatus) *Bullet {
+	prefix := Dash
+	if status == NoCheck {
+		prefix = Star
+	}
+
+	return &Bullet{
+		content:  content,
+		prefix:   prefix,
+		checkbox: status,
+	}
+}
+
 func (b *Bullet) SetIndex(idx int) {
 	b.index = idx
 }

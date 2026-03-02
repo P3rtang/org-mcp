@@ -13,12 +13,44 @@ func (of *OrgFile) Insert(ctx context.Context, index int, render Render) (err er
 	return
 }
 
+func (of *OrgFile) InsertAfter(ctx context.Context, after Uid, render Render) (err error) {
+	insertIdx := -1
+	for i, child := range of.children {
+		if child.Uid() == after {
+			insertIdx = i + 1
+			break
+		}
+	}
+
+	if insertIdx == -1 {
+		return errors.New("after Uid not found among children")
+	}
+
+	return of.Insert(ctx, insertIdx, render)
+}
+
 func (h *Header) Insert(ctx context.Context, index int, render Render) (err error) {
 	children := h.children[:index]
 	children = append(children, render)
 	h.children = append(children, h.children[index:]...)
 
 	return
+}
+
+func (h *Header) InsertAfter(ctx context.Context, after Uid, render Render) (err error) {
+	insertIdx := -1
+	for i, child := range h.children {
+		if child.Uid() == after {
+			insertIdx = i + 1
+			break
+		}
+	}
+
+	if insertIdx == -1 {
+		return errors.New("after Uid not found among children")
+	}
+
+	return h.Insert(ctx, insertIdx, render)
 }
 
 func (b *Bullet) Insert(ctx context.Context, index int, render Render) (err error) {
@@ -29,6 +61,26 @@ func (b *Bullet) Insert(ctx context.Context, index int, render Render) (err erro
 	return
 }
 
+func (b *Bullet) InsertAfter(ctx context.Context, after Uid, render Render) (err error) {
+	insertIdx := -1
+	for i, child := range b.children {
+		if child.Uid() == after {
+			insertIdx = i + 1
+			break
+		}
+	}
+
+	if insertIdx == -1 {
+		return errors.New("after Uid not found among children")
+	}
+
+	return b.Insert(ctx, insertIdx, render)
+}
+
 func (p *PlainText) Insert(ctx context.Context, index int, render Render) (err error) {
+	return errors.New("PlainText cannot have children")
+}
+
+func (p *PlainText) InsertAfter(ctx context.Context, after Uid, render Render) (err error) {
 	return errors.New("PlainText cannot have children")
 }
