@@ -23,6 +23,8 @@ import (
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
+const ORG_FILE_KEY = "org_file"
+
 type SearchScore struct {
 	score  float64
 	render Render
@@ -39,7 +41,7 @@ type OrgFile struct {
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
 
-func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] {
+func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[*OrgFile] {
 	startTime := time.Now()
 
 	org_file := OrgFile{
@@ -67,7 +69,7 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 		}
 
 		if err != nil {
-			return result.Err[OrgFile](err)
+			return result.Err[*OrgFile](err)
 		}
 
 		if len(strings.TrimSpace(string(val))) == 0 {
@@ -145,7 +147,7 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 		ColClosed,
 	}))
 
-	return result.Ok(org_file)
+	return result.Ok(&org_file)
 }
 
 func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render] {

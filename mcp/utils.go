@@ -11,10 +11,10 @@ import (
 
 // LoadOrgFile loads an OrgFile from the given file path.
 // It opens the file, reads it using OrgFileFromReader, and returns the result.
-func LoadOrgFile(ctx context.Context, filePath string) (orgmcp.OrgFile, error) {
+func LoadOrgFile(ctx context.Context, filePath string) (*orgmcp.OrgFile, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return orgmcp.OrgFile{}, err
+		return nil, err
 	}
 	defer file.Close()
 
@@ -26,7 +26,7 @@ func LoadOrgFile(ctx context.Context, filePath string) (orgmcp.OrgFile, error) {
 
 // writeOrgFileToDisk renders the OrgFile and writes it to the provided file path.
 // It returns a diff of the changes made to the file.
-func WriteOrgFileToDisk(ctx context.Context, of orgmcp.OrgFile, filePath string) (res string, err error) {
+func WriteOrgFileToDisk(ctx context.Context, of *orgmcp.OrgFile, filePath string) (res string, err error) {
 	oldContent, err := os.ReadFile(filePath)
 	if err != nil && !os.IsNotExist(err) {
 		return

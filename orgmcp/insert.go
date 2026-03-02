@@ -1,8 +1,11 @@
 package orgmcp
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
-func (of *OrgFile) Insert(index int, render Render) (err error) {
+func (of *OrgFile) Insert(ctx context.Context, index int, render Render) (err error) {
 	children := of.children[:index]
 	children = append(children, render)
 	of.children = append(children, of.children[index:]...)
@@ -10,7 +13,7 @@ func (of *OrgFile) Insert(index int, render Render) (err error) {
 	return
 }
 
-func (h *Header) Insert(index int, render Render) (err error) {
+func (h *Header) Insert(ctx context.Context, index int, render Render) (err error) {
 	children := h.children[:index]
 	children = append(children, render)
 	h.children = append(children, h.children[index:]...)
@@ -18,7 +21,7 @@ func (h *Header) Insert(index int, render Render) (err error) {
 	return
 }
 
-func (b *Bullet) Insert(index int, render Render) (err error) {
+func (b *Bullet) Insert(ctx context.Context, index int, render Render) (err error) {
 	children := b.children[:index]
 	children = append(children, render)
 	b.children = append(children, b.children[index:]...)
@@ -26,6 +29,6 @@ func (b *Bullet) Insert(index int, render Render) (err error) {
 	return
 }
 
-func (p *PlainText) Insert(index int, render Render) (err error) {
+func (p *PlainText) Insert(ctx context.Context, index int, render Render) (err error) {
 	return errors.New("PlainText cannot have children")
 }
