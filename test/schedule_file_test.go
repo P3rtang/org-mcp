@@ -27,7 +27,7 @@ func TestFileReproduction(t *testing.T) {
 	}
 
 	builder := strings.Builder{}
-	of.UnwrapPtr().Render(&builder, -1)
+	of.Unwrap().Render(&builder, -1)
 
 	got := builder.String()
 	want := string(content)

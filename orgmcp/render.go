@@ -1,8 +1,10 @@
 package orgmcp
 
 import (
-	"github.com/p3rtang/org-mcp/utils/option"
+	"context"
 	"strings"
+
+	"github.com/p3rtang/org-mcp/utils/option"
 )
 
 type RenderStatus string
@@ -12,6 +14,8 @@ func (r RenderStatus) String() string {
 }
 
 type RenderBase interface {
+	Movable
+
 	CheckProgress() option.Option[Progress]
 	IndentLevel() int
 	ChildIndentLevel() int
@@ -22,14 +26,13 @@ type RenderBase interface {
 	RemoveChildren(...Uid) error
 	Children() []Render
 	ChildrenRec(depth int) []Render
-	Uid() Uid
 	ParentUid() Uid
 	Status() RenderStatus
 	TagList() TagList
 	Preview(length int) string
 	Path() string
-	Insert(int, Render) error
-	Move(MoveOperation) error
+	Insert(context.Context, int, Render) error
+	Move(context.Context, MoveOperation[Render]) error
 }
 
 type RenderOrg interface {

@@ -98,6 +98,21 @@ func (o Option[T]) UnwrapOrElse(fn func() T) T {
 }
 
 /*
+Unwraps the Option if it is None and calls the provided function, then returns the value of the Option.
+
+Careful when using the return value as it will be the zero value of T if the Option is None, which may not be what you expect.
+
+However this allows you to perform side effects like logging or setting an error value when the Option is None without having to check if the Option is None first.
+*/
+func (o Option[T]) UnwrapNoneAnd(fn func()) T {
+	if o.IsNone() {
+		fn()
+	}
+
+	return o.value
+}
+
+/*
  */
 func (o Option[T]) Then(fn func(T)) {
 	if o.IsNone() {

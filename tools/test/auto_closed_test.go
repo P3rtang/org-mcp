@@ -17,9 +17,9 @@ func TestAutoClosed(t *testing.T) {
 		t.Fatalf("failed to load org file: %v", err)
 	}
 
-	doneUid := NewTestHeader(&of)
-	revwUid := NewTestHeader(&of)
-	todoUid := NewTestHeader(&of)
+	doneUid := NewTestHeader(of)
+	revwUid := NewTestHeader(of)
+	todoUid := NewTestHeader(of)
 
 	mcp.WriteOrgFileToDisk(context.TODO(), of, "./test.org")
 
@@ -91,9 +91,9 @@ func TestAutoClosed(t *testing.T) {
 	}
 
 	// Clean up
-	err = RemoveTestHeader(&of, doneUid)
-	err = RemoveTestHeader(&of, revwUid)
-	err = RemoveTestHeader(&of, todoUid)
+	err = RemoveTestHeader(of, doneUid)
+	err = RemoveTestHeader(of, revwUid)
+	err = RemoveTestHeader(of, todoUid)
 	_, err = mcp.WriteOrgFileToDisk(context.TODO(), of, "./test.org")
 
 	if err != nil {

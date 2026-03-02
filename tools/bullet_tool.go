@@ -10,6 +10,7 @@ import (
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/utils/itertools"
+	"github.com/p3rtang/org-mcp/utils/logging"
 )
 
 type BulletInput struct {
@@ -21,10 +22,12 @@ type BulletInput struct {
 }
 
 type BulletValue struct {
-	Uid      string `json:"uid,omitempty" jsonschema:"description=UID of the bullet point to modify. For the 'add' method; this must be the parent header UID.,required=true"`
-	Method   string `json:"method" jsonschema:"description=The action to perform on the bullet point.,enum=add;remove;complete;toggle;set_content,required=true"`
-	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
-	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
+	Uid           string `json:"uid,omitempty" jsonschema:"description=UID of the bullet point to modify. For the 'add' method; this must be the parent header UID.,required=true"`
+	Method        string `json:"method" jsonschema:"description=The action to perform on the bullet point.,enum=add;remove;complete;toggle;set_content;move_relative;move_index;move_to,required=true"`
+	Content       string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
+	Checkbox      string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
+	MoveValue     int    `json:"move_value,omitempty" jsonschema:"description=For move operations, the value to move. For 'move_relative', this is the relative index change (e.g., -1 to move up, +1 to move down). For 'move_index', this is the new absolute index under the same parent. For 'move_to', this is the new index under the new parent specified by the MoveTargetUid."`
+	MoveTargetUid string `json:"move_target_uid,omitempty" jsonschema:"description=For 'move_to' method, the UID of the new parent header under which to move the bullet."`
 }
 
 var BulletTool = mcp.GenericTool[BulletInput]{
@@ -53,9 +56,12 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 		path = input.Path
 	}
 
-	orgFile, err := mcp.LoadOrgFile(ctx, path)
+	orgFile, ok := ctx.Value(orgmcp.ORG_FILE_KEY).(*orgmcp.OrgFile)
+	if !ok {
+		orgFile, err = mcp.LoadOrgFile(ctx, path)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("error loading org file: %v", err)
+		return
 	}
 
 	affectedCount := 0
@@ -149,8 +155,32 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 			bullet.SetContent(b.Content)
 			affectedItems[bullet.Uid()] = bullet
 			affectedCount += 1
+		case "move_relative":
+			bullet, ok := selected.(*orgmcp.Bullet)
+			if !ok {
+				resp = append(resp, fmt.Sprintf("UID %s does not correspond to a bullet in %s, skipping move.", b.Uid, path))
+				continue
+			}
+
+			parent := orgFile.GetUid(bullet.ParentUid()).Unwrap()
+
+			parent.Move(ctx, orgmcp.NewMoveOperation[orgmcp.IndexRelativeOperation, orgmcp.Render](
+				orgmcp.IndexRelativeOperation{
+					Uid:    bullet.Uid(),
+					Offset: b.MoveValue,
+				}),
+			)
+		case "move_index":
+			logging.TODO[any]()
+		case "move_to":
+			if b.MoveTargetUid == "" {
+				resp = append(resp, fmt.Sprintf("Move target UID must be provided for 'move_to' method for bullet with UID %s, skipping move.", b.Uid))
+				continue
+			}
+
+			logging.TODO[any]()
 		default:
-			return nil, errors.New("invalid method; must be 'add', 'remove', 'complete', 'toggle' or 'set_content'")
+			return nil, errors.New("invalid method; must be 'add', 'remove', 'complete', 'toggle', 'set_content', 'move_relative', 'move_index' or 'move_to'")
 		}
 
 		affectedItems[selected.Uid()] = selected
