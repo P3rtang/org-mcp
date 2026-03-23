@@ -3,10 +3,12 @@ package orgmcp
 import (
 	"errors"
 	"fmt"
+
 	"github.com/p3rtang/org-mcp/utils/option"
 	o "github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/slice"
+
 	// "os"
 	"slices"
 	"strings"
@@ -91,19 +93,6 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 		bullet.content = strings.TrimSpace(str[5:])
 	} else {
 		bullet.content = strings.TrimSpace(str[2:])
-	}
-
-	for line, err := r.PeekBytes('\n'); err == nil; line, err = r.PeekBytes('\n') {
-		if len(strings.TrimSpace(string(line))) == 0 ||
-			strings.TrimSpace(string(line))[0] == '*' ||
-			strings.TrimSpace(string(line))[0] == '-' {
-			break
-		}
-
-		// fmt.Fprintf(os.Stderr, "Appending to bullet content: %s\n", string(line))
-
-		r.Continue()
-		bullet.content += "\n" + strings.TrimRight(string(line), "\n")
 	}
 
 	return option.Some(&bullet)
@@ -257,8 +246,11 @@ func (p *Bullet) Location(table map[Uid]int) (loc int) {
 
 func (b *Bullet) AddChildren(r ...Render) error {
 	for _, child := range r {
-		if _, ok := child.(*Bullet); !ok {
-			return errors.New("can only add Bullet children to Bullet")
+		_, ok_bullet := child.(*Bullet)
+		_, ok_text := child.(*PlainText)
+
+		if !ok_bullet && !ok_text {
+			return errors.New("only bullets and plain text can be added as children to a bullet")
 		}
 
 		child.SetParent(b)

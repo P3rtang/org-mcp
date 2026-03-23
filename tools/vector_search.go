@@ -38,14 +38,14 @@ var VectorSearch = mcp.GenericTool[VectorSearchInput]{
 
 		headers, err := of.VectorSearch(input.Query, input.TopN)
 
-		resp = append(resp, slice.Map(headers, func(h *orgmcp.Header) map[string]any {
+		resp = append(resp, slice.Map(headers, func(r orgmcp.Render) map[string]any {
 			builder := strings.Builder{}
-			h.Render(&builder, 1)
+			r.Render(&builder, 1)
 
 			return map[string]any{
-				"uid":        h.Uid().String(),
+				"uid":        r.Uid().String(),
 				"content":    builder.String(),
-				"parent_uid": h.ParentUid().String(),
+				"parent_uid": r.ParentUid().String(),
 			}
 		}))
 

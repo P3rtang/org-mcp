@@ -18,7 +18,10 @@ func LoadOrgFile(ctx context.Context, filePath string) (orgmcp.OrgFile, error) {
 	}
 	defer file.Close()
 
-	return orgmcp.OrgFileFromReader(ctx, file).Split()
+	of, err := orgmcp.OrgFileFromReader(ctx, file).Split()
+	of.SetName(filePath)
+
+	return of, err
 }
 
 // writeOrgFileToDisk renders the OrgFile and writes it to the provided file path.

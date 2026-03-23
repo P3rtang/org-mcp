@@ -17,9 +17,13 @@ import (
 func init() {
 	rootCmd.AddCommand(&serveCmd)
 
-	exportCmd.Flags().StringP("input", "i", ".tasks.org", "Input Org file (default: .tasks.org)")
-	exportCmd.Flags().StringP("output", "o", "out.md", "Output Markdown file (default: out.md)")
+	exportCmd.Flags().StringP("input", "i", ".tasks.org", "Input Org file")
+	exportCmd.Flags().StringP("output", "o", "", "Output Markdown file, will default to stdout.")
+	exportCmd.Flags().StringP("format", "f", "markdown", "Output format")
 	rootCmd.AddCommand(&exportCmd)
+
+	embedCommand.Flags().StringP("input", "i", ".tasks.org", "Input Org file")
+	rootCmd.AddCommand(&embedCommand)
 }
 
 var rootCmd = cobra.Command{
@@ -76,18 +80,34 @@ Exports the specified Org file to Markdown format. If no input file is provided,
 If no output file is provided, it defaults to out.md.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		if os.Getenv("SHOW_DEBUG") == "" {
+			os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+		}
+
 		ctx := cmd.Context()
 		logger := ctx.Value("logger").(*slog.Logger)
 
 		f := ".tasks.org"
-		o := "out.md"
+		writer := os.Stdout
+		format := "markdown"
 
 		cmd.Flags().Visit(func(flag *pflag.Flag) {
 			switch flag.Name {
 			case "input":
 				f = flag.Value.String()
 			case "output":
-				o = flag.Value.String()
+				outFile := flag.Value.String()
+				if outFile != "" {
+					var err error
+					writer, err = os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+
+					if err != nil {
+						logger.Error(fmt.Sprintf("Failed to open output file %s: %v", outFile, err))
+						os.Exit(1)
+					}
+				}
+			case "format":
+				format = flag.Value.String()
 			}
 		})
 
@@ -106,14 +126,48 @@ If no output file is provided, it defaults to out.md.
 		file.Close()
 
 		builder := strings.Builder{}
-		orgFile.RenderMarkdown(&builder, -1)
 
-		out, err := os.Create(o)
+		switch format {
+		case "markdown":
+			orgFile.RenderMarkdown(&builder, -1)
+		case "table":
+			table := orgmcp.PrintTable(orgFile.ChildrenRec(-1), orgmcp.AllColumns)
+			builder.WriteString(table)
+		}
+
+		_, err = writer.WriteString(builder.String())
+	},
+}
+
+var embedCommand = cobra.Command{
+	Use:   "embed",
+	Short: "Generate embeddings for Org file content",
+	Long: `
+Generates vector embeddings for the content of an Org file. This can be used for tasks like semantic search or clustering.
+The command reads the specified Org file, extracts relevant content, and puts the resulting embeddings into the properties of the relevant org header.
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+		logger := ctx.Value("logger").(*slog.Logger)
+
+		// Implementation for embedding generation would go here
+		file := cmd.Flags().Lookup("input").Value.String()
+		if file == "" {
+			file = ".tasks.org"
+		}
+
+		orgFile, err := mcp.LoadOrgFile(ctx, file)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to create %s: %v", o, err))
+			logger.Error(fmt.Sprintf("Failed to parse %s: %v", file, err))
 			os.Exit(1)
 		}
 
-		_, err = out.WriteString(builder.String())
+		err = orgFile.GenerateEmbeddings()
+
+		_, err = mcp.WriteOrgFileToDisk(ctx, orgFile, file)
+		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to write updated org file to disk: %v", err))
+			os.Exit(1)
+		}
 	},
 }
