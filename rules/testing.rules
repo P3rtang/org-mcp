@@ -1,0 +1,249 @@
+# Testing Guidelines for Org-MCP
+
+This document outlines the testing philosophy, patterns, and conventions used in this project. Following these guidelines ensures tests are maintainable, provide meaningful feedback, and capture bugs before release.
+
+## 1. Core Testing Philosophy
+
+### Tests as Documentation
+Tests are not just verification tools—they are executable documentation. A well-written test clearly communicates:
+- What behavior is expected
+- What edge cases are handled
+- What the consequences of bugs might be
+
+### Failing Tests Are Features
+A failing test is not something to hide or immediately fix. It provides valuable information:
+- **Expectation mismatch**: The test documents expected behavior that doesn't match implementation
+- **Bug discovery**: A previously unknown bug has been found
+- **Regression prevention**: Once fixed, the test prevents the bug from reoccurring
+
+> [!IMPORTANT]
+> Do not delete or skip failing tests. Instead, use them as a todo list for the next development cycle.
+
+## 2. Test Structure & Patterns
+
+### The Standard Test Pattern
+This project uses a consistent test structure based on table-driven tests:
+
+```go
+type ManageTextTest struct {
+    name        string
+    input       tools.TextInputSchema
+    expected    []any
+    expectEmpty bool  // For tests expecting no response
+}
+
+func TestTextTool(t *testing.T) {
+    // 1. Setup: Save state if modifying files
+    originalContent, err := os.ReadFile("./test.org")
+    if err != nil {
+        t.Fatalf("failed to read test file: %v", err)
+    }
+    defer func() {
+        os.WriteFile("./test.org", originalContent, 0644)
+    }()
+
+    // 2. Define test cases
+    tests := []ManageTextTest{
+        {
+            name:  "AddTextToHeader",
+            input: tools.TextInputSchema{...},
+            expected: []any{"Added text content"},
+        },
+        // ... more tests
+    }
+
+    // 3. Execute each test
+    ctx := context.TODO()
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            res, err := tools.TextTool.Callback(ctx, tt.input, mcp.FuncOptions{DefaultPath: "./test.org"})
+            // ... assertions
+        })
+    }
+
+    // 4. Restore state
+    os.WriteFile("./test.org", originalContent, 0644)
+}
+```
+
+### Helper Functions
+Keep utility functions in `utils.go` to avoid duplication:
+
+```go
+// utils.go
+func EqualString(a, b string) bool {
+    return strings.TrimSpace(a) == strings.TrimSpace(b)
+}
+
+func ContainsString(a, substr string) bool {
+    return strings.Contains(a, substr)
+}
+```
+
+### Test Data Management
+
+#### Option A: Stable UIDs in test files
+For tools that require specific UIDs, define stable test data in `test.org`:
+
+```org
+* Text Test Header For Add
+  :PROPERTIES:
+  :ID: 99998888
+  :END:
+* Text Test Header For Update
+  :PROPERTIES:
+  :ID: 99998889
+  :END:
+  This is text to be updated.
+```
+
+#### Option B: Save and restore state
+If tests modify files, always restore the original state:
+
+```go
+originalContent, _ := os.ReadFile("./test.org")
+defer os.WriteFile("./test.org", originalContent, 0644)
+// ... run tests ...
+os.WriteFile("./test.org", originalContent, 0644)  // Explicit restore
+```
+
+## 3. What Makes a Good Test
+
+### 1. Clear Naming
+Test names should describe what they verify:
+- `AddTextToHeader` — what + where
+- `UpdateNonPlainTextFails` — action + expected failure
+- `BulletHasNoPlainTextChildren` — subject + constraint
+
+### 2. Single Responsibility
+Each test should verify one behavior. If you find yourself using "and" in the test name, consider splitting it.
+
+### 3. Meaningful Assertions
+```go
+// Bad: Just checks that no error occurred
+if err != nil {
+    t.Errorf("failed: %v", err)
+}
+
+// Good: Verifies the actual behavior
+if !ContainsString(res[0].(string), "expected content") {
+    t.Errorf("unexpected response: got %v, expected to contain 'expected content'", res)
+}
+```
+
+### 4. Edge Case Coverage
+Include tests for:
+- Invalid inputs (wrong UIDs, malformed data)
+- Boundary conditions (empty inputs, maximum values)
+- Error handling (permission denied, file not found)
+- Interaction between operations (add then remove, update then add)
+
+### 5. Single-Call Item Consistency
+Within a single tool call, UIDs remain stable. Items added in the same call are not available for subsequent operations in that call.
+
+```go
+// Bad: Can't add then immediately update in one call
+input: []TextInputValue{
+    {Uid: "header", Method: "add", Content: "New text"},   // Added after call completes
+    {Uid: "header.t0", Method: "update", Content: "Updated"}, // t0 doesn't exist yet
+}
+
+// Good: Each test is self-contained, or uses UIDs from previous calls
+```
+
+This is by design - the `items` map reflects the state at the start of each tool call. Tests must account for this by being self-contained or by verifying state changes in subsequent calls.
+
+## 4. Handling Bugs Discovered in Testing
+
+When a test reveals unexpected behavior:
+
+### Step 1: Document the Bug
+Add a comment explaining the bug in the test:
+
+```go
+{
+    // Bug: Bullet.AddChildren rejects PlainText - it only accepts Bullet children
+    // Expected behavior: Bullets should be able to have plain text as children
+    name:     "AddPlainTextToBullet",
+    input:    tools.TextInputSchema{...},
+    expected: []any{"Text under a bullet"},
+}
+```
+
+### Step 2: Make the Test Fail
+The failing test documents the bug. Do not skip it or force it to pass:
+
+```go
+// Don't do this:
+// t.Skip("known bug")
+// or
+// expected: []any{"can only add Bullet"}  // Wrong - we're testing the fix
+```
+
+### Step 3: Track the Bug
+Add the bug to the project's task list so it gets addressed before release.
+
+### Step 4: Fix and Verify
+When the bug is fixed:
+1. The test will pass
+2. Commit the fix with the test
+3. The test now prevents regression
+
+## 5. Integration vs Unit Tests
+
+### Unit Tests
+- Test individual functions in isolation
+- Located alongside the code they test (e.g., `orgmcp/plain_test.go`)
+- Fast execution, no external dependencies
+
+### Integration Tests
+- Test tool callbacks and file operations
+- Located in `tools/test/` directory
+- Use actual files (`test.org`, `test_org/`)
+- Must handle file state management
+
+## 6. Debugging Failed Tests
+
+### Enable Debug Output
+Some tests output debug info to stderr when `SHOW_DEBUG` is set:
+
+```bash
+SHOW_DEBUG=1 go test -v ./tools/test/...
+```
+
+### Common Issues
+
+| Problem | Cause | Solution |
+| :--- | :--- | :--- |
+| Test fails on re-run | File state not restored | Add save/restore logic |
+| UID not found | In-memory items not in `items` map | Use UIDs from parsed files |
+| Intermittent failures | Parallel test execution | Use unique test data |
+| "declared and not used" | Go compiler error | Remove unused variables |
+
+## 7. Test File Organization
+
+```
+org-mcp/
+├── tools/test/           # Integration tests for MCP tools
+│   ├── test.org          # Test data with stable UIDs
+│   ├── test_org/         # Additional test org files
+│   ├── utils.go          # Test helpers
+│   ├── types.go          # Test structs
+│   └── *_test.go         # Individual tool tests
+├── orgmcp/              # Unit tests alongside source
+│   ├── plain_test.go
+│   └── bullet_test.go
+└── rules/
+    └── testing.rules     # This file
+```
+
+## 8. Summary Checklist
+
+Before submitting tests:
+- [ ] Tests follow the standard table-driven pattern
+- [ ] Test data is clean (stable UIDs or save/restore)
+- [ ] Helper functions are in `utils.go`
+- [ ] Test names clearly describe what they verify
+- [ ] Failing tests are documented as bugs, not deleted
+- [ ] Debug output is suppressed unless `SHOW_DEBUG` is set
+- [ ] Tests verify actual behavior, not just "no error"

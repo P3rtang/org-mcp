@@ -34,3 +34,23 @@
   - [x] Completed task
   - [ ] Incomplete task
   - [ ] Another incomplete task
+* Text Test Header For Add
+  :PROPERTIES:
+  :ID: 99998888
+  :END:
+* Text Test Header For Update
+  :PROPERTIES:
+  :ID: 99998889
+  :END:
+  This is text to be updated.
+* Text Test Header For Remove
+  :PROPERTIES:
+  :ID: 99998890
+  :END:
+  This is text to be removed.
+* Text Test Bullet With Plain Text
+  :PROPERTIES:
+  :ID: 99998891
+  :END:
+  - Bullet with text child
+    Plain text under bullet

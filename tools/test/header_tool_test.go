@@ -12,10 +12,6 @@ import (
 	"github.com/p3rtang/org-mcp/tools"
 )
 
-func EqualString(a, b string) bool {
-	return strings.TrimSpace(a) == strings.TrimSpace(b)
-}
-
 func TestHeaderGetMethod(t *testing.T) {
 	showDebug := os.Getenv("SHOW_DEBUG")
 	if showDebug == "" {

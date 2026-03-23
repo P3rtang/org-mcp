@@ -479,3 +479,17 @@ func (h *Header) Path() string {
 
 	return h.Uid().String()
 }
+
+func (h *Header) SetProperty(key string, value string) {
+	h.properties.content[key] = &stringProperty{
+		str: value,
+	}
+}
+
+func (h *Header) GetProperty(key string) option.Option[string] {
+	if prop, ok := h.properties.content[key]; ok {
+		return option.Some(prop.String())
+	}
+
+	return option.None[string]()
+}

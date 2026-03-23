@@ -93,31 +93,34 @@
      :PROPERTIES:
      :ID: 04236728
      :END:
-*** TODO Consider SQLite for embedding storage enhancement
+*** DONE Optimize Embedding Storage with JSON Cache
+    CLOSED: [2026-03-22 Sun 17:24]
     :PROPERTIES:
     :ID: 37383517
     :END:
     - [ ] Analyze potential for a performance bottleneck in embedding generation for each vector search request.
-**** TODO Current Issue
+**** DONE Resolved: Persistence and Regeneration Bottleneck
+     CLOSED: [2026-03-22 Sun 17:24]
      :PROPERTIES:
      :ID: 23501976
      :END:
-     - [ ] Vector search currently regenerates embeddings for every search request
-     - [ ] Creates significant performance bottleneck, especially for large org files
-     - [ ] Wastes API calls to embedding providers (OpenAI, etc.) or CPU cycles for local models
-     - [ ] No persistence - embeddings lost on server restart
-     - [ ] Regeneration time increases linearly with file size
-**** TODO Benefits of SQLite Storage
+     - [x] Vector search currently regenerates embeddings for every search request
+     - [x] Creates significant performance bottleneck, especially for large org files
+     - [x] Wastes API calls to embedding providers (OpenAI, etc.) or CPU cycles for local models
+     - [x] No persistence - embeddings lost on server restart
+     - [x] Regeneration time increases linearly with file size
+**** DONE Advantages of JSON-based Storage
+     CLOSED: [2026-03-22 Sun 17:24]
      :PROPERTIES:
      :ID: 97146068
      :END:
      - [ ] Dramatically reduces search latency by caching embeddings instead of regenerating
      - [ ] Cost efficiency - reduces expensive API calls to embedding providers
-     - [ ] Scalability - essential for large org files in knowledge management use cases
+     - [ ] Performance: Fast reading/writing for medium-sized task files
      - [ ] Persistence - embeddings survive server restarts
-     - [ ] Go ecosystem fit - excellent SQLite libraries available (modernc.org/sqlite for pure Go, mattn/go-sqlite3 for C-based)
+     - [ ] Simplicity: Easy implementation with minimal dependencies
      - [ ] Incremental updates - only regenerate embeddings for modified headers
-     - [ ] Advanced opportunity: Use sqlite-vss or sqlite-vec for native vector similarity search directly in database
+     - [ ] Portability: Easy to inspect, backup, and move alongside the .tasks.org file
 **** TODO Implementation Strategy
      :PROPERTIES:
      :ID: 39886024
@@ -171,9 +174,9 @@
      - [ ] Research and evaluate vector extensions (sqlite-vss vs sqlite-vec)
      - [ ] Design database schema with proper indexes
      - [ ] Implement database initialization and migration logic
-     - [ ] Create embedding storage layer with CRUD operations (Insert, Update, Get, Delete)
-     - [ ] Implement content hashing for cache invalidation
-     - [ ] Add cache invalidation logic in vector search handler
+     - [x] Implement JSON-based cache storage layer
+     - [x] Implement content hashing for cache invalidation
+     - [x] Add logic to detect stale embeddings based on content changes
      - [ ] Add CLI flags for cache management (--clear-cache, --rebuild-cache, --cache-stats)
      - [ ] Write unit tests for storage layer (CRUD operations, concurrent access)
      - [ ] Write unit tests for cache hit/miss scenarios
@@ -297,6 +300,7 @@
     - [ ] Update ~PlainText.Render~ to ensure internal newlines are preserved correctly.
     - [ ] Ensure ~PlainText.Uid~ logic remains stable with multi-line blocks.
     - [ ] Add unit tests in ~test/files/plain_text.org~ for multi-line paragraph verification.
+    Tests implemented in tools/test/text_tool_test.go covering add, update, remove, ShowAffected, ShowDiff, newline handling, and error cases
 ** Dates and schedules
    :PROPERTIES:
    :ID: 45374501
@@ -403,6 +407,8 @@
     * *Surgical Editing Pattern*: Prefer ~manage_bullet~ and ~manage_header~ over ~edit_file~ to preserve property drawers and structural metadata automatically.
     - [ ] *Persistent Memory*: Use the org file itself as persistent memory for AI sessions. Track session context, files being worked on, known bugs, and 'known unknowns' (edge cases that don't work). This addresses AI limitations around persistent mental workspace and goal tracking across interactions.
     - [ ] *Bug Pattern: CLOSED schedule parsing*: When parsing CLOSED timestamps in `schedule.go`, the regex `.*CLOSED: \[(.*? )(.*? )?(.*?)?\].*` had a trailing space in the first capture group. This caused `time.Parse("2006-01-02", matches[1])` to fail on dates without times. Fixed by changing to `(.*?)` to exclude the trailing space.
+    * *Table Support*: Implement parsing and surgical modification of Org-mode tables with CSV-style row/column targeting.
+    * *Advanced Date Tools*: Add dedicated tools for scheduling, deadlines, and reoccurring tasks with relative date support (+2d, next week).
 *** TODO Task History Tracking in Properties :design:
     :PROPERTIES:
     :ID: 21285539
@@ -500,7 +506,7 @@
     - [ ] Create ~export_to_notion~ MCP tool.
     - [ ] Implement unit tests for the block converter.
     - [ ] Integration tests with a test Notion workspace.
-** PROG Tool Design & AI UX Improvements [3/7] :ux:ui:design:
+** PROG Tool Design & AI UX Improvements [3/9] :ux:ui:design:
    :PROPERTIES:
    :ID: 30384709
    :END:
@@ -508,6 +514,7 @@
    - [x] Implement "Neighborhood" responses: Optionally return the parent and its immediate children after an add/move operation to verify hierarchy.
    - [ ] Improve tool documentation/schemas to explicitly suggest bulk operations for better token efficiency and state consistency.
    - [ ] Implement an ~output_format~ flag for ~query_items~ supporting CSV (default), Markdown, and Raw (Org) to allow switching between machine-efficient and human-readable views.
+   - [ ] Quiet down CLI output for ~embed~ and other commands: use summaries or progress bars instead of full table dumps.
 *** DONE Response Metadata Enhancement [9/9]
     CLOSED: [2026-02-15 Sun 21:47]
     :PROPERTIES:
@@ -544,6 +551,13 @@
     - [ ] Filter by source/module
     - [ ] Error-only view (show only ERROR level)
     - [ ] Tail mode (follow logs in real-time)
+*** TODO Quiet CLI output for embed and other commands :perf:ui:ux:cli:
+    :PROPERTIES:
+    :ID: 79657895
+    :END:
+    - [ ] *Source of Truth*: `OrgFileFromReader` in `orgmcp/file.go` has a hardcoded `fmt.Fprintf(os.Stderr, "%s", PrintTable(...))` call.
+    - [ ] *Technical Constraint*: MCP server protocol expects a clean `stdout`. Currently, `os.Stderr` is being flooded with table dumps, making logs hard to read and potentially causing issues in some environments.
+    - [ ] *Proposed Change*: Replace the full table dump with a one-line summary unless a `--verbose` flag is provided to the CLI.
 ** DONE Tag Management & Discovery Improvements
    CLOSED: [2026-02-14 Sat 14:30]
    :PROPERTIES:
@@ -553,3 +567,89 @@
    - [x] Allow filtering ~query_items~ by multiple tags (AND/OR logic) to improve discovery.
    - [x] Add a "Tag Cloud" or frequency count to help AI models understand the "Hot Topics" of a project.
    * *Context*: Finding the AI session header was difficult because searching for specific tags (like ~:context:ai:session:~) isn't currently a first-class discovery mechanism.
+* Project Terminology :memory:
+  :PROPERTIES:
+  :ID: 8251913
+  :END:
+  | Term                | Description                                                           | Avoid Using This Term       |
+  |---------------------+-----------------------------------------------------------------------+-----------------------------|
+  | *OrgFile*           | The top-level document structure representing the entire `.org` file. | File, document, tasks       |
+  | *Header*            | A structural node starting with `*` asterisks.                        | Section, title, item        |
+  | *Bullet*            | A list item starting with `-` or `*` within a header.                 | List, checkbox, sub-task    |
+  | *PlainText*         | Indented text content that is not a header or bullet.                 | Body, note, text block      |
+  | *Render*            | The interface implemented by all nodes (Headers, Bullets, PlainText). | Node, element, component    |
+  | *UID*               | The unique identifier (e.g., `99998888` or `123.b0.t0`).              | ID, key, index              |
+  | *Items Map*         | The `of.items` lookup table used for stable UID addressing.           | Cache, registry, dictionary |
+  | *Stable Indexing*   | The principle that indices remain constant within a single tool call. | Order, position             |
+  | *Tool Callback*     | The function executed by the MCP server for a specific tool.          | Action, handler             |
+  | *Actionable Export* | The process of moving an Org task to a GitHub Issue.                  | Migration, sync             |
+  | *Two-Way Linking*   | The requirement to cross-reference Org UIDs and GitHub Issue numbers. | Linking, reference          |
+* Issues
+  :PROPERTIES:
+  :ID: 78690404
+  :END:
+** TODO Issue-10 fix: bullet-child parsing - Indented text incorrectly concatenated to bullet content :issue:10:bullet-parsing:
+   :PROPERTIES:
+   :ID: 81006049
+   :END:
+   * Description**: Indented plain text under a bullet is incorrectly concatenated to the bullet's content instead of being parsed as a separate ~PlainText~ child. This makes it impossible to target the text specifically for updates or removal without modifying the entire bullet.
+   * Current Behavior**: Querying a bullet with indented text returns ~CHILDREN_COUNT: 0~ and the raw content contains both the bullet text and the indented text separated by a newline (\n).
+   * Expected Behavior**: Indented text should be parsed as a separate ~PlainText~ node with a UID format of ~[bullet_uid].t0~.
+   * Reproduction**: Run ~go test -v ./tools/test/... -run TestTextTool/UpdatePlainTextUnderBullet~. The test fails because ~99998891.b0.t0~ is not found in the ~items~ map.
+   * Reproduction Branch**: ~repro/bullet-child-parsing~
+   * Context**: Source UID ~99998891.b0.t0~ in ~tools/test/test.org~.
+   [[https://github.com/P3rtang/org-mcp/issues/10]]
+* PROG Issue-11 feat: Table Support :issue:11:table:parsing:memory:
+  :PROPERTIES:
+  :ID: 72407620
+  :END:
+  [[https://github.com/P3rtang/org-mcp/issues/11]]
+** Discovery & Context Mapping
+   :PROPERTIES:
+   :ID: 53285059
+   :END:
+   * *Source of Truth*: Org-mode tables are delimited by `|` characters. Multiple rows form a contiguous table.
+   * *Current Infrastructure*: `OrgFileFromReader` handles headers (`*`) and indented lines. Tables can be top-level or indented.
+   * *Dependency Analysis*: Relies on the fixed `PlainText` vs `Bullet` parsing to ensure tables don't get swallowed into bullet content incorrectly.
+   - [x] *Decision Resolved: Separator Handling*: Separators are metadata (list of divider indices). DataRows are addressable 0-N. Render logic generates `|---+---|` based on column widths.
+   - [x] *Current Infrastructure Update*: `ParseIndentedLine` incorrectly treats `|` as `PlainText`. Integration point: Add `case '|'` to `ParseIndentedLine`.
+   * *UID Stability Requirement*: Proposed `parent_uid.tbl[index]` to avoid collision with `.t` (PlainText) and `.b` (Bullet).
+   - [ ] *Decision Branch: Separator Handling*: Determine if separators are addressable rows or metadata. (Current: Under Discussion)
+   - [x] *Decision Resolved: Surgical Addressing*: Dedicated `read_table` tool for complex queries (row/col ranges). `manage_table` uses coordinate-based (R,C) addressing to keep queries surgical and token-efficient.
+   - [x] *Decision Resolved: Alignment Strategy*: The `Render()` method will *always* auto-format with correct column widths. Correctness and human-readability are prioritized over minimal diff noise.
+   - [x] *Decision Resolved: Parsing Fluidity*: `OrgFileFromReader` and `ParseIndentedLine` will both detect `|` as a structural marker. Tables are first-class `Render` nodes, capable of being children of `Header` or `Bullet`.
+** Requirement Distillation
+   :PROPERTIES:
+   :ID: 17984267
+   :END:
+   * *Functional*: Reading/Writing Org tables via MCP tools. Support for CSV-style addressing (e.g., `row:1, col:2`).
+   * *Technical*: Token optimization — don't return the full table if only one cell is needed. Efficient re-rendering preserving alignments.
+   * *Gap Analysis*: Missing `Table` struct, table parser, and `manage_table` tool implementation.
+** Data & Resource Mapping
+   :PROPERTIES:
+   :ID: 26174735
+   :END:
+   * *Logic*: New `orgmcp/table.go` implementing `Render` interface. Update `ParseIndentedLine` to handle `|`.
+   * *API*: New `manage_table` tool in `tools/table.go` with `read_cell`, `update_cell`, `add_row`, `delete_row` methods.
+   * *Data*: `Table` struct with `rows [][]string` and `has_header bool` (if separator `|---|` exists).
+   * *Block Parsing*: `NewTableFromReader` must peek at subsequent lines to swallow contiguous rows into a single node.
+   * *Alignment Logic*: Implement a `Format()` method that re-calculates column widths after cell edits.
+   * *Data Model*: `Table` struct will contain `Data [][]string` and `Dividers []int` (indices after which a separator line appears).
+   * *Tool Interface*: `read_table` (UID, Rows[], Cols[]) -> JSON/CSV. `manage_table` (UID, Method, Row, Col, Content).
+   * *Algorithm*: `Table.Render` will first scan all rows to determine `max_width` per column, then apply padding during string building. Divider lines will be generated to match the total table width.
+   * *Parser Integration*: Update `OrgFileFromReader` and `ParseIndentedLine` to switch to `NewTableFromReader` upon encountering a `|`. Multi-line consumption handled within `NewTableFromReader`.
+** Strategic Execution Plan
+   :PROPERTIES:
+   :ID: 68320744
+   :END:
+   * *Phase 1*: Foundation. Implement `Table` struct and basic line-by-line parsing in `orgmcp`.
+   * *Phase 2*: Logic. Surgical cell editing and row manipulation logic. CSV export support.
+   * *Phase 3*: Validation. Integration tests with complex table structures and alignment verification.
+** Stakeholder Communication & Timeline
+   :PROPERTIES:
+   :ID: 80327750
+   :END:
+   * *Estimated Effort*: Medium. The table parsing and surgical cell editing require careful handling of indices and formatting.
+   * *Critical Path*: Correctly parsing row delimiters and separator lines (`|---|`) without breaking surrounding text or bullet context.
+   * *Milestone 1*: Table parsing and `read_table` tool (Phase 1 Foundation). Goal: End of this session.
+   * *Milestone 2*: Surgical cell/row editing and automated alignment (Phase 2 Logic). Goal: Next session.

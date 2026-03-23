@@ -3,6 +3,7 @@ package orgmcp
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,7 +25,7 @@ import (
 
 type SearchScore struct {
 	score  float64
-	header *Header
+	render Render
 }
 
 type OrgFile struct {
@@ -163,17 +164,20 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	}
 }
 
+func (of *OrgFile) SetName(name string) {
+	of.name = name
+}
+
 func (of *OrgFile) GenerateEmbeddings() error {
-	headers := []*Header{}
+	headers := []Render{}
 	contents := []string{}
+	embedMap := make(map[string]embeddings.Embedding)
 
 	for _, r := range of.items {
-		if h, ok := r.(*Header); ok {
-			headers = append(headers, h)
-			builder := strings.Builder{}
-			h.Render(&builder, 1)
-			contents = append(contents, builder.String())
-		}
+		builder := strings.Builder{}
+		r.Render(&builder, 0)
+		contents = append(contents, builder.String())
+		headers = append(headers, r)
 	}
 
 	embeds, err := embeddings.Generate(contents)
@@ -183,39 +187,67 @@ func (of *OrgFile) GenerateEmbeddings() error {
 	}
 
 	for i, header := range headers {
-		header.embedding = option.Some(embeds[i])
+		embedMap[header.Uid().String()] = embeds[i]
+	}
+
+	var fileName string
+	if of.name == "" {
+		fileName = "embeddings.json"
+	} else {
+		fileName = strings.TrimSuffix(of.name, ".org") + "_embeddings.json"
+	}
+
+	embedFile, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+
+	defer embedFile.Close()
+
+	encoder := json.NewEncoder(embedFile)
+	encoder.SetIndent("", "  ")
+
+	if err := encoder.Encode(embedMap); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to encode embeddings: %v\n", err)
+		return err
 	}
 
 	return nil
 }
 
-func (of *OrgFile) VectorSearch(query string, top_n int) (h []*Header, err error) {
-	headers := []*Header{}
-	contents := []string{query}
+func (of *OrgFile) VectorSearch(query string, top_n int) (h []Render, err error) {
+	loadedEmbeddings := make(map[string]embeddings.Embedding)
 
-	for _, r := range of.items {
-		if h, ok := r.(*Header); ok {
-			headers = append(headers, h)
-			builder := strings.Builder{}
-			h.Render(&builder, 1)
-			contents = append(contents, builder.String())
-		}
+	var fileName string
+	if of.name == "" {
+		fileName = "embeddings.json"
+	} else {
+		fileName = strings.TrimSuffix(of.name, ".org") + "_embeddings.json"
 	}
 
-	embeds, err := embeddings.Generate(contents)
-
+	embedFile, err := os.Open(fileName)
 	if err != nil {
 		return
 	}
 
-	query_embed := embeds[0]
-	header_embeds := embeds[1:]
+	defer embedFile.Close()
+
+	decoder := json.NewDecoder(embedFile)
+	if err = decoder.Decode(&loadedEmbeddings); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to decode embeddings: %v\n", err)
+		return
+	}
+
+	query_embed, err := embeddings.Generate([]string{query})
+	if err != nil {
+		return
+	}
 
 	scores := []SearchScore{}
-	for i, embed := range header_embeds {
+	for uid, embed := range loadedEmbeddings {
 		scores = append(scores, SearchScore{
-			header: headers[i],
-			score:  embeddings.Similarity(query_embed[:], embed[:]),
+			render: of.items[NewUid(uid)],
+			score:  embeddings.Similarity(query_embed[0][:], embed[:]),
 		})
 	}
 
@@ -223,8 +255,8 @@ func (of *OrgFile) VectorSearch(query string, top_n int) (h []*Header, err error
 		return scores[i].score > scores[j].score
 	})
 
-	h = slice.Map(scores, func(s SearchScore) *Header {
-		return s.header
+	h = slice.Map(scores, func(s SearchScore) Render {
+		return s.render
 	})[:top_n]
 
 	return

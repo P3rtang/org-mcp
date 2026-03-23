@@ -1,0 +1,48 @@
+# Memory Restoration & Session Continuity
+
+This rule defines the protocol for re-establishing context and "restoring memory" when starting a new session or switching tasks. By following these steps, you ensure that technical terminology, architectural decisions, and task progress are accurately recovered from the Org-mode source of truth.
+
+## 1. The "First Look" Protocol (Global Health)
+Always start by getting a high-level view of the project's current state to understand what is in progress and what was recently finished.
+
+- **Tool**: `status_overview`
+- **Purpose**: Identify active tasks (`PROG`), pending items (`TODO`), and recently completed work (`DONE`). This prevents redundant effort and highlights immediate priorities.
+
+## 2. Accessing Persistent Memory (`:memory:`)
+The `:memory:` tag marks headers containing "Long-Term Memory" — definitions, architectural decisions, and technical terminology that must persist across sessions.
+
+- **Action**: Query for items with the `:memory:` tag using `query_items`.
+- **Example Query**:
+  ```json
+  {
+    "tag_filter": "memory",
+    "columns": ["UID", "PREVIEW", "CONTENT"]
+  }
+  ```
+
+## 3. Issue-Specific Context Retrieval
+When working on a specific ticket or bug, use tag-based discovery to find all relevant nodes, sub-tasks, and historical notes.
+
+- **Pattern**: Issues are typically tagged using the convention `:issue:[number]:`.
+- **Action**: Query for the specific issue number (e.g., `:10:` or `:issue:10:`) to find its primary header and any related sub-tasks spread across the file.
+- **Example Query**:
+  ```json
+  {
+    "tag_filter": "issue,10",
+    "columns": ["UID", "STATUS", "PATH", "PREVIEW", "PROGRESS"]
+  }
+  ```
+
+## 4. Continuity from Previous Sessions
+To understand the "Why" behind the current state, consult headers and tags specifically designed for AI session handovers.
+
+- **Session Context**: Query for the `:context:ai:session:` tag. This section contains design philosophy, tool performance notes, and multi-phase roadmaps.
+- **Summary Headers**: If a previous session summary (e.g., `summaries/session_...`) mentions specific headers or UIDs, query those UIDs directly with `depth: 1` to see their current children and state.
+- **Semantic Search**: If tags are insufficient, use `vector_search` with concepts mentioned in previous summaries (e.g., "bullet parsing bug") to find relevant technical discussions.
+
+## 5. Summary Checklist for Session Start
+- [ ] **Health Check**: Run `status_overview` to see current project distribution.
+- [ ] **Terminology**: Query `:memory:` to synchronize on project vocabulary.
+- [ ] **Task Context**: Query `:issue:[N]:` for the specific task at hand.
+- [ ] **Roadmap Review**: Query `:context:ai:session:` for recent architectural logic and phase progress.
+- [ ] **Verification**: If a header UID was provided in a summary, verify its content and children before editing.

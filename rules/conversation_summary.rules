@@ -1,0 +1,50 @@
+# Skill: High-Fidelity Conversation Summarization
+
+This document defines the standard process for generating structured summaries of technical discussions and coding sessions. The goal is to provide a concise, readable snapshot of progress and decisions that can be easily "context-loaded" by human developers or AI models in future sessions.
+You can save this document in a summaries directory in the root of the project. If that directory does not exist yet you can create it.
+
+## 1. The Summary Template
+
+When generating a detailed summary of a conversation, include the following:
+
+### 1. Overview
+A brief overview of what was discussed, including the primary objectives and themes of the session.
+
+### 2. Key Facts and Information Discovered
+Key technical facts, edge cases, or bugs identified during the session. This section acts as a "knowledge dump" of what was learned about the codebase or system.
+
+### 3. Outcomes and Conclusions Reached
+A list of architectural decisions, preferred patterns, design philosophies, or specific conclusions reached. Reference specific rule changes, file modifications, or GitHub issues here.
+
+### 4. Action Items and Next Steps
+Any action items or next steps for the next session. Use checkboxes for clarity:
+- [ ] Task 1
+- [ ] Task 2
+
+### 5. Recent Back-and-Forth
+A bulleted list of the final few exchanges in the conversation to capture immediate context and tone.
+- **User**: [Summary of user prompt/request]
+- **AI**: [Summary of AI response/action]
+
+Format the output in Markdown with headings and bullet points.
+
+---
+
+## 2. Guidelines for Quality
+
+### Be Technical and Specific
+- **Bad**: "Fixed some bugs in the parser."
+- **Good**: "Identified a bug in `Bullet.AddChildren` where `PlainText` children were rejected. Updated tests to document this behavior."
+
+### Link to the Source of Truth
+Whenever possible, reference:
+- Internal UIDs from the task manager (e.g. UID `81006049`).
+- GitHub Issue numbers (e.g. `Issue #10`).
+- Specific rule files (e.g. `rules/issue_writing.rules`).
+- Structured tags (e.g. `:issue:10:bullet-parsing:` or `:memory:`).
+
+### Preserving Context
+The summary should be optimized for an AI model to read at the start of a new session. Ensure it includes enough technical detail to allow the model to pick up exactly where the last session left off without re-reading the entire chat history.
+
+## 3. Automation Rule
+Always generate a summary when requested using this format. If the conversation has been long or complex, suggest a summary to the user to "checkpoint" progress.

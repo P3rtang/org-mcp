@@ -7,3 +7,16 @@ type ManageHeaderTest struct {
 	input    tools.HeaderInput
 	expected []any
 }
+
+type ManageBulletTest struct {
+	name     string
+	input    tools.BulletInput
+	expected []any
+}
+
+type ManageTextTest struct {
+	name        string
+	input       tools.TextInputSchema
+	expected    []any
+	expectEmpty bool
+}
