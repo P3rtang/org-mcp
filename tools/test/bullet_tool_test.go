@@ -11,7 +11,27 @@ import (
 )
 
 func TestBulletTool(t *testing.T) {
+	showDebug := os.Getenv("SHOW_DEBUG")
+	if showDebug == "" {
+		os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	}
+
 	tests := []ManageBulletTest{
+		{
+			name: "InsertAfter",
+			file: "./test_org/insert.org",
+			input: tools.BulletInput{
+				Bullets: []tools.BulletValue{
+					{
+						Uid:      "23856789",
+						Method:   "add",
+						Content:  "New bullet after first bullet",
+						Checkbox: "Unchecked",
+						After:    "23856789.b0",
+					},
+				},
+			},
+		},
 		{
 			name: "MoveDown",
 			file: "./test_org/move_bullet.org",

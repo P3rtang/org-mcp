@@ -29,6 +29,22 @@ func (of *OrgFile) InsertAfter(ctx context.Context, after Uid, render Render) (e
 	return of.Insert(ctx, insertIdx, render)
 }
 
+func (of *OrgFile) InsertBefore(ctx context.Context, before Uid, render Render) (err error) {
+	insertIdx := -1
+	for i, child := range of.children {
+		if child.Uid() == before {
+			insertIdx = i
+			break
+		}
+	}
+
+	if insertIdx == -1 {
+		return errors.New("before Uid not found among children")
+	}
+
+	return of.Insert(ctx, insertIdx, render)
+}
+
 func (h *Header) Insert(ctx context.Context, index int, render Render) (err error) {
 	children := h.children[:index]
 	children = append(children, render)
@@ -48,6 +64,22 @@ func (h *Header) InsertAfter(ctx context.Context, after Uid, render Render) (err
 
 	if insertIdx == -1 {
 		return errors.New("after Uid not found among children")
+	}
+
+	return h.Insert(ctx, insertIdx, render)
+}
+
+func (h *Header) InsertBefore(ctx context.Context, before Uid, render Render) (err error) {
+	insertIdx := -1
+	for i, child := range h.children {
+		if child.Uid() == before {
+			insertIdx = i
+			break
+		}
+	}
+
+	if insertIdx == -1 {
+		return errors.New("before Uid not found among children")
 	}
 
 	return h.Insert(ctx, insertIdx, render)
@@ -77,10 +109,30 @@ func (b *Bullet) InsertAfter(ctx context.Context, after Uid, render Render) (err
 	return b.Insert(ctx, insertIdx, render)
 }
 
+func (b *Bullet) InsertBefore(ctx context.Context, before Uid, render Render) (err error) {
+	insertIdx := -1
+	for i, child := range b.children {
+		if child.Uid() == before {
+			insertIdx = i
+			break
+		}
+	}
+
+	if insertIdx == -1 {
+		return errors.New("before Uid not found among children")
+	}
+
+	return b.Insert(ctx, insertIdx, render)
+}
+
 func (p *PlainText) Insert(ctx context.Context, index int, render Render) (err error) {
 	return errors.New("PlainText cannot have children")
 }
 
 func (p *PlainText) InsertAfter(ctx context.Context, after Uid, render Render) (err error) {
+	return errors.New("PlainText cannot have children")
+}
+
+func (p *PlainText) InsertBefore(ctx context.Context, before Uid, render Render) (err error) {
 	return errors.New("PlainText cannot have children")
 }

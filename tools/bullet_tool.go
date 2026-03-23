@@ -26,7 +26,8 @@ type BulletValue struct {
 	Method        string `json:"method" jsonschema:"description=The action to perform on the bullet point.,enum=add;remove;complete;toggle;set_content;move_relative,required=true"`
 	Content       string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
 	Checkbox      string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
-	After         string `json:"after,omitempty" jsonschema:"description=UID of the sibling bullet after which to insert the new bullet. Only applicable for 'add' method."`
+	After         string `json:"after,omitempty" jsonschema:"description=UID of the sibling bullet after which to insert the new bullet. Only applicable for 'add' method.,required=false"`
+	Before        string `json:"before,omitempty" jsonschema:"description=UID of the sibling bullet before which to insert the new bullet. Only applicable for 'add' method.,required=false"`
 	MoveValue     int    `json:"move_value,omitempty" jsonschema:"description=For move operations, the value to move. For 'move_relative', this is the relative index change (e.g., -1 to move up, +1 to move down). For 'move_index', this is the new absolute index under the same parent. For 'move_to', this is the new index under the new parent specified by the MoveTargetUid."`
 	MoveTargetUid string `json:"move_target_uid,omitempty" jsonschema:"description=For 'move_to' method, the UID of the new parent header under which to move the bullet."`
 }
@@ -83,6 +84,8 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 
 			if b.After != "" {
 				selected.InsertAfter(ctx, orgmcp.NewUid(b.After), bullet)
+			} else if b.Before != "" {
+				selected.InsertBefore(ctx, orgmcp.NewUid(b.Before), bullet)
 			} else {
 				selected.AddChildren(bullet)
 			}

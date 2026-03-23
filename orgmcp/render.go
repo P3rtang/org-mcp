@@ -33,6 +33,7 @@ type RenderBase interface {
 	Path() string
 	Insert(context.Context, int, Render) error
 	InsertAfter(context.Context, Uid, Render) error
+	InsertBefore(context.Context, Uid, Render) error
 	Move(context.Context, MoveOperation[Render]) error
 }
 

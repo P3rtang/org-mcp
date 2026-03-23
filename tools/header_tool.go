@@ -24,7 +24,8 @@ type HeaderValue struct {
 	Status  string   `json:"status" jsonschema:"description=The new status of the header (e.g. TODO; DONE). Required for 'update' and 'add' method. Use 'NONE' to clear status. An empty string will leave the status unchanged during 'update'.;enum=TODO;NEXT;PROG;REVW;DONE;DELG;NONE"`
 	Content string   `json:"content,omitempty" jsonschema:"description=The content of the header. Required for 'add' and optional for 'update' method."`
 	Tags    []string `json:"tags,omitempty" jsonschema:"description=List of tags to set for the header. Optional for 'update' and 'add' method. Both an empty list and omitting this field will leave tags unchanged during 'update'."`
-	After   string   `json:"after,omitempty" jsonschema:"description=UID of the sibling header after which to insert the new header. Only applicable for 'add' method."`
+	After   string   `json:"after,omitempty" jsonschema:"description=UID of the sibling header after which to insert the new header. Only applicable for 'add' method.,required=false"`
+	Before  string   `json:"before,omitempty" jsonschema:"description=UID of the sibling header before which to insert the new header. Only applicable for 'add' method.,required=false"`
 	Depth   *int     `json:"depth,omitempty" jsonschema:"description=The depth to return children headers. 0 means no children; 1 means direct children only and so on. If omitted defaults to 1."`
 }
 
@@ -86,6 +87,8 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 
 				if headerOp.After != "" {
 					parent.InsertAfter(ctx, orgmcp.NewUid(headerOp.After), &newHeader)
+				} else if headerOp.Before != "" {
+					parent.InsertBefore(ctx, orgmcp.NewUid(headerOp.Before), &newHeader)
 				} else {
 					parent.AddChildren(&newHeader)
 				}
