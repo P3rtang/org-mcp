@@ -270,6 +270,24 @@ func TestTextTool(t *testing.T) {
 			},
 			expected: []any{"Text under header with bullets"},
 		},
+		{
+			name: "HeaderCorruptionRepro",
+			input: tools.TextInputSchema{
+				Texts: []tools.TextInputValue{
+					{
+						Uid:     "99998892.t0",
+						Method:  "update",
+						Content: "Updated text content.",
+					},
+				},
+				Columns: []*orgmcp.Column{
+					&orgmcp.ColUidValue,
+					&orgmcp.ColPreviewValue,
+				},
+				ShowDiff: true,
+			},
+			expected: []any{"Updated text content."},
+		},
 	}
 
 	ctx := context.TODO()
