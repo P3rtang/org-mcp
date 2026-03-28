@@ -54,3 +54,12 @@
   :END:
   - Bullet with text child
     Plain text under bullet
+* Text Test Corruption Repro
+  :PROPERTIES:
+  :ID: 99998892
+  :END:
+  Original text content.
+* NEXT Header
+  :PROPERTIES:
+  :ID: 99998893
+  :END:
