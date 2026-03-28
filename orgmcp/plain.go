@@ -37,13 +37,13 @@ func NewPlainTextFromReader(reader *reader.PeekReader) option.Option[*PlainText]
 	content := strings.TrimLeft(string(line), " ")
 	indent := len(line) - len(content)
 
-	content = strings.TrimSpace(content) + "\n"
+	content = strings.TrimSpace(content)
 
 	return option.Some(&PlainText{content: content, indent: indent})
 }
 
 func (p *PlainText) SetContent(content string) {
-	p.content = content
+	p.content = strings.TrimSpace(content)
 }
 
 func (p *PlainText) CheckProgress() option.Option[Progress] {
@@ -53,6 +53,7 @@ func (p *PlainText) CheckProgress() option.Option[Progress] {
 func (p *PlainText) Render(builder *strings.Builder, depth int) {
 	builder.WriteString(strings.Repeat(" ", p.indent))
 	builder.WriteString(p.content)
+	builder.WriteByte('\n')
 }
 
 func (p *PlainText) IndentLevel() int {
