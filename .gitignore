@@ -2,5 +2,8 @@
 /main
 /org-mcp
 
+# Generated embeddings
+**/*embeddings.json
+
 # Logging files
 **/*.log
