@@ -653,12 +653,13 @@
    * *Critical Path*: Correctly parsing row delimiters and separator lines (`|---|`) without breaking surrounding text or bullet context.
    * *Milestone 1*: Table parsing and `read_table` tool (Phase 1 Foundation). Goal: End of this session.
    * *Milestone 2*: Surgical cell/row editing and automated alignment (Phase 2 Logic). Goal: Next session.
-* TODO Issue-12 fix: Header corruption when updating text content :issue:12:parsing:text:memory::
+* DONE Issue-12 fix: Header corruption when updating text content :issue:12:parsing:text:memory::
+  CLOSED: [2026-03-28 Sat 15:25]
   :PROPERTIES:
   :ID: 27277242
   :END:
   - [x] *Description*: Modifying text content under a header via `manage_text` (update) results in the subsequent header being merged into the text line, stripping the newline separator.
   - [x] *Current Behavior*: `Updated text.* Header` results in loss of structural integrity. Header is no longer a top-level node.
   - [x] *Reproduction*: `TestTextTool/HeaderCorruptionRepro` in `tools/test/text_tool_test.go` and `test.org`.
-  - [ ] *Fix*: Ensure `PlainText.SetContent` in `orgmcp/plain.go` appends a newline if it's missing, or ensure `manage_text` doesn't strip it. (SetContent should probably be the authoritative gatekeeper).
+  - [x] *Fix*: Ensure `PlainText.SetContent` in `orgmcp/plain.go` appends a newline if it's missing, or ensure `manage_text` doesn't strip it. (SetContent should probably be the authoritative gatekeeper).
   [[https://github.com/P3rtang/org-mcp/issues/12]]
