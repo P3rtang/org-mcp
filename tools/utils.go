@@ -24,3 +24,8 @@ func GetDiffOnly(of orgmcp.OrgFile, filePath string) (res string, err error) {
 
 	return
 }
+
+type ApplyResult struct {
+	affectedItems map[orgmcp.Uid]orgmcp.Render
+	err           error
+}

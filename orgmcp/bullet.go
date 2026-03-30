@@ -309,6 +309,16 @@ func (b *Bullet) ParentUid() Uid {
 	}).UnwrapOr(NewUid(0))
 }
 
+func (b *Bullet) SetCheckbox(s BulletStatus) {
+	if s == NoCheck {
+		b.checkbox = NoCheck
+		b.prefix = Star
+	} else {
+		b.checkbox = s
+		b.prefix = Dash
+	}
+}
+
 // ToggleCheckbox toggles the checkbox state between Unchecked and Checked
 // Only works for bullets that already have a checkbox (not NoCheck)
 func (b *Bullet) ToggleCheckbox() {
