@@ -2,8 +2,10 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -13,17 +15,172 @@ import (
 )
 
 type TextInputSchema struct {
-	Texts        []TextInputValue `json:"texts" jsonschema:"description=The list of text modifications to perform"`
-	Path         string           `json:"path,omitempty" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
-	ShowDiff     bool             `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,required=false"`
-	ShowAffected *bool            `json:"show_affected,omitempty" jsonschema:"description=Whether to include the affected items in the response. This will include all items that were modified as well as their children.,default=true,required=false"`
-	Columns      []*orgmcp.Column `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID ; PREVIEW]."`
+	Texts        []mcp.OneOf[*TextInputUnion] `json:"texts" jsonschema:"description=The list of text modifications to perform"`
+	Path         string                       `json:"path,omitempty" jsonschema:"description=The path to the Org file to modify; if not provided it will default to the current workspace file,required=false"`
+	ShowDiff     bool                         `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,default=false"`
+	ShowAffected *bool                        `json:"show_affected,omitempty" jsonschema:"description=Whether to include the affected items in the response. This will include all items that were modified as well as their children.,default=true,required=false"`
+	Columns      []*orgmcp.Column             `json:"columns,omitempty" jsonschema:"description=List of columns to include in the output. If not specified defaults to [UID ; PREVIEW]."`
 }
 
-type TextInputValue struct {
-	Uid     string `json:"uid" jsonschema:"description=The UID of the element to modify. This can be either a header or a bullet point. When adding text content the UID will refer to the parent element under which the text will be added."`
-	Method  string `json:"method" jsonschema:"description=The method of modification to perform (add; update or remove). When adding text content the method must be 'add'.;enum=add;update;remove"`
-	Content string `json:"content,omitempty" jsonschema:"description=The text content to add or update. When using the 'remove' method this field is ignored."`
+type TextInputUnion struct {
+	tag string
+
+	Add    TextInputAdd
+	Update TextInputUpdate
+	Remove TextInputRemove
+}
+
+func NewTextInputUnion[T TextInputAdd | TextInputUpdate | TextInputRemove](input T) *TextInputUnion {
+	switch any(input).(type) {
+	case TextInputAdd:
+		return &TextInputUnion{
+			tag: "add",
+			Add: any(input).(TextInputAdd),
+		}
+	case TextInputUpdate:
+		return &TextInputUnion{
+			tag:    "update",
+			Update: any(input).(TextInputUpdate),
+		}
+	case TextInputRemove:
+		return &TextInputUnion{
+			tag:    "remove",
+			Remove: any(input).(TextInputRemove),
+		}
+	default:
+		panic(fmt.Sprintf("unsupported type for TextInputUnion: %s", reflect.TypeOf(input)))
+	}
+}
+
+func NewTextInputUnionUpdate(update TextInputUpdate) TextInputUnion {
+	return TextInputUnion{
+		tag:    "update",
+		Update: update,
+	}
+}
+
+func NewTextInputUnionRemove(remove TextInputRemove) TextInputUnion {
+	return TextInputUnion{
+		tag:    "remove",
+		Remove: remove,
+	}
+}
+
+func (t *TextInputUnion) Value() any {
+	switch t.tag {
+	case "add":
+		return t.Add
+	case "update":
+		return t.Update
+	default:
+		return nil
+	}
+}
+
+func (t *TextInputUnion) Tag() string {
+	return t.tag
+}
+
+func (t *TextInputUnion) FromJSON(data []byte) error {
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	switch raw["method"] {
+	case "add":
+		fallthrough
+	case nil:
+		t.tag = "add"
+		return json.Unmarshal(data, &t.Add)
+	case "update":
+		t.tag = "update"
+		return json.Unmarshal(data, &t.Update)
+	case "remove":
+		t.tag = "remove"
+		return json.Unmarshal(data, &t.Remove)
+	default:
+		return fmt.Errorf("invalid method: %s", raw["method"])
+	}
+}
+
+type TextInputAdd struct {
+	Method  string `json:"method" jsonschema:"description=Add new text content under the specified parent element.,enum=add"`
+	Parent  string `json:"parent" jsonschema:"description=The UID of the parent element under which the text will be added. This can be either a header or a bullet point."`
+	Content string `json:"content" jsonschema:"description=The text content to add. Newlines will result in multiple plain text elements being added, one for each line of text."`
+}
+
+func (t *TextInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
+	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	parentUid, ok := of.GetUid(orgmcp.NewUid(t.Parent)).Split()
+
+	if !ok {
+		res.err = fmt.Errorf("Parent uid %s not found.", t.Parent)
+		return
+	}
+
+	for c := range strings.SplitSeq(t.Content, "\n") {
+		newPlainText := orgmcp.NewPlainText(c)
+		parentUid.AddChildren(&newPlainText)
+
+		res.affectedItems[newPlainText.Uid()] = &newPlainText
+	}
+
+	return
+}
+
+type TextInputUpdate struct {
+	Uid     string `json:"uid" jsonschema:"description=The UID of the element to modify or remove."`
+	Method  string `json:"method" jsonschema:"description=Update the content of a text element.,enum=update"`
+	Content string `json:"content,omitempty" jsonschema:"description=The new content of the text element."`
+}
+
+func (t *TextInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
+	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	selected, ok := of.GetUid(orgmcp.NewUid(t.Uid)).Split()
+
+	if !ok {
+		res.err = fmt.Errorf("Item with uid %s not found in %s.", t.Uid, of.Name())
+		return
+	}
+	if strings.Contains(t.Content, "\n") {
+		res.err = fmt.Errorf("Content with newlines is not allowed for the update method, these will be replaced with spaces. If you want to add content with newlines you should use the 'add' method to add new text elements for each line of text.")
+		t.Content = strings.ReplaceAll(t.Content, "\n", " ")
+	}
+
+	if plain, ok := selected.(*orgmcp.PlainText); ok {
+		plain.SetContent(t.Content)
+		res.affectedItems[plain.Uid()] = plain
+	} else {
+		res.err = fmt.Errorf("Uid %s is not a plain text element, cannot update content", t.Uid)
+	}
+
+	return
+}
+
+type TextInputRemove struct {
+	Uid    string `json:"uid" jsonschema:"description=The UID of the element to modify or remove."`
+	Method string `json:"method" jsonschema:"description=Remove the text element.,enum=remove"`
+}
+
+func (t *TextInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
+	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	selected, ok := of.GetUid(orgmcp.NewUid(t.Uid)).Split()
+
+	if !ok {
+		res.err = fmt.Errorf("Item with uid %s not found in %s.", t.Uid, of.Name())
+		return
+	}
+
+	p_uid := selected.ParentUid()
+	if parent, ok := of.GetUid(p_uid).Split(); ok {
+		parent.RemoveChildren(selected.Uid())
+		res.affectedItems[p_uid] = parent
+	} else {
+		res.err = fmt.Errorf("Parent with uid %s not found for item with uid %s", p_uid, t.Uid)
+	}
+
+	return
 }
 
 var TextTool = mcp.GenericTool[TextInputSchema]{
@@ -70,52 +227,23 @@ This can inform both you as well as the user about what exactly a tool call chan
 		affectedItems := map[orgmcp.Uid]orgmcp.Render{}
 
 		for _, mt := range input.Texts {
-			var selected orgmcp.Render
-			var ok bool
-			if selected, ok = orgFile.GetUid(orgmcp.NewUid(mt.Uid)).Split(); !ok {
-				resp = append(resp, fmt.Sprintf("Uid %s not found in %s", mt.Uid, path))
-				continue
-			}
+			var res ApplyResult
 
-			switch mt.Method {
+			switch mt.Value.Tag() {
 			case "add":
-				if strings.Contains(mt.Content, "\n") {
-					resp = append(resp, "Content for update method should not contain newlines. You should update each text element separately. As a fallback the newlines will be replaced with spaces.")
-					mt.Content = strings.ReplaceAll(mt.Content, "\n", " ")
-				}
-
-				newPlainText := orgmcp.NewPlainText(mt.Content)
-				selected.AddChildren(&newPlainText)
+				res = mt.Value.Add.Apply(ctx, &orgFile)
 			case "update":
-				if strings.Contains(mt.Content, "\n") {
-					resp = append(resp, "Content for update method should not contain newlines. You should update each text element separately. As a fallback the newlines will be replaced with spaces.")
-					mt.Content = strings.ReplaceAll(mt.Content, "\n", " ")
-				}
-
-				if plain, ok := selected.(*orgmcp.PlainText); ok {
-					plain.SetContent(mt.Content)
-					affectedItems[plain.Uid()] = plain
-					affectedCount += 1
-				} else {
-					resp = append(resp, fmt.Sprintf("Uid %s is not a plain text element, cannot update content", mt.Uid))
-				}
-
-				continue
+				res = mt.Value.Update.Apply(ctx, &orgFile)
 			case "remove":
-				p_uid := selected.ParentUid()
-				if parent, ok := orgFile.GetUid(p_uid).Split(); ok {
-					parent.RemoveChildren(selected.Uid())
-				} else {
-					resp = append(resp, fmt.Sprintf("Could not find parent for uid %s, skipping removal", mt.Uid))
-				}
+				res = mt.Value.Remove.Apply(ctx, &orgFile)
 			}
 
-			affectedItems[selected.Uid()] = selected
-			for _, child := range selected.ChildrenRec(-1) {
-				affectedItems[child.Uid()] = child
+			if res.err != nil {
+				resp = append(resp, res.err.Error())
 			}
 
-			affectedCount += 1
+			maps.Copy(affectedItems, res.affectedItems)
+			affectedCount += len(res.affectedItems)
 		}
 
 		ordered := []orgmcp.Render{}
