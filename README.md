@@ -1,8 +1,6 @@
 # org-mcp
 
 <p>
-  <a href="https://glama.ai/mcp/servers"><img src="https://glama.ai/mcp/servers/org-mcp/badge" alt="MCP Server"></a>
-  <a href="https://github.com/p3rtang/org-mcp/releases"><img src="https://img.shields.io/github/v/release/p3rtang/org-mcp" alt="Release"></a>
   <a href="https://github.com/p3rtang/org-mcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/p3rtang/org-mcp" alt="License"></a>
 </p>
 
@@ -54,7 +52,7 @@ Convert Org files to Markdown for sharing or publishing.
 | `manage_text` | Add or update plain text content within headers |
 | `query_items` | Query headers with filters and return token-efficient CSV |
 | `vector_search` | Semantic search across all headers using embeddings |
-| `status` | Quick status changes with automatic CLOSED timestamps |
+| `status_overview` | Get a summary of task statuses and a list of tags in use |
 
 - **Full support for basic org mode items**: Properties, tags, scheduled/deadline dates, CLOSED timestamps
 - **CSV Output**: All query results return CSV for maximum token efficiency
@@ -173,24 +171,8 @@ AI: What is scheduled for next week?
 
 ## Command-Line Options
 
-### serve
-
-```
-Usage: org-mcp serve [flags]
-
-Options:
-  -h, --help          Help for serve
-```
-
-### export
-
-```
-Usage: org-mcp export [flags]
-
-Options:
-  -i, --input string    Input Org file (default: .tasks.org)
-  -o, --output string   Output Markdown file (default: out.md)
-  -h, --help           Help for export
+```bash
+org-mcp -h
 ```
 
 ## Example Use Cases
@@ -206,4 +188,3 @@ Options:
 
 - [Emacs Org-mode](https://orgmode.org/) - The world's best plain-text task management system
 - [Model Context Protocol](https://spec.modelcontextprotocol.io/) - Open protocol for AI tool integration
-- [Zed Editor](https://zed.dev/) - AI-native code editor with MCP support
