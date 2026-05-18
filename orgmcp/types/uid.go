@@ -1,4 +1,4 @@
-package orgmcp
+package orgmcp_types
 
 import (
 	"fmt"
@@ -22,4 +22,13 @@ func (u Uid) String() string {
 
 func (u *Uid) MarshalText() ([]byte, error) {
 	return []byte(u.uid), nil
+}
+
+func (u *Uid) UnmarshalText(text []byte) error {
+	u.uid = string(text)
+	return nil
+}
+
+func (u Uid) GetSchema() map[string]any {
+	return map[string]any{"type": "string"}
 }

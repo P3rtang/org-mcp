@@ -1,16 +1,18 @@
 package orgmcp_test
 
 import (
-	"github.com/p3rtang/org-mcp/orgmcp"
 	"strings"
 	"testing"
+
+	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 func TestBullet_RenderMarkdown(t *testing.T) {
 	tests := []struct {
 		name string // description of this test case
 		// Named input parameters for receiver constructor.
-		parent orgmcp.Render
+		parent Render
 		status orgmcp.BulletStatus
 		// Named input parameters for target function.
 		builder *strings.Builder

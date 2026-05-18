@@ -1,0 +1,9 @@
+* Test Section
+  :PROPERTIES:
+  :ID: 123
+  :END:
+  | Name  | Value |
+  |-------+-------|
+  | Item1 | 10    |
+  | Item2 | 20    |
+  #+NAME: table_123

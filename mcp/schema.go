@@ -18,6 +18,12 @@ type TaggedUnion interface {
 	FromJSON([]byte) error
 }
 
+type GenericTaggedUnion[T any] interface {
+	Tag() string
+	Value() T
+	FromJSON([]byte) error
+}
+
 func Types[T TaggedUnion](t T) (types []reflect.Type) {
 	fields := reflect.VisibleFields(reflect.TypeOf(t).Elem())
 	for _, f := range fields {
@@ -27,6 +33,53 @@ func Types[T TaggedUnion](t T) (types []reflect.Type) {
 	}
 
 	return
+}
+
+func GenericTypes[T GenericTaggedUnion[U], U any](t T) (types []reflect.Type) {
+	fields := reflect.VisibleFields(reflect.TypeOf(t).Elem())
+	for _, f := range fields {
+		if f.IsExported() {
+			types = append(types, f.Type)
+		}
+	}
+
+	return
+}
+
+type GenericOneOf[T GenericTaggedUnion[U], U any] struct {
+	Value T
+}
+
+func NewGenericOneOf[T GenericTaggedUnion[U], U any](value T) GenericOneOf[T, U] {
+	return GenericOneOf[T, U]{Value: value}
+}
+
+func (o GenericOneOf[T, U]) GetSchema() map[string]any {
+	oneOfSchemas := make([]any, len(GenericTypes(o.Value)))
+
+	for i, option := range GenericTypes(o.Value) {
+		oneOfSchemas[i] = generateTypeSchema(option)
+	}
+
+	return map[string]any{
+		"oneOf": oneOfSchemas,
+	}
+}
+
+func (o *GenericOneOf[T, U]) UnmarshalJSON(data []byte) error {
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	var t = reflect.New(reflect.TypeOf(o.Value).Elem()).Interface().(T)
+	err := t.FromJSON(data)
+
+	if err == nil {
+		o.Value = t
+	}
+
+	return err
 }
 
 type OneOf[T TaggedUnion] struct {
@@ -122,7 +175,7 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 
 			// Field is required if it's not a pointer and doesn't have omitempty.
 			// This can be overridden by the jsonschema tag.
-			isRequired := field.Type.Kind() != reflect.Ptr && !omitempty
+			isRequired := field.Type.Kind() != reflect.Pointer && !omitempty
 
 			// Parse jsonschema tags
 			jsTag := field.Tag.Get("jsonschema")
@@ -205,7 +258,7 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 // castToType attempts to convert a string value from a tag into the actual Go type
 // required by the field, ensuring the JSON Schema remains type-correct.
 func castToType(val string, t reflect.Type) any {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

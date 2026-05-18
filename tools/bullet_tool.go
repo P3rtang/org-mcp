@@ -10,6 +10,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
@@ -75,9 +76,9 @@ type BulletInputAdd struct {
 }
 
 func (b *BulletInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	parent, ok := of.GetUid(orgmcp.NewUid(b.Parent)).Split()
+	parent, ok := of.GetUid(NewUid(b.Parent)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Parent uid %s not found, skipping addition.", b.Parent)
 		return
@@ -99,9 +100,9 @@ type BulletInputUpdate struct {
 }
 
 func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	selected, ok := of.GetUid(orgmcp.NewUid(b.Uid)).Split()
+	selected, ok := of.GetUid(NewUid(b.Uid)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Uid %s not found", b.Uid)
 		return
@@ -142,9 +143,9 @@ type BulletInputRemove struct {
 }
 
 func (b *BulletInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	selected, ok := of.GetUid(orgmcp.NewUid(b.Uid)).Split()
+	selected, ok := of.GetUid(NewUid(b.Uid)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Uid %s not found", b.Uid)
 		return
@@ -156,7 +157,7 @@ func (b *BulletInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 		return
 	}
 
-	header.RemoveChildren(orgmcp.NewUid(b.Uid))
+	header.RemoveChildren(NewUid(b.Uid))
 
 	res.affectedItems[header.Uid()] = header
 
@@ -191,7 +192,7 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 	}
 
 	affectedCount := 0
-	affectedItems := map[orgmcp.Uid]orgmcp.Render{}
+	affectedItems := map[Uid]Render{}
 
 	for _, mt := range input.Bullets {
 		var res ApplyResult
@@ -213,13 +214,13 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 		affectedCount += len(res.affectedItems)
 	}
 
-	ordered := []orgmcp.Render{}
+	ordered := []Render{}
 
 	if input.ShowAffected == nil || *input.ShowAffected == true {
 		locationTable := orgFile.BuildLocationTable()
 		ordered = append(ordered, itertools.Collect(maps.Values(affectedItems))...)
 
-		slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+		slices.SortFunc(ordered, func(a, b Render) int {
 			return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 		})
 

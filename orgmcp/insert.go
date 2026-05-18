@@ -1,6 +1,9 @@
 package orgmcp
 
-import "errors"
+import (
+	"errors"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
+)
 
 func (of *OrgFile) Insert(index int, render Render) (err error) {
 	children := of.children[:index]

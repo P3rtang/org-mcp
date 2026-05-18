@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	. "github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 // TestSimpleFileFromReader tests parsing the simple.org example file

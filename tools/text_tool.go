@@ -11,6 +11,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
@@ -111,8 +112,8 @@ type TextInputAdd struct {
 }
 
 func (t *TextInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
-	parentUid, ok := of.GetUid(orgmcp.NewUid(t.Parent)).Split()
+	res.affectedItems = make(map[Uid]Render)
+	parentUid, ok := of.GetUid(NewUid(t.Parent)).Split()
 
 	if !ok {
 		res.err = fmt.Errorf("Parent uid %s not found.", t.Parent)
@@ -136,8 +137,8 @@ type TextInputUpdate struct {
 }
 
 func (t *TextInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
-	selected, ok := of.GetUid(orgmcp.NewUid(t.Uid)).Split()
+	res.affectedItems = make(map[Uid]Render)
+	selected, ok := of.GetUid(NewUid(t.Uid)).Split()
 
 	if !ok {
 		res.err = fmt.Errorf("Item with uid %s not found in %s.", t.Uid, of.Name())
@@ -164,8 +165,8 @@ type TextInputRemove struct {
 }
 
 func (t *TextInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
-	selected, ok := of.GetUid(orgmcp.NewUid(t.Uid)).Split()
+	res.affectedItems = make(map[Uid]Render)
+	selected, ok := of.GetUid(NewUid(t.Uid)).Split()
 
 	if !ok {
 		res.err = fmt.Errorf("Item with uid %s not found in %s.", t.Uid, of.Name())
@@ -224,7 +225,7 @@ This can inform both you as well as the user about what exactly a tool call chan
 		}
 
 		affectedCount := 0
-		affectedItems := map[orgmcp.Uid]orgmcp.Render{}
+		affectedItems := map[Uid]Render{}
 
 		for _, mt := range input.Texts {
 			var res ApplyResult
@@ -246,13 +247,13 @@ This can inform both you as well as the user about what exactly a tool call chan
 			affectedCount += len(res.affectedItems)
 		}
 
-		ordered := []orgmcp.Render{}
+		ordered := []Render{}
 
 		if input.ShowAffected == nil || *input.ShowAffected == true {
 			locationTable := orgFile.BuildLocationTable()
 			ordered = append(ordered, itertools.Collect(maps.Values(affectedItems))...)
 
-			slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+			slices.SortFunc(ordered, func(a, b Render) int {
 				return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 			})
 
