@@ -1,10 +1,12 @@
 package tools
 
 import (
+	"context"
 	"os"
 	"strings"
 
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/diff"
 )
 
@@ -26,6 +28,10 @@ func GetDiffOnly(of orgmcp.OrgFile, filePath string) (res string, err error) {
 }
 
 type ApplyResult struct {
-	affectedItems map[orgmcp.Uid]orgmcp.Render
+	affectedItems map[Uid]Render
 	err           error
+}
+
+type ApplicableTool interface {
+	Apply(ctx context.Context, of *orgmcp.OrgFile) (TableApplyResult, error)
 }

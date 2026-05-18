@@ -1,4 +1,4 @@
-package orgmcp
+package orgmcp_types
 
 import (
 	"github.com/p3rtang/org-mcp/utils/option"

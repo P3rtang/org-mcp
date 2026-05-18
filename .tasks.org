@@ -409,6 +409,7 @@
     - [ ] *Bug Pattern: CLOSED schedule parsing*: When parsing CLOSED timestamps in `schedule.go`, the regex `.*CLOSED: \[(.*? )(.*? )?(.*?)?\].*` had a trailing space in the first capture group. This caused `time.Parse("2006-01-02", matches[1])` to fail on dates without times. Fixed by changing to `(.*?)` to exclude the trailing space.
     * *Table Support*: Implement parsing and surgical modification of Org-mode tables with CSV-style row/column targeting.
     * *Advanced Date Tools*: Add dedicated tools for scheduling, deadlines, and reoccurring tasks with relative date support (+2d, next week).
+    - [ ] *Future Enhancement: SQL Query of Org File Structure*: Treat the root OrgFile (UID 0) as a queryable table, enabling SQL queries (including RECURSIVE CTEs for hierarchy) across the entire file structure. Columns would be the same as query_items (UID, PREVIEW, STATUS, LEVEL, TAGS, etc.). Low priority - query_items remains the primary interface.
 *** TODO Task History Tracking in Properties :design:
     :PROPERTIES:
     :ID: 21285539
@@ -600,21 +601,122 @@
   | *Tool Callback*     | The function executed by the MCP server for a specific tool.          | Action, handler             |
   | *Actionable Export* | The process of moving an Org task to a GitHub Issue.                  | Migration, sync             |
   | *Two-Way Linking*   | The requirement to cross-reference Org UIDs and GitHub Issue numbers. | Linking, reference          |
-* Issues
+  #+NAME: table_61804128
+* TODO Issue-10 fix: bullet-child parsing - Indented text incorrectly concatenated to bullet content :issue:10:
   :PROPERTIES:
-  :ID: 78690404
+  :ID: 81006049
   :END:
-** TODO Issue-10 fix: bullet-child parsing - Indented text incorrectly concatenated to bullet content :issue:10:bullet-parsing:
+  * Description**: Indented plain text under a bullet is incorrectly concatenated to the bullet's content instead of being parsed as a separate ~PlainText~ child. This makes it impossible to target the text specifically for updates or removal without modifying the entire bullet.
+  * Current Behavior**: Querying a bullet with indented text returns ~CHILDREN_COUNT: 0~ and the raw content contains both the bullet text and the indented text separated by a newline (\n).
+  * Expected Behavior**: Indented text should be parsed as a separate ~PlainText~ node with a UID format of ~[bullet_uid].t0~.
+  * Reproduction**: Run ~go test -v ./tools/test/... -run TestTextTool/UpdatePlainTextUnderBullet~. The test fails because ~99998891.b0.t0~ is not found in the ~items~ map.
+  * Reproduction Branch**: ~repro/bullet-child-parsing~
+  * Context**: Source UID ~99998891.b0.t0~ in ~tools/test/test.org~.
+  [[https://github.com/P3rtang/org-mcp/issues/10]]
+* TODO Issue-3 fix: Ignore code block tokens when parsing :issue:3:parsing:
+  :PROPERTIES:
+  :ID: 10910806
+  :END:
+** TODO Problem Description
    :PROPERTIES:
-   :ID: 81006049
+   :ID: 29710607
    :END:
-   * Description**: Indented plain text under a bullet is incorrectly concatenated to the bullet's content instead of being parsed as a separate ~PlainText~ child. This makes it impossible to target the text specifically for updates or removal without modifying the entire bullet.
-   * Current Behavior**: Querying a bullet with indented text returns ~CHILDREN_COUNT: 0~ and the raw content contains both the bullet text and the indented text separated by a newline (\n).
-   * Expected Behavior**: Indented text should be parsed as a separate ~PlainText~ node with a UID format of ~[bullet_uid].t0~.
-   * Reproduction**: Run ~go test -v ./tools/test/... -run TestTextTool/UpdatePlainTextUnderBullet~. The test fails because ~99998891.b0.t0~ is not found in the ~items~ map.
-   * Reproduction Branch**: ~repro/bullet-child-parsing~
-   * Context**: Source UID ~99998891.b0.t0~ in ~tools/test/test.org~.
-   [[https://github.com/P3rtang/org-mcp/issues/10]]
+   * Code blocks delimited by `#+BEGIN_SRC` and `#+END_SRC` contain lines beginning with `*` or `-` that are incorrectly parsed as Org-mode headers and bullets.
+   * Example JavaScript code block that triggers the bug:
+   #+BEGIN_SRC javascript 
+   \**
+     * Comment here
+     * 
+   #+END_SRC
+   * The line `* Comment here` inside the JavaScript doc comment is being parsed as a Header because lines starting with `*` are treated as headers.
+   * This affects any multi-line comment (JSDoc, block comments, etc.) containing asterisk-prefixed lines.
+** TODO Root Cause Analysis
+   :PROPERTIES:
+   :ID: 52577647
+   :END:
+   * The parser in `orgmcp/file.go` has no concept of code block boundaries.
+   * Location 1: `OrgFileFromReader` function (lines 81-84) - lines starting with `*` are always treated as headers:
+   * Both parsing paths check the first character without considering whether we're inside a code block.
+** TODO Current Behavior
+   :PROPERTIES:
+   :ID: 23717333
+   :END:
+   * Input: `#+BEGIN_SRC javascript` → Code block start ✓
+   * Input: `/**` → Plain text ✓
+   * Input: `* Comment here` → **Header parsed** ✗ (should be PlainText)
+   * Input: `*/` → Plain text ✓
+   * Input: `#+END_SRC` → Code block end ✓
+   * Same issue applies to `-` lines inside code blocks being parsed as bullets.
+** TODO Expected Behavior
+   :PROPERTIES:
+   :ID: 70408833
+   :END:
+   * All content inside code blocks should be treated as PlainText - no structural parsing of `*` or `-` characters.
+   * Code block delimiters (`#+BEGIN_SRC`, `#+END_SRC`) should be parsed but their content should not be structurally interpreted.
+   * Lines like `* Comment here` or `- item` inside code blocks should render as plain text content, not as Org syntax.
+** TODO Implementation Strategy
+   :PROPERTIES:
+   :ID: 83724867
+   :END:
+*** TODO Step 1: Add State Tracking
+    :PROPERTIES:
+    :ID: 11850239
+    :END:
+    * Add `inCodeBlock bool` variable in the parsing loop of `OrgFileFromReader`
+    * Initialize to `false` before the main parsing loop
+    * This flag tracks whether we are currently inside a code block
+*** TODO Step 2: Detect Code Block Boundaries
+    :PROPERTIES:
+    :ID: 41471814
+    :END:
+    * When line matches `strings.HasPrefix(trimmed, "#+BEGIN_SRC")` pattern, set `inCodeBlock = true`
+    * When line matches `strings.HasPrefix(trimmed, "#+END_SRC")` pattern, set `inCodeBlock = false`
+    * Detection should happen before the main `switch val[0]` statement
+    * May want to use regex for more robust matching of the pattern (e.g., `^#\+BEGIN_SRC(\s+\w+)?$`)
+*** TODO Step 3: Route Content During Code Block
+    :PROPERTIES:
+    :ID: 87577954
+    :END:
+    * When `inCodeBlock == true`, do not route to header parsing (`case '*':`) or bullet parsing
+    * Instead, read the entire line as PlainText using `NewPlainTextFromReader`
+    * This ensures `*` and `-` characters inside code blocks are treated as content, not syntax
+    * The `#+END_SRC` line itself should be consumed and set `inCodeBlock = false`
+*** TODO Step 4: Unit Testing
+    :PROPERTIES:
+    :ID: 23800753
+    :END:
+    * Create a test file (e.g., `test/files/code_block.org`) with various code block scenarios
+    * Test case 1: JavaScript doc comment with `*` inside
+    * Test case 2: Python block comment with `-` inside
+    * Test case 3: Nested code blocks (if supported)
+    * Test case 4: Code block at different indentation levels
+    * Verify that UIDs of code block content are stable and not treated as headers/bullets
+** TODO Additional Considerations
+   :PROPERTIES:
+   :ID: 24953880
+   :END:
+   * Code blocks can appear at different indentation levels (inside headers, inside bullets)
+   * Consider support for other code block syntax: `#+BEGIN_EXAMPLE`, `#+BEGIN_QUOTE`
+   * Language identifier after `#+BEGIN_SRC` should be preserved but not affect parsing
+   * Inline code blocks (`~code~`) should NOT be affected - these are single-line
+   * Consider adding a dedicated `CodeBlock` struct that implements `Render` for more granular control
+** TODO Reproduction
+   :PROPERTIES:
+   :ID: 56246343
+   :END:
+   * Create test file `test/files/code_block.org`:
+   * * Header\n  #+BEGIN_SRC javascript\n  /**\n  * Comment here\n  */\n  #+END_SRC
+   * Run: `go test -v ./tools/test/... -run TestCodeBlock`
+   * Expected: Only one header (UID for `* Header`). The `* Comment here` line should be PlainText under the code block, not a header.
+   * Current Bug: Two headers are created - one for `* Header` and one for `* Comment here`
+** TODO References
+   :PROPERTIES:
+   :ID: 49614697
+   :END:
+   * GitHub Issue: [[https://github.com/P3rtang/org-mcp/issues/3]]
+   * Source file: `orgmcp/file.go`, function `OrgFileFromReader` (lines 45-152)
+   * Source file: `orgmcp/file.go`, function `ParseIndentedLine` (lines 154-187)
+   * Related: Issue-10 (bullet parsing), Issue-12 (header corruption) for similar parsing edge cases
 * PROG Issue-11 feat: Table Support :issue:11:table:parsing:memory:
   :PROPERTIES:
   :ID: 72407620
@@ -654,14 +756,15 @@
    :ID: 26174735
    :END:
    * *Logic*: New `orgmcp/table.go` implementing `Render` interface. Update `ParseIndentedLine` to handle `|`.
-   * *API*: New `manage_table` tool in `tools/table.go` with `read_cell`, `update_cell`, `add_row`, `delete_row` methods.
+   * *API Design*: Two dedicated table tools:
+     * `query_table`: SQL-powered querying (SELECT, INSERT, UPDATE, DELETE) for complex filtering, aggregations, and SQL-level modifications
+     * `manage_table`: Simple interface for basic edits (add_row, add_column, update_cell via row/col addressing)
    * *Data*: `Table` struct with `rows [][]string` and `has_header bool` (if separator `|---|` exists).
    * *Block Parsing*: `NewTableFromReader` must peek at subsequent lines to swallow contiguous rows into a single node.
-   * *Alignment Logic*: Implement a `Format()` method that re-calculates column widths after cell edits.
    * *Data Model*: `Table` struct will contain `Data [][]string` and `Dividers []int` (indices after which a separator line appears).
-   * *Tool Interface*: `read_table` (UID, Rows[], Cols[]) -> JSON/CSV. `manage_table` (UID, Method, Row, Col, Content).
    * *Algorithm*: `Table.Render` will first scan all rows to determine `max_width` per column, then apply padding during string building. Divider lines will be generated to match the total table width.
    * *Parser Integration*: Update `OrgFileFromReader` and `ParseIndentedLine` to switch to `NewTableFromReader` upon encountering a `|`. Multi-line consumption handled within `NewTableFromReader`.
+   - [ ] *Future Enhancement: Type Hints*: Support `#+TYPE: Name=text,Value=int` property for column type hints, enabling proper numeric storage in SQLite and smarter comparisons.
 ** Strategic Execution Plan
    :PROPERTIES:
    :ID: 68320744

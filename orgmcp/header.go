@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/p3rtang/org-mcp/embeddings"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/slice"
@@ -285,7 +286,7 @@ func (h *Header) Render(builder *strings.Builder, depth int) {
 
 func (h *Header) CheckProgress() option.Option[Progress] {
 	if h.Progress.IsNone() && h.status != None {
-		return option.Some(Progress{done: option.Some(h.status == Done)})
+		return option.Some(NewProgress(option.Some(h.status == Done)))
 	}
 
 	return option.Map(h.Progress, func(_ Progress) Progress {

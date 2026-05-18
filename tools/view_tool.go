@@ -11,16 +11,17 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
 type ViewItem struct {
-	Uid     string               `json:"uid,omitempty" jsonschema:"description=UID of the header to view. If not provided, all headers are considered."`
-	Status  *orgmcp.RenderStatus `json:"status,omitempty" jsonschema:"description=Filter headers by status (e.g. TODO ; DONE). Case insensitive. As well as bullets by their checkbox status (e.g. CHECKED ; UNCHECKED)."`
-	Content string               `json:"content,omitempty" jsonschema:"description=Filter headers with a regex match on content. It will only consider the preview of the header content and not any metadata; children; status or other information."`
-	Tags    []string             `json:"tags,omitempty" jsonschema:"description=Filter headers by tags. Only headers containing all specified tags will be returned."`
-	Depth   *int                 `json:"depth,omitempty" jsonschema:"description=Depth of child headers to include. Default is 1 (only direct children)."`
-	Date    *DateFilter          `json:"date,omitempty" jsonschema:"description=Filter headers by date criteria. Any text containing dates is not yet supported."`
+	Uid     string        `json:"uid,omitempty" jsonschema:"description=UID of the header to view. If not provided, all headers are considered."`
+	Status  *RenderStatus `json:"status,omitempty" jsonschema:"description=Filter headers by status (e.g. TODO ; DONE). Case insensitive. As well as bullets by their checkbox status (e.g. CHECKED ; UNCHECKED)."`
+	Content string        `json:"content,omitempty" jsonschema:"description=Filter headers with a regex match on content. It will only consider the preview of the header content and not any metadata; children; status or other information."`
+	Tags    []string      `json:"tags,omitempty" jsonschema:"description=Filter headers by tags. Only headers containing all specified tags will be returned."`
+	Depth   *int          `json:"depth,omitempty" jsonschema:"description=Depth of child headers to include. Default is 1 (only direct children)."`
+	Date    *DateFilter   `json:"date,omitempty" jsonschema:"description=Filter headers by date criteria. Any text containing dates is not yet supported."`
 }
 
 type ViewInput struct {
@@ -106,7 +107,7 @@ var ViewTool = mcp.GenericTool[ViewInput]{
 			input.Columns = []*orgmcp.Column{&orgmcp.ColUidValue, &orgmcp.ColPreviewValue}
 		}
 
-		results := map[orgmcp.Uid]orgmcp.Render{}
+		results := map[Uid]Render{}
 
 		for _, item := range input.Items {
 			depth := 1
@@ -170,7 +171,7 @@ var ViewTool = mcp.GenericTool[ViewInput]{
 		locationTable := orgFile.GetLocationTable()
 
 		ordered := slices.Collect(maps.Values(results))
-		slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+		slices.SortFunc(ordered, func(a, b Render) int {
 			return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 		})
 
@@ -181,7 +182,7 @@ var ViewTool = mcp.GenericTool[ViewInput]{
 	},
 }
 
-func FilterDate(r orgmcp.Render, dateFilter *DateFilter) (match bool, err error) {
+func FilterDate(r Render, dateFilter *DateFilter) (match bool, err error) {
 	if dateFilter == nil {
 		return true, err
 	}

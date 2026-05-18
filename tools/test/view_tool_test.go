@@ -10,6 +10,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
@@ -29,7 +30,7 @@ func TestViewTool(t *testing.T) {
 	var (
 		depth        = 0
 		depth2       = 2
-		Todo         = orgmcp.RenderStatus(orgmcp.Todo)
+		Todo         = RenderStatus(orgmcp.Todo)
 		twoDaysRange = 2
 		startDate    = "2025-12-31"
 	)

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 type PropValue interface {

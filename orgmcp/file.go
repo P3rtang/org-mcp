@@ -21,6 +21,9 @@ import (
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/result"
 	"github.com/p3rtang/org-mcp/utils/slice"
+
+	"github.com/p3rtang/org-mcp/orgmcp/table"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 type SearchScore struct {
@@ -154,14 +157,33 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	trimmed := strings.TrimSpace(string(bytes))
 	// fmt.Fprintf(os.Stderr, "Indented: %s\n", string(bytes))
 
+	if len(trimmed) == 0 {
+		r.Continue()
+		return option.Cast[*PlainText, Render](option.Some(&PlainText{content: "", indent: 0}))
+	}
+
 	switch trimmed[0] {
 	case '-':
 		fallthrough
 	case '*':
 		return option.Cast[*Bullet, Render](NewBulletFromReader(r))
-	default:
-		return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
+	case '|':
+		t, err := table.NewTableFromReader(r)
+		if err == nil {
+			// fall through to plain text
+			return option.Cast[*table.Table, Render](option.Some(&t))
+		}
+	case '#':
+		if len(trimmed) > 1 && trimmed[1] == '+' {
+			t, err := table.NewTableFromReader(r)
+			if err == nil {
+				// fall through to plain text
+				return option.Cast[*table.Table, Render](option.Some(&t))
+			}
+		}
 	}
+
+	return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
 }
 
 func (of *OrgFile) Name() string {

@@ -1,8 +1,14 @@
-package orgmcp
+package orgmcp_types
 
 import (
-	"github.com/p3rtang/org-mcp/utils/option"
+	"errors"
 	"strings"
+
+	"github.com/p3rtang/org-mcp/utils/option"
+)
+
+var (
+	HasNoChildren = errors.New("This item cannot have children.")
 )
 
 type RenderStatus string
@@ -12,22 +18,23 @@ func (r RenderStatus) String() string {
 }
 
 type RenderBase interface {
-	CheckProgress() option.Option[Progress]
-	IndentLevel() int
-	ChildIndentLevel() int
+	Uid() Uid
+	ParentUid() Uid
 	Level() int
+	IndentLevel() int
 	Location(table map[Uid]int) int
+	Path() string
+
+	Status() RenderStatus
+	CheckProgress() option.Option[Progress]
+	TagList() TagList
+
 	AddChildren(...Render) error
 	SetParent(Render) error
 	RemoveChildren(...Uid) error
 	Children() []Render
 	ChildrenRec(depth int) []Render
-	Uid() Uid
-	ParentUid() Uid
-	Status() RenderStatus
-	TagList() TagList
-	Preview(length int) string
-	Path() string
+	ChildIndentLevel() int
 	Insert(int, Render) error
 	Move(MoveOperation) error
 }
@@ -45,4 +52,6 @@ type RenderMarkdown interface {
 type Render interface {
 	RenderMarkdown
 	RenderOrg
+
+	Preview(length int) string
 }

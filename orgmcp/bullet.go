@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/option"
 	o "github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
@@ -165,9 +166,9 @@ func (b *Bullet) CheckProgress() o.Option[Progress] {
 	case NoCheck:
 		return o.None[Progress]()
 	case Unchecked:
-		return o.Some(Progress{done: o.Some(false)})
+		return o.Some(NewProgress(o.Some(false)))
 	case Checked:
-		return o.Some(Progress{done: o.Some(true)})
+		return o.Some(NewProgress(o.Some(true)))
 	default:
 		panic("unreachable")
 	}

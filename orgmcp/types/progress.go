@@ -1,4 +1,4 @@
-package orgmcp
+package orgmcp_types
 
 import (
 	"fmt"
@@ -12,6 +12,10 @@ type Progress struct {
 	Total    int
 	Complete int
 	done     option.Option[bool]
+}
+
+func NewProgress(done option.Option[bool]) Progress {
+	return Progress{done: done}
 }
 
 func ProgressFromString(str string) option.Option[Progress] {

@@ -1,10 +1,12 @@
 package main
 
 import (
-	. "github.com/p3rtang/org-mcp/orgmcp"
 	"os"
 	"strings"
 	"testing"
+
+	. "github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 func TestHeaderFromString(t *testing.T) {

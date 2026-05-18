@@ -10,6 +10,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 	"github.com/p3rtang/org-mcp/utils/option"
 )
@@ -101,14 +102,14 @@ type HeaderInputAdd struct {
 }
 
 func (h HeaderInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
 	if h.Content == "" {
 		res.err = errors.New("Content cannot be empty when adding a header.")
 		return
 	}
 
-	parent, ok := of.GetUid(orgmcp.NewUid(h.Parent)).Split()
+	parent, ok := of.GetUid(NewUid(h.Parent)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Parent UID %s not found.", h.Parent)
 		return
@@ -120,7 +121,7 @@ func (h HeaderInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res Appl
 	)
 
 	if len(h.Tags) != 0 {
-		header.Tags = option.Some(orgmcp.TagList(h.Tags))
+		header.Tags = option.Some(TagList(h.Tags))
 	}
 
 	parent.AddChildren(&header)
@@ -139,9 +140,9 @@ type HeaderInputUpdate struct {
 }
 
 func (h HeaderInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	header, ok := option.Cast[orgmcp.Render, *orgmcp.Header](of.GetUid(orgmcp.NewUid(h.Uid))).Split()
+	header, ok := option.Cast[Render, *orgmcp.Header](of.GetUid(NewUid(h.Uid))).Split()
 	if !ok {
 		res.err = fmt.Errorf("Header with UID %s not found.", h.Uid)
 		return
@@ -156,7 +157,7 @@ func (h HeaderInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res A
 	}
 
 	if len(h.Tags) != 0 {
-		header.Tags = option.Some(orgmcp.TagList(h.Tags))
+		header.Tags = option.Some(TagList(h.Tags))
 	}
 
 	res.affectedItems[header.Uid()] = header
@@ -170,9 +171,9 @@ type HeaderInputRemove struct {
 }
 
 func (h HeaderInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	header, ok := of.GetUid(orgmcp.NewUid(h.Uid)).Split()
+	header, ok := of.GetUid(NewUid(h.Uid)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Header with UID %s not found.", h.Uid)
 		return
@@ -218,7 +219,7 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 		}
 
 		affectedCount := 0
-		affectedItems := map[orgmcp.Uid]orgmcp.Render{}
+		affectedItems := map[Uid]Render{}
 
 		for _, mt := range input.Headers {
 			var res ApplyResult
@@ -240,13 +241,13 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 			affectedCount += len(res.affectedItems)
 		}
 
-		ordered := []orgmcp.Render{}
+		ordered := []Render{}
 
 		if input.ShowAffected == nil || *input.ShowAffected == true {
 			locationTable := orgFile.BuildLocationTable()
 			ordered = append(ordered, itertools.Collect(maps.Values(affectedItems))...)
 
-			slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+			slices.SortFunc(ordered, func(a, b Render) int {
 				return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 			})
 
