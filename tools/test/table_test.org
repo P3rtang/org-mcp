@@ -1,0 +1,8 @@
+* Header with table
+  :PROPERTIES:
+  :ID: 42829732
+  :END:
+  | Col 1   | Col 2   | Col 3   |
+  |---------+---------+---------|
+  | Value 1 | Value 2 | Value 3 |
+  #+NAME: table_349032

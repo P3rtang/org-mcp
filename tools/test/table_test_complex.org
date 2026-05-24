@@ -1,0 +1,40 @@
+* Header with multiple tables
+  :PROPERTIES:
+  :ID: 11111111
+  :END:
+  | A | B | C |
+  |---+---+---|
+  | 1 | 2 | 3 |
+  | 4 | 5 | 6 |
+  #+NAME: multi_table_1
+  Some text between tables
+  | X | Y |
+  |---+---|
+  | a | b |
+  | c | d |
+  | e | f |
+  #+NAME: multi_table_2
+* Header with empty rows
+  :PROPERTIES:
+  :ID: 22222222
+  :END:
+  | Col1 | Col2 |
+  |------+------|
+  | a    | b    |
+  |      |      |
+  | c    | d    |
+  |      |      |
+  | e    | f    |
+  #+NAME: empty_rows_table
+* Header with single row table
+  :PROPERTIES:
+  :ID: 33333333
+  :END:
+  | OnlyHeader |
+  |------------|
+  #+NAME: single_row_table
+* Header with no table
+  :PROPERTIES:
+  :ID: 44444444
+  :END:
+  Just some text, no table here.
