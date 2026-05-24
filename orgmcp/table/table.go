@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
+	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
 type TableRow interface {
@@ -55,5 +56,7 @@ func (tr *ContentRow) Items() []string {
 }
 
 func (tr *ContentRow) HasContent() bool {
-	return true
+	return slice.Any(tr.items, func(str string) bool {
+		return str != ""
+	})
 }

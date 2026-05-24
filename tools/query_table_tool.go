@@ -121,9 +121,10 @@ func (q *QueryTableSql) Apply(ctx context.Context, of *orgmcp.OrgFile) (res Tabl
 }
 
 type QueryTableSimple struct {
-	Uid    Uid              `json:"uid" jsonschema:"description=The uid of the table to query."`
-	Method string           `json:"method" jsonschema:"description=The method to use for the query.,enum=simple"`
-	Range  table.TableRange `json:"range"` // TODO: support column selection as well
+	Uid     Uid                    `json:"uid" jsonschema:"description=The uid of the table to query."`
+	Method  string                 `json:"method" jsonschema:"description=The method to use for the query.,enum=simple"`
+	Range   table.TableRange       `json:"range"` // TODO: support column selection as well
+	Columns []table.ColumnSelector `json:"columns,omitempty" jsonschema:"description=Optional list of column selectors. Supports 1-based indices ('$1'), header names ('Name' or '${Name}'), and inclusive ranges ('$1:$3'). If omitted, returns all columns."`
 }
 
 func (q *QueryTableSimple) Apply(ctx context.Context, of *orgmcp.OrgFile) (res TableApplyResult, err error) {
