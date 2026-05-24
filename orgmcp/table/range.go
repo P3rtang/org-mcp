@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/result"
 )
 
 var InvalidTableRange error = errors.New("invalid table range")
@@ -21,6 +22,10 @@ func (t TableRange) GetSchema() map[string]any {
 		"type":        "string",
 		"description": "The range of rows to return from the given table uid, in Python slice notation (e.g. '[1:5]' to return rows 1 through 4). This includes negative ranges like [-5:-1].",
 	}
+}
+
+func NewTableRange(str string) result.Result[TableRange] {
+	return result.TryFunc(func() (TableRange, error) { return parsePythonRange(str) })
 }
 
 func (t *TableRange) UnmarshalText(text []byte) error {
@@ -60,6 +65,10 @@ func (t *Table) GetRange(rg TableRange) ([]TableRow, error) {
 	if begin > end {
 		slices.Reverse(filteredRows)
 		begin, end = len(filteredRows)-begin, len(filteredRows)-end
+	}
+
+	if len(filteredRows) < begin {
+		return filteredRows, fmt.Errorf("Start of table bounds out of range, table length: %d, got: %d", len(filteredRows), begin)
 	}
 
 	rows := []TableRow{t.rows[0]}

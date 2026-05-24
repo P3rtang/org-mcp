@@ -204,6 +204,9 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 		"- 'add': Adds a new header at the specified index under the given paren (pass this in the parent field of the function). Requires 'content' parameter.\n" +
 		"- 'remove': Removes the header identified by its uid.\n" +
 		"- 'update': Updates the header's content; status; or tags. Requires 'content'; 'status'; or 'tags' parameters.\n\n" +
+		"IMPORTANT: When adding a header, the 'content' field should NOT include the status prefix (e.g. 'TODO', 'DONE'). " +
+		"Use the 'status' parameter separately. The tool will automatically prepend the status to the content. " +
+		"Passing 'TODO My Header' as content with status 'TODO' will result in 'TODO TODO My Header'.\n\n" +
 		"It is recommended to pass uid's as string to the function. While they will almost certainly be numbers; this is not guaranteed.",
 	Callback: func(ctx context.Context, input HeaderInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string

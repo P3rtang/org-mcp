@@ -212,6 +212,10 @@ func (of *OrgFile) GenerateEmbeddings() error {
 		return err
 	}
 
+	if len(embeds) < len(contents) {
+		return fmt.Errorf("Embedding generation did not return the required amount of rows.")
+	}
+
 	for i, header := range headers {
 		embedMap[header.Uid().String()] = embeds[i]
 	}
