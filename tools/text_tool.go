@@ -195,7 +195,7 @@ But there are situations where plain text is more appropriate, such as large blo
 
 ## Methods
 ` +
-		"`add`: Adds new text content to the specified parent element. The parent is passed via the uid parameter.\n" +
+		"`add`: Adds new text content to the specified parent element. The parent is passed via the parent parameter.\n" +
 		"`update`: Updates the text content of the specified element. The element is identified by its uid.\n" +
 		"`remove`: Removes the text content of the specified element. The element is identified by its uid.\n" +
 		`
