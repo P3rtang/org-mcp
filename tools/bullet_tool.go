@@ -167,12 +167,12 @@ var BulletTool = mcp.GenericTool[BulletInput]{
 	Name: "manage_bullet",
 	Description: "Add, remove or complete bullet points.\n" +
 		"The method parameter defines the action to take: 'add', 'remove' or 'update'.\n" +
-		"- 'add': Adds a new bullet point at the specified index under the given header_uid. Requires 'content' and 'checkbox' parameters.\n" +
+		"- 'add': Adds a new bullet point at the specified index under the given parent (can be another bullet). Requires 'content' and 'checkbox' parameters.\n" +
 		"- 'remove': Removes the bullet point identified by its uid.\n" +
 		"- 'update': Updates the content of the bullet point. Requires 'content' parameter.\n\n" +
-		"When targeting a bullet, the uid is constructed as `header_uid + '.b' + bullet_index`.\n" +
+		"When targeting a bullet, the uid is constructed as `parent_uid + '.b' + bullet_index`.\n" +
 		"The 'bullet_index' specifies the position of the bullet point under the header (0-based index).\n\n" +
-		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like header_uid.b0.b1\n",
+		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like parent_uid.b0.b1\n",
 	Callback: bulletFunc,
 }
 
