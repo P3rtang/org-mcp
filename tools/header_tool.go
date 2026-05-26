@@ -200,7 +200,7 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 	Description: "Add; remove or update headers in an Org file.\n" +
 		"The method parameter defines the action to take: 'add'; 'remove'; 'update'.\n" +
 		"For any method you can use a depth parameter to specify how many levels of children to return.\n" +
-		"- 'add': Adds a new header at the specified index under the given parent_uid (pass this in the uid field of the function). Requires 'content' parameter.\n" +
+		"- 'add': Adds a new header at the specified index under the given paren (pass this in the parent field of the function). Requires 'content' parameter.\n" +
 		"- 'remove': Removes the header identified by its uid.\n" +
 		"- 'update': Updates the header's content; status; or tags. Requires 'content'; 'status'; or 'tags' parameters.\n\n" +
 		"It is recommended to pass uid's as string to the function. While they will almost certainly be numbers; this is not guaranteed.",
