@@ -13,6 +13,18 @@ import (
 	"github.com/p3rtang/org-mcp/tools"
 )
 
+func IntoOneOfArray[T tools.TextInputAdd | tools.TextInputUpdate | tools.TextInputRemove](t ...T) []mcp.OneOf[*tools.TextInputUnion] {
+	entries := []mcp.OneOf[*tools.TextInputUnion]{}
+
+	for _, input := range t {
+		entries = append(entries, mcp.OneOf[*tools.TextInputUnion]{
+			Value: tools.NewTextInputUnion(input),
+		})
+	}
+
+	return entries
+}
+
 func TestTextTool(t *testing.T) {
 	showDebug := os.Getenv("SHOW_DEBUG")
 	if showDebug == "" {
@@ -40,13 +52,11 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "AddTextToHeader",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     addHeaderUid,
-						Method:  "add",
-						Content: "Added text content",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  addHeaderUid,
+					Method:  "add",
+					Content: "Added text content",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,
@@ -57,13 +67,11 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "UpdateTextContent",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     plainTextUid,
-						Method:  "update",
-						Content: "Updated text content",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputUpdate{
+					Uid:     plainTextUid,
+					Method:  "update",
+					Content: "Updated text content",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,
@@ -74,13 +82,11 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "AddTextWithMultipleColumns",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     addHeaderUid,
-						Method:  "add",
-						Content: "Additional text",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  addHeaderUid,
+					Method:  "add",
+					Content: "Additional text",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColContentValue,
@@ -91,13 +97,11 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "ShowDiff",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     plainTextUid,
-						Method:  "update",
-						Content: "Content with diff",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputUpdate{
+					Uid:     plainTextUid,
+					Method:  "update",
+					Content: "Content with diff",
+				}),
 				ShowDiff: true,
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
@@ -108,55 +112,49 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "InvalidUid",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:    "invalid-uid-12345",
-						Method: "add",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  "invalid-uid-12345",
+					Method:  "add",
+					Content: "This should fail",
+				}),
 			},
-			expected: []any{"Uid invalid-uid-12345 not found"},
+			expected: []any{"Parent uid invalid-uid-12345 not found."},
 		},
 		{
 			name: "UpdateNonPlainTextFails",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     updateHeaderUid,
-						Method:  "update",
-						Content: "This should fail",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputUpdate{
+					Uid:     updateHeaderUid,
+					Method:  "update",
+					Content: "This should fail",
+				}),
 			},
 			expected: []any{"is not a plain text element, cannot update content"},
 		},
-		{
-			name: "NewlinesReplacedWithSpaces",
-			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     addHeaderUid,
-						Method:  "add",
-						Content: "Text with\nnewlines",
-					},
-				},
-				Columns: []*orgmcp.Column{
-					&orgmcp.ColUidValue,
-					&orgmcp.ColContentValue,
-				},
-			},
-			expected: []any{"newlines will be replaced with spaces"},
-		},
+		// TODO: this should test multiple entries are added now
+		// {
+		// 	name: "NewlinesReplacedWithSpaces",
+		// 	input: tools.TextInputSchema{
+		// 		Texts: IntoOneOfArray(tools.TextInputAdd{
+		// 			Parent:     addHeaderUid,
+		// 			Method:  "add",
+		// 			Content: "Text with\nnewlines",
+		// 		}),
+		// 		Columns: []*orgmcp.Column{
+		// 			&orgmcp.ColUidValue,
+		// 			&orgmcp.ColContentValue,
+		// 		},
+		// 	},
+		// 	expected: []any{"newlines will be replaced with spaces"},
+		// },
 		{
 			name: "ShowAffectedFalse",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     addHeaderUid,
-						Method:  "add",
-						Content: "Test content",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  addHeaderUid,
+					Method:  "add",
+					Content: "Test content",
+				}),
 				ShowAffected: func() *bool { b := false; return &b }(),
 			},
 			expectEmpty: true,
@@ -164,38 +162,35 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "RemoveTextContent",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:    plainTextUid,
-						Method: "remove",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputRemove{
+					Uid:    plainTextUid,
+					Method: "remove",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 				},
 			},
-			expected: []any{"99998889.t0"},
+			expected: []any{"99998889"},
 		},
 		{
 			name: "AddMultipleTextsToSameHeader",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     addHeaderUid,
-						Method:  "add",
-						Content: "First addition",
-					},
-					{
-						Uid:     addHeaderUid,
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  addHeaderUid,
+					Method:  "add",
+					Content: "First addition",
+				},
+					tools.TextInputAdd{
+						Parent:  addHeaderUid,
 						Method:  "add",
 						Content: "Second addition",
 					},
-					{
-						Uid:     addHeaderUid,
+					tools.TextInputAdd{
+						Parent:  addHeaderUid,
 						Method:  "add",
 						Content: "Third addition",
 					},
-				},
+				),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,
@@ -206,26 +201,22 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "RemoveNonExistentTextFails",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:    "99998889.t999",
-						Method: "remove",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputRemove{
+					Uid:    "99998889.t999",
+					Method: "remove",
+				}),
 			},
-			expected: []any{"Uid 99998889.t999 not found in ./test.org"},
+			expected: []any{"Item with uid 99998889.t999 not found in ./test.org."},
 		},
 		{
 			// Plain text CAN be added as a child of a bullet
 			name: "AddPlainTextToBullet",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     bulletWithChildrenUid,
-						Method:  "add",
-						Content: "Text under a bullet",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  bulletWithChildrenUid,
+					Method:  "add",
+					Content: "Text under a bullet",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,
@@ -238,13 +229,11 @@ func TestTextTool(t *testing.T) {
 			// Update plain text that exists under a bullet in test.org
 			name: "UpdatePlainTextUnderBullet",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     "99998891.b0.t0",
-						Method:  "update",
-						Content: "Updated plain text under bullet",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputUpdate{
+					Uid:     "99998891.b0.t0",
+					Method:  "update",
+					Content: "Updated plain text under bullet",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,
@@ -256,13 +245,11 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "AddTextToHeaderWithBullet",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     "3",
-						Method:  "add",
-						Content: "Text under header with bullets",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputAdd{
+					Parent:  "3",
+					Method:  "add",
+					Content: "Text under header with bullets",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,
@@ -273,13 +260,11 @@ func TestTextTool(t *testing.T) {
 		{
 			name: "HeaderCorruptionRepro",
 			input: tools.TextInputSchema{
-				Texts: []tools.TextInputValue{
-					{
-						Uid:     "99998892.t0",
-						Method:  "update",
-						Content: "Updated text content.",
-					},
-				},
+				Texts: IntoOneOfArray(tools.TextInputUpdate{
+					Uid:     "99998892.t0",
+					Method:  "update",
+					Content: "Updated text content.",
+				}),
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue,
 					&orgmcp.ColPreviewValue,

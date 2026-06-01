@@ -164,6 +164,10 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	}
 }
 
+func (of *OrgFile) Name() string {
+	return of.name
+}
+
 func (of *OrgFile) SetName(name string) {
 	of.name = name
 }

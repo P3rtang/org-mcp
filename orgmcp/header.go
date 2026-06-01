@@ -227,6 +227,10 @@ func (h *Header) Schedule() option.Option[*Schedule] {
 	return option.Ref(&h.schedule)
 }
 
+func (h *Header) SetContent(c string) {
+	h.Content = c
+}
+
 func (h *Header) Render(builder *strings.Builder, depth int) {
 	builder.WriteString(strings.Repeat("*", h.Level()))
 	builder.WriteString(" ")

@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"encoding/json"
 	"reflect"
 	"slices"
 	"strconv"
@@ -9,6 +10,59 @@ import (
 
 type DefinedSchema interface {
 	GetSchema() map[string]any
+}
+
+type TaggedUnion interface {
+	Tag() string
+	Value() any
+	FromJSON([]byte) error
+}
+
+func Types[T TaggedUnion](t T) (types []reflect.Type) {
+	fields := reflect.VisibleFields(reflect.TypeOf(t).Elem())
+	for _, f := range fields {
+		if f.IsExported() {
+			types = append(types, f.Type)
+		}
+	}
+
+	return
+}
+
+type OneOf[T TaggedUnion] struct {
+	Value T
+}
+
+func NewOneOf[T TaggedUnion](value T) OneOf[T] {
+	return OneOf[T]{Value: value}
+}
+
+func (o OneOf[T]) GetSchema() map[string]any {
+	oneOfSchemas := make([]any, len(Types(o.Value)))
+
+	for i, option := range Types(o.Value) {
+		oneOfSchemas[i] = generateTypeSchema(option)
+	}
+
+	return map[string]any{
+		"oneOf": oneOfSchemas,
+	}
+}
+
+func (o *OneOf[T]) UnmarshalJSON(data []byte) error {
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	var t = reflect.New(reflect.TypeOf(o.Value).Elem()).Interface().(T)
+	err := t.FromJSON(data)
+
+	if err == nil {
+		o.Value = t
+	}
+
+	return err
 }
 
 // GenerateSchema takes a Go struct and returns a JSON Schema map suitable for MCP tool inputSchema.
@@ -21,7 +75,7 @@ func GenerateSchema(v any) map[string]any {
 	if t == nil {
 		return map[string]any{}
 	}
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -35,7 +89,7 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 	}
 
 	// Handle pointers by getting the underlying type
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -91,6 +145,9 @@ func generateTypeSchema(t reflect.Type) map[string]any {
 						case "anyOf":
 							anyOfTypes := strings.Split(val, ";")
 							fieldSchema["anyOf"] = castAnyOfToType(anyOfTypes, field.Type)
+						case "oneOf":
+							oneOfTypes := strings.Split(val, ";")
+							fieldSchema["oneOf"] = castOneOfToType(oneOfTypes, field.Type)
 						}
 					}
 				}
@@ -183,6 +240,14 @@ func castSliceToType(vals []string, t reflect.Type) []any {
 }
 
 func castAnyOfToType(vals []string, _ reflect.Type) []any {
+	res := make([]any, len(vals))
+	for i, v := range vals {
+		res[i] = generateTypeSchema(reflect.TypeOf(v))
+	}
+	return res
+}
+
+func castOneOfToType(vals []string, _ reflect.Type) []any {
 	res := make([]any, len(vals))
 	for i, v := range vals {
 		res[i] = generateTypeSchema(reflect.TypeOf(v))

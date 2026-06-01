@@ -21,15 +21,24 @@ func TestAutoClosed(t *testing.T) {
 	revwUid := NewTestHeader(&of)
 	todoUid := NewTestHeader(&of)
 
+	showAffected := true
+
 	mcp.WriteOrgFileToDisk(context.TODO(), of, "./test.org")
 
 	tests := []ManageHeaderTest{
 		{
 			name: "DoneAutoClose",
 			input: tools.HeaderInput{
-				Headers: []tools.HeaderValue{
-					{Uid: doneUid.String(), Status: "DONE", Method: "update"},
+				Headers: []mcp.OneOf[*tools.HeaderInputUnion]{
+					{
+						Value: tools.NewHeaderInputUnion(tools.HeaderInputUpdate{
+							Uid:    doneUid.String(),
+							Status: "DONE",
+							Method: "update",
+						}),
+					},
 				},
+				ShowAffected: &showAffected,
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue, &orgmcp.ColStatusValue, &orgmcp.ColClosedValue,
 				},
@@ -39,9 +48,16 @@ func TestAutoClosed(t *testing.T) {
 		{
 			name: "ReviewAutoClose",
 			input: tools.HeaderInput{
-				Headers: []tools.HeaderValue{
-					{Uid: revwUid.String(), Status: "REVW", Method: "update"},
+				Headers: []mcp.OneOf[*tools.HeaderInputUnion]{
+					{
+						Value: tools.NewHeaderInputUnion(tools.HeaderInputUpdate{
+							Uid:    revwUid.String(),
+							Status: "REVW",
+							Method: "update",
+						}),
+					},
 				},
+				ShowAffected: &showAffected,
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue, &orgmcp.ColStatusValue, &orgmcp.ColClosedValue,
 				},
@@ -51,9 +67,16 @@ func TestAutoClosed(t *testing.T) {
 		{
 			name: "NoAutoClose",
 			input: tools.HeaderInput{
-				Headers: []tools.HeaderValue{
-					{Uid: todoUid.String(), Status: "TODO", Method: "update"},
+				Headers: []mcp.OneOf[*tools.HeaderInputUnion]{
+					{
+						Value: tools.NewHeaderInputUnion(tools.HeaderInputUpdate{
+							Uid:    todoUid.String(),
+							Status: "TODO",
+							Method: "update",
+						}),
+					},
 				},
+				ShowAffected: &showAffected,
 				Columns: []*orgmcp.Column{
 					&orgmcp.ColUidValue, &orgmcp.ColStatusValue, &orgmcp.ColClosedValue,
 				},

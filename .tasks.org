@@ -46,10 +46,10 @@
          The data model already parses CLOSED tags,
          so the implementation should focus on updating the header's properties during status changes
          and ensuring this is reflected in both the in-memory structure and the persisted org file.
-     - [x] Identify where status transitions occur in the code (e.g., from TODO/PROG to DONE).
-     - [x] Implement logic during status transitions to set CLOSED to the current timestamp.
-     - [x] Write unit tests to validate that the CLOSED tag logic works properly.
-     - [x] Document implementation details and edge cases in project documentation.
+       - [x] Identify where status transitions occur in the code (e.g., from TODO/PROG to DONE).
+       - [x] Implement logic during status transitions to set CLOSED to the current timestamp.
+       - [x] Write unit tests to validate that the CLOSED tag logic works properly.
+       - [x] Document implementation details and edge cases in project documentation.
 **** TODO modification of properties
      :PROPERTIES:
      :ID: 55803461
@@ -236,9 +236,9 @@
          Will update logic to set status to PROG if any checkbox is checked,
          and further synchronize with checkbox state.
          Planning to ensure thorough unit testing for any changes.
-     - [x] Change header status automatically from =NEXT=/=TODO= to =PROG= if a single checkbox is set
-     - [x] Change header status to =DONE= if =CheckProgress= has =Done()= as true.
-     - [x] Unit test new functionality
+       - [x] Change header status automatically from =NEXT=/=TODO= to =PROG= if a single checkbox is set
+       - [x] Change header status to =DONE= if =CheckProgress= has =Done()= as true.
+       - [x] Unit test new functionality
 *** PROG Bullet children [4/7]
     SCHEDULED: <2026-01-26 Mon> DEADLINE: <2026-02-02 Mon>
     :PROPERTIES:
@@ -506,7 +506,7 @@
     - [ ] Create ~export_to_notion~ MCP tool.
     - [ ] Implement unit tests for the block converter.
     - [ ] Integration tests with a test Notion workspace.
-** PROG Tool Design & AI UX Improvements [3/9] :ux:ui:design:
+** PROG Tool Design & AI UX Improvements [3/13] :ux:ui:design:
    :PROPERTIES:
    :ID: 30384709
    :END:
@@ -515,6 +515,8 @@
    - [ ] Improve tool documentation/schemas to explicitly suggest bulk operations for better token efficiency and state consistency.
    - [ ] Implement an ~output_format~ flag for ~query_items~ supporting CSV (default), Markdown, and Raw (Org) to allow switching between machine-efficient and human-readable views.
    - [ ] Quiet down CLI output for ~embed~ and other commands: use summaries or progress bars instead of full table dumps.
+   - [ ] *Design Decision*: Refactor `manage_*` tools to use "Atomic Union" schemas (Method-based sub-schemas) instead of splitting tools. Preserves atomicity while increasing strictness.
+   - [ ] *Design Decision*: Extract movement logic into a generic `move_item` tool that works for any `Render` node. Remove movement methods from `manage_bullet`.
 *** DONE Response Metadata Enhancement [9/9]
     CLOSED: [2026-02-15 Sun 21:47]
     :PROPERTIES:
@@ -558,6 +560,20 @@
     - [ ] *Source of Truth*: `OrgFileFromReader` in `orgmcp/file.go` has a hardcoded `fmt.Fprintf(os.Stderr, "%s", PrintTable(...))` call.
     - [ ] *Technical Constraint*: MCP server protocol expects a clean `stdout`. Currently, `os.Stderr` is being flooded with table dumps, making logs hard to read and potentially causing issues in some environments.
     - [ ] *Proposed Change*: Replace the full table dump with a one-line summary unless a `--verbose` flag is provided to the CLI.
+*** TODO Issue-17 feat: Temporary UIDs for atomic multi-operation tool calls :issue:17:mcp:ux:memory::
+    :PROPERTIES:
+    :ID: 30379703
+    :END:
+    - [ ] *Gap*: Currently, adding an item in a `manage_*` call does not update the `OrgFile.items` map in-memory for that same call. This prevents subsequent operations (like adding a child to the newly created item) within the same tool execution.
+    - [ ] *Proposal*: When an item is added, generate a temporary UID (e.g., `temp:rand8`) and register it in the `items` map immediately. This allows the tool to reference the new item for the remainder of the call.
+    - [ ] *Decision Resolved: Temporary UIDs (AI-Specified)*: AI can specify a `temp_uid` (e.g., `temp:new-header`) in an `add` operation. This ID is registered in the in-memory `items` map immediately, allowing subsequent operations in the same call to reference it. Not persisted to disk.
+    * *Technical Design: Temporary IDs (AI-Only)*: Implement `temp:[random]` prefix for in-memory-only addressing. UIDs are valid only for the duration of a single `tools/call` JSON-RPC execution.
+    * *Implementation*: `OrgFile.RegisterTemp(Render) Uid` will be called during `AddChildren`. `GetUid` will resolve both stable and `temp:` prefixed IDs.
+*** TODO Issue-18 feat: Implement oneOf/Discriminated Union schema generation for strict AI tool schemas :issue:18:schema:mcp:ai::
+    :PROPERTIES:
+    :ID: 40413358
+    :END:
+    [[https://github.com/P3rtang/org-mcp/issues/18]]
 ** DONE Tag Management & Discovery Improvements
    CLOSED: [2026-02-14 Sat 14:30]
    :PROPERTIES:
@@ -618,6 +634,10 @@
    - [x] *Decision Resolved: Surgical Addressing*: Dedicated `read_table` tool for complex queries (row/col ranges). `manage_table` uses coordinate-based (R,C) addressing to keep queries surgical and token-efficient.
    - [x] *Decision Resolved: Alignment Strategy*: The `Render()` method will *always* auto-format with correct column widths. Correctness and human-readability are prioritized over minimal diff noise.
    - [x] *Decision Resolved: Parsing Fluidity*: `OrgFileFromReader` and `ParseIndentedLine` will both detect `|` as a structural marker. Tables are first-class `Render` nodes, capable of being children of `Header` or `Bullet`.
+   - [ ] *Strategic Gap*: `OrgFileFromReader` panics on top-level text. High priority fix.
+   - [ ] *Strategic Gap*: `items` map doesn't sync after `add` operations. Fix required for 'Temporary IDs'.
+   - [ ] *Design Decision*: Support `#+NAME` as a stable UID for Tables.
+   - [x] *Decision Resolved: Naming Stability*: `#+NAME` is the primary UID. If the user changes it, the AI must re-discover it via `query_items`. Not a system-level concern.
 ** Requirement Distillation
    :PROPERTIES:
    :ID: 17984267
@@ -625,6 +645,10 @@
    * *Functional*: Reading/Writing Org tables via MCP tools. Support for CSV-style addressing (e.g., `row:1, col:2`).
    * *Technical*: Token optimization — don't return the full table if only one cell is needed. Efficient re-rendering preserving alignments.
    * *Gap Analysis*: Missing `Table` struct, table parser, and `manage_table` tool implementation.
+   - [ ] *Critical Requirement*: `manage_table` must return a "Neighborhood" view (surrounding rows) rather than the full table to save tokens.
+   - [ ] *Critical Requirement*: Table struct must handle "Ragged Rows" (rows with mismatched column counts) gracefully during `Render`.
+   - [x] *Decision Resolved: Surgical Return*: `manage_table` returns a summary/neighborhood by default. Full table returned only if `show_table: true` is passed.
+   - [x] *Decision Resolved: Structural Validation*: Rows with mismatched column counts will be normalized (padded/truncated) during `Render` with a warning returned to the user.
 ** Data & Resource Mapping
    :PROPERTIES:
    :ID: 26174735

@@ -4,4 +4,4 @@ go build .
 
 json='{ "method":"initialize", "params":{} }'
 
-echo "$json" | ./org-mcp
+echo "$json" | ./org-mcp serve
