@@ -131,7 +131,8 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 				org_file.items[r.Uid()] = r
 			})
 		default:
-			panic("unreachable")
+			peek_reader.Continue()
+			continue
 		}
 	}
 
