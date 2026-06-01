@@ -248,6 +248,10 @@ func PrintCsv(r []Render, cols []*Column) string {
 		for i, col := range cols {
 			val := col.Value(item, ",")
 
+			if strings.ContainsRune(val, ',') {
+				val = `"` + val + `"`
+			}
+
 			builder.WriteString(val)
 			if i < len(cols)-1 {
 				builder.WriteString(",")

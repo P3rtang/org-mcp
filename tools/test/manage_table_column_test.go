@@ -141,7 +141,7 @@ func TestManageTableColumnOperations(t *testing.T) {
 			ops: []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool]{
 				{Value: tools.NewManageTableInputUnion(tools.RemoveTableColumn{Method: "remove_col", Uid: NewUid("55555555.table_manage_test"), Col: 1})},
 			},
-			expectedResp:  []string{"[Name,Value]"},
+			expectedResp:  []string{"Name,Value"},
 			expectedTable: "Name,Value\nAlice,10\nBob,20\nCarol,30",
 		},
 		{

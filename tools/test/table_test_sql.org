@@ -1,0 +1,12 @@
+* Header with table for SQL queries
+  :PROPERTIES:
+  :ID: 77777777
+  :END:
+  | Name  | Age | Department | Salary |
+  |-------+-----+------------+--------|
+  | Alice | 30  | Eng        | 90000  |
+  | Bob   | 25  | Sales      | 60000  |
+  | Carol | 35  | Eng        | 100000 |
+  | Dave  | 28  | Marketing  | 70000  |
+  | Eve   | 40  | Sales      | 85000  |
+  #+NAME: sql_test_table

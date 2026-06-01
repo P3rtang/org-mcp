@@ -7,6 +7,16 @@ import (
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
+func escapePipe(in []string) []string {
+	return slice.Map(in, func(str string) string {
+		if strings.HasSuffix(str, "|") {
+			str = str[:len(str)-1] + "\\vert"
+		}
+
+		return strings.ReplaceAll(str, "|", "\\vert{}")
+	})
+}
+
 type TableRow interface {
 	ColWidths() []int
 	Items() []string
@@ -81,15 +91,20 @@ func (tr *ContentRow) HasContent() bool {
 }
 
 func (tr *ContentRow) setCells(cells []string) {
-	tr.cells = cells
+	tr.cells = escapePipe(cells)
 }
 
 func (tr *ContentRow) String() string {
 	builder := strings.Builder{}
 
-	builder.WriteRune('[')
-	builder.WriteString(slice.Joins(tr.cells, ","))
-	builder.WriteRune(']')
+	builder.WriteString(slice.Joins(slice.Map(tr.cells, func(str string) string {
+		str = strings.ReplaceAll(strings.ReplaceAll(str, "\\vert{}", "|"), "\\vert", "|")
+		if strings.ContainsRune(str, ',') {
+			str = "\"" + str + "\""
+		}
+
+		return str
+	}), ","))
 
 	return builder.String()
 }

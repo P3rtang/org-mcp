@@ -199,20 +199,14 @@ var QueryTableTool = mcp.GenericTool[QueryTableInput]{
 			if res.raw != "" {
 				resp = append(resp, res.raw)
 			} else if res.rows != nil {
-				b := strings.Builder{}
-				l := len(res.rows[0].Items())
+				builder := strings.Builder{}
 
 				for _, row := range res.rows {
-					if row == nil {
-						continue
-					}
-
-					items := make([]string, l)
-					copy(items, row.Items())
-
-					fmt.Fprintf(&b, "%s\n", strings.Join(items, ","))
+					builder.WriteString(row.String())
+					builder.WriteRune('\n')
 				}
-				resp = append(resp, b.String())
+
+				resp = append(resp, builder.String())
 			}
 		}
 
