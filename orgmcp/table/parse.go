@@ -17,7 +17,11 @@ var (
 )
 
 func isTableRow(line string) bool {
-	return ((strings.HasPrefix(line, "| ") && strings.HasSuffix(line, " |")) || strings.HasPrefix(line, "|--")) || strings.HasPrefix(line, "#+NAME:")
+	return ((strings.HasPrefix(line, "| ") &&
+		strings.HasSuffix(line, "|")) ||
+		strings.HasPrefix(line, "|--")) ||
+		strings.HasPrefix(line, "#+NAME:") ||
+		strings.HasPrefix(line, "#+TYPE:")
 }
 
 // TODO: this probably has to be generalized to a section parser
@@ -30,6 +34,20 @@ func parseNameMetadata(line string) (uid Uid, ok bool) {
 	if ok {
 		uidString := strings.TrimSpace(line[len(prefix):])
 		uid = NewUid(uidString)
+	}
+
+	return
+}
+
+func parseTypeMetadata(line string) (types string, ok bool) {
+	prefix := "#+TYPE:"
+
+	line = strings.TrimSpace(line)
+
+	ok = strings.HasPrefix(line, prefix)
+
+	if ok {
+		return strings.TrimSpace(line[len(prefix):]), ok
 	}
 
 	return
@@ -81,8 +99,9 @@ func NewTableFromReader(r *reader.PeekReader) (t Table, err error) {
 		} else if strings.HasPrefix(line, "|--") {
 			t.rows = append(t.rows, &DividerRow{})
 		} else if meta, ok := parseNameMetadata(line); ok {
-			fmt.Fprintf(os.Stderr, "Found metadata line: %s\n", line)
 			t.uid = meta
+		} else if types, ok := parseTypeMetadata(line); ok {
+			t.types = types
 		} else {
 			err = ErrNotATable
 		}

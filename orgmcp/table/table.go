@@ -29,6 +29,7 @@ type TableRow interface {
 type Table struct {
 	uid    Uid
 	parent Render
+	types  string
 
 	columns int
 	header  TableRow
@@ -51,6 +52,11 @@ func (t *Table) ContentRows(includeHeader bool) (rows []TableRow) {
 
 func (t *Table) GetHeader() TableRow {
 	return t.header
+}
+
+// TODO: This might need to become structured data if we ever want to validate of do auto defaults
+func (t *Table) GetTypes() string {
+	return t.types
 }
 
 // Assert Table is a Render interface

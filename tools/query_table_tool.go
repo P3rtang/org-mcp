@@ -4,25 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 
 	"github.com/p3rtang/org-mcp/mcp"
-	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 type QueryTableInput struct {
-	Queries  []mcp.GenericOneOf[*QueryTableUnion, TableApplicableTool] `json:"queries" jsonschema:"description=The list of queries to execute on the given table uids."`
-	ShowDiff bool                                                      `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,default=false"`
-	Path     string                                                    `json:"path,omitempty" jsonschema:"description=The path to the org file containing the tables to query. If not provided, the default path will be used."`
+	Queries   []mcp.GenericOneOf[*QueryTableUnion, TableApplicableTool] `json:"queries" jsonschema:"description=The list of queries to execute on the given table uids."`
+	ShowDiff  bool                                                      `json:"show_diff,omitempty" jsonschema:"description=Whether to show a diff of the changes made; default is false,default=false"`
+	HideTypes bool                                                      `json:"hide_types,omitempty" jsonschema:"description=Hide the #+TYPES specifier of the table (if one is available at all). This could be useful to ignore on repeated query call that do not require this information."`
+	Path      string                                                    `json:"path,omitempty" jsonschema:"description=The path to the org file containing the tables to query. If not provided, the default path will be used."`
 }
 
 type TableApplyResult struct {
-	rows []table.TableRow
-	raw  string
-	err  error
+	rows  []table.TableRow
+	types string
+	raw   string
+	err   error
 }
 
 type QueryTableUnion struct {
@@ -99,25 +101,15 @@ type QueryTableSql struct {
 }
 
 func (q *QueryTableSql) Apply(ctx context.Context) (res TableApplyResult) {
-	var selected Render
-	var ok bool
-
-	of, ok := ctx.Value("orgfile").(*orgmcp.OrgFile)
-	if !ok {
-		res.err = fmt.Errorf("Could not find the org file in testing context")
+	var t *table.Table
+	t, res.err = getTable(ctx, q.Uid)
+	if res.err != nil {
 		return
 	}
 
-	if selected, ok = of.GetUid(q.Uid).Split(); !ok {
-		res.err = fmt.Errorf("Uid %s not found in %s", q.Uid, of.Name())
-		return
-	}
-
-	table, ok := selected.(*table.Table)
-
-	result, err := table.Query(q.Query)
+	result, err := t.Query(q.Query)
 	if err != nil {
-		err = fmt.Errorf("Error executing SQL query on table with UID %s: %v", q.Uid, err)
+		res.err = err
 		return
 	}
 
@@ -134,40 +126,26 @@ type QueryTableSimple struct {
 }
 
 func (q *QueryTableSimple) Apply(ctx context.Context) (res TableApplyResult) {
-
-	var selected Render
-	var ok bool
-
-	of, ok := orgmcp.OrgFileFromContext(ctx).Split()
-	if !ok {
-		res.err = fmt.Errorf("Could not find the org file in testing context")
+	var t *table.Table
+	t, res.err = getTable(ctx, q.Uid)
+	if res.err != nil {
 		return
 	}
 
-	if selected, ok = of.GetUid(q.Uid).Split(); !ok {
-		res.err = fmt.Errorf("Uid %s not found in %s", q.Uid, of.Name())
-		return
-	}
-
-	table, ok := selected.(*table.Table)
-	if !ok {
-		res.err = fmt.Errorf("Item with UID %s is not a table in %s", q.Uid, of.Name())
-		return
-	}
-
-	table, err := table.ApplyColumnSelectors(q.Columns)
+	t, err := t.ApplyColumnSelectors(q.Columns)
 	if err != nil {
 		res.err = err
 		return
 	}
 
-	rows, err := table.GetRange(q.Range)
+	rows, err := t.GetRange(q.Range)
 	if err != nil {
 		res.err = err
 		return
 	}
 
 	res.rows = rows
+	res.types = t.GetTypes()
 
 	return
 }
@@ -197,13 +175,21 @@ var QueryTableTool = mcp.GenericTool[QueryTableInput]{
 			}
 
 			if res.raw != "" {
+				if !input.HideTypes && res.types != "" {
+					resp = append(resp, "#+TYPE: "+res.types)
+				}
+
 				resp = append(resp, res.raw)
 			} else if res.rows != nil {
 				builder := strings.Builder{}
 
+				if !input.HideTypes && res.types != "" {
+					fmt.Fprintf(os.Stderr, "hide_types: %v\n", input.HideTypes)
+					builder.WriteString("#+TYPE: " + res.types + "\n")
+				}
+
 				for _, row := range res.rows {
-					builder.WriteString(row.String())
-					builder.WriteRune('\n')
+					builder.WriteString(row.String() + "\n")
 				}
 
 				resp = append(resp, builder.String())
