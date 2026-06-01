@@ -8,3 +8,4 @@
   | middle | mid\vert{}end | a,,b  | 'apos' |
   | end    | trailing\vert | ,,    | "x""y" |
   #+NAME: special_chars_table
+  #+TYPE: 

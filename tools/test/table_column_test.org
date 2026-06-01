@@ -8,3 +8,4 @@
   | Bob     | 25  | LA      | 82.3  |
   | Charlie | 35  | Chicago | 91.0  |
   #+NAME: table_56218675
+  #+TYPE: 

@@ -603,6 +603,7 @@
   | *Actionable Export* | The process of moving an Org task to a GitHub Issue.                  | Migration, sync             |
   | *Two-Way Linking*   | The requirement to cross-reference Org UIDs and GitHub Issue numbers. | Linking, reference          |
   #+NAME: table_61804128
+  #+TYPE: 
 * TODO Issue-10 fix: bullet-child parsing - Indented text incorrectly concatenated to bullet content :issue:10:
   :PROPERTIES:
   :ID: 81006049
@@ -716,7 +717,8 @@
    * Source file: `orgmcp/file.go`, function `OrgFileFromReader` (lines 45-152)
    * Source file: `orgmcp/file.go`, function `ParseIndentedLine` (lines 154-187)
    * Related: Issue-10 (bullet parsing), Issue-12 (header corruption) for similar parsing edge cases
-* PROG Issue-11 feat: Table Support :issue:11:table:parsing:memory:
+* DONE Issue-11 feat: Table Support :issue:11:table:parsing:memory:
+  CLOSED: [2026-06-01 Mon 18:16]
   :PROPERTIES:
   :ID: 72407620
   :END:
@@ -735,8 +737,8 @@
    - [x] *Decision Resolved: Surgical Addressing*: Dedicated `read_table` tool for complex queries (row/col ranges). `manage_table` uses coordinate-based (R,C) addressing to keep queries surgical and token-efficient.
    - [x] *Decision Resolved: Alignment Strategy*: The `Render()` method will *always* auto-format with correct column widths. Correctness and human-readability are prioritized over minimal diff noise.
    - [x] *Decision Resolved: Parsing Fluidity*: `OrgFileFromReader` and `ParseIndentedLine` will both detect `|` as a structural marker. Tables are first-class `Render` nodes, capable of being children of `Header` or `Bullet`.
-   - [ ] *Strategic Gap*: `OrgFileFromReader` panics on top-level text. High priority fix.
-   - [ ] *Strategic Gap*: `items` map doesn't sync after `add` operations. Fix required for 'Temporary IDs'.
+   - [x] *Strategic Gap*: `OrgFileFromReader` panics on top-level text. High priority fix.
+   - [x] *Strategic Gap*: `items` map doesn't sync after `add` operations. Fix required for 'Temporary IDs'.
    - [x] *Design Decision*: Support `#+NAME` as a stable UID for Tables.
    - [x] *Decision Resolved: Naming Stability*: `#+NAME` is the primary UID. If the user changes it, the AI must re-discover it via `query_items`. Not a system-level concern.
 ** Requirement Distillation
@@ -763,7 +765,7 @@
    * *Data Model*: `Table` struct will contain `Data [][]string` and `Dividers []int` (indices after which a separator line appears).
    * *Algorithm*: `Table.Render` will first scan all rows to determine `max_width` per column, then apply padding during string building. Divider lines will be generated to match the total table width.
    * *Parser Integration*: Update `OrgFileFromReader` and `ParseIndentedLine` to switch to `NewTableFromReader` upon encountering a `|`. Multi-line consumption handled within `NewTableFromReader`.
-   - [ ] *Future Enhancement: Type Hints*: Support `#+TYPE: Name=text,Value=int` property for column type hints, enabling proper numeric storage in SQLite and smarter comparisons.
+   - [x] *Future Enhancement: Type Hints*: Support `#+TYPE: Name=text,Value=int` property for column type hints, enabling proper numeric storage in SQLite and smarter comparisons.
 ** Strategic Execution Plan
    :PROPERTIES:
    :ID: 68320744
@@ -779,7 +781,8 @@
    * *Critical Path*: Correctly parsing row delimiters and separator lines (`|---|`) without breaking surrounding text or bullet context.
    * *Milestone 1*: Table parsing and `read_table` tool (Phase 1 Foundation). Goal: End of this session.
    * *Milestone 2*: Surgical cell/row editing and automated alignment (Phase 2 Logic). Goal: Next session.
-** TODO Known Bugs & Improvements
+** DONE Known Bugs & Improvements
+   CLOSED: [2026-06-01 Mon 18:16]
    :PROPERTIES:
    :ID: 51694977
    :END:
@@ -796,7 +799,12 @@
      - [x] Update path: when writing a cell with ~|~, render it as ~\vert{}~ (or ~\vert~ at word boundary)
      - [x] Query output should expose literal ~|~ in CSV cells (no extra escaping needed)
      - [x] Failing tests already exist in [[tools/test/query_table_special_chars_test.go]]
-   - [ ] Type hints not implemented — Support ~#+TYPE: Name=text,Value=int~ for column type hints enabling proper numeric comparisons (UID ~26174735.b7~).
+   - [x] Type hints not implemented — Support ~#+TYPE: Name=text,Value=int~ for column type hints enabling proper numeric comparisons (UID ~26174735.b7~).
+     - [x] Add `HideTypes bool` field to `QueryTableInput` (default false = types shown)
+     - [x] Prepend `#+TYPE: col1=type,col2=type,...` line to CSV output when types are not hidden and table has #+TYPE: metadata
+     - [x] No error on type mismatch — hints only, never validate against cell content
+     - [x] Tables without `#+TYPE:` metadata do NOT get a type line in output
+     - [x] Failing tests in `tools/test/query_table_types_test.go` reference `HideTypes` field — needs implementation to pass
 *** DONE Pipe escaping for table cells
     CLOSED: [2026-06-01 Mon 16:38]
     :PROPERTIES:

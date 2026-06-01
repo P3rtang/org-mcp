@@ -2,7 +2,6 @@ package table
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -31,9 +30,8 @@ func (t *Table) Render(
 		builder.WriteRune('\n')
 	}
 
-	fmt.Fprintf(os.Stderr, "uid to be printed: %s\n", t.uid)
-
 	fmt.Fprintf(builder, "%s#+NAME: %s\n", indentStr, t.uid)
+	fmt.Fprintf(builder, "%s#+TYPE: %s\n", indentStr, t.types)
 }
 
 func (t *Table) RenderMarkdown(builder *strings.Builder, depth int) {}
