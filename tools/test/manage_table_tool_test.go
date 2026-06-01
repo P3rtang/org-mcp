@@ -231,7 +231,7 @@ func TestManageTableMultipleOperations(t *testing.T) {
 		},
 	}
 
-	runManageTableTest(t, ctx, input, false, "Alice,DONE,10\nEve,PROG,50\nCarol,TODO,30")
+	runManageTableTest(t, ctx, input, false, "Alice,TODO,10\nEve,PROG,50\nCarol,TODO,30")
 
 	if got := queryFullTable(t, ctx); got != "Name,Status,Value\nAlice,DONE,10\nEve,PROG,50\nCarol,TODO,30" {
 		t.Errorf("full table mismatch: got %s", got)

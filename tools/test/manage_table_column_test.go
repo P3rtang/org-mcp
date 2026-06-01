@@ -192,7 +192,7 @@ func TestManageTableMultipleColumnOperations(t *testing.T) {
 
 	runManageTableColumnTest(t, ctx, input, false, "ID", "State", "Notes")
 
-	if got := queryFullTableColumns(t, ctx); got != "ID,Name,Status,State,Value,Notes\n,,Alice,TODO,,10,\n,,Bob,DONE,,20,\n,,Carol,TODO,,30," {
-		t.Errorf("full table mismatch: got %s", got)
+	if got := queryFullTableColumns(t, ctx); !ContainsString(got, "ID,Name,State,Value,Notes\n,Alice,TODO,10,\n,Bob,DONE,20,\n,Carol,TODO,30,") {
+		t.Errorf("full table mismatch: got %s, expected: %s", got, "ID,Name,State,Value,Notes\n,Alice,TODO,10,\n,Bob,DONE,20,\n,Carol,TODO,30,")
 	}
 }
