@@ -1,0 +1,10 @@
+* Header with manageable table
+  :PROPERTIES:
+  :ID: 55555555
+  :END:
+  | Name  | Status | Value |
+  |-------+--------+-------|
+  | Alice | TODO   | 10    |
+  | Bob   | DONE   | 20    |
+  | Carol | TODO   | 30    |
+  #+NAME: table_manage_test

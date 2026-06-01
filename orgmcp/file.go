@@ -26,6 +26,8 @@ import (
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
+const key = "orgfile"
+
 type SearchScore struct {
 	score  float64
 	render Render
@@ -41,6 +43,18 @@ type OrgFile struct {
 
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
+
+func OrgFileFromContext(ctx context.Context) option.Option[*OrgFile] {
+	if of, ok := ctx.Value(key).(*OrgFile); ok {
+		return option.Some(of)
+	}
+
+	return option.None[*OrgFile]()
+}
+
+func (of *OrgFile) OrgFileToContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, key, of)
+}
 
 func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] {
 	startTime := time.Now()

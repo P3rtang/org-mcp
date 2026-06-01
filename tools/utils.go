@@ -33,5 +33,9 @@ type ApplyResult struct {
 }
 
 type ApplicableTool interface {
-	Apply(ctx context.Context, of *orgmcp.OrgFile) (TableApplyResult, error)
+	Apply(ctx context.Context) (ApplyResult, error)
+}
+
+type TableApplicableTool interface {
+	Apply(ctx context.Context) TableApplyResult
 }

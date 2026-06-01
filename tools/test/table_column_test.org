@@ -1,0 +1,10 @@
+* Header with table for column selection
+  :PROPERTIES:
+  :ID: 55555555
+  :END:
+  | Name    | Age | City    | Score |
+  |---------+-----+---------+-------|
+  | Alice   | 30  | NYC     | 95.5  |
+  | Bob     | 25  | LA      | 82.3  |
+  | Charlie | 35  | Chicago | 91.0  |
+  #+NAME: table_56218675

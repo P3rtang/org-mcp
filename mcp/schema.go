@@ -54,6 +54,10 @@ func NewGenericOneOf[T GenericTaggedUnion[U], U any](value T) GenericOneOf[T, U]
 	return GenericOneOf[T, U]{Value: value}
 }
 
+func (o GenericOneOf[T, U]) GetValue() U {
+	return o.Value.Value()
+}
+
 func (o GenericOneOf[T, U]) GetSchema() map[string]any {
 	oneOfSchemas := make([]any, len(GenericTypes(o.Value)))
 

@@ -1,8 +1,10 @@
 package slice
 
 import (
+	"fmt"
 	"iter"
 	"slices"
+	"strings"
 )
 
 func Any[T any](slice []T, fn func(T) bool) bool {
@@ -17,6 +19,40 @@ func All[T any](slice []T, fn func(T) bool) bool {
 	}
 
 	return true
+}
+
+func Joins(slice []string, with string) string {
+	builder := strings.Builder{}
+
+	if len(slice) == 0 {
+		return ""
+	}
+
+	builder.WriteString(slice[0])
+
+	for _, item := range slice[1:] {
+		builder.WriteString(with)
+		builder.WriteString(item)
+	}
+
+	return builder.String()
+}
+
+func Joinf[T fmt.Stringer](slice []T, with string) string {
+	builder := strings.Builder{}
+
+	if len(slice) == 0 {
+		return ""
+	}
+
+	builder.WriteString(slice[0].String())
+
+	for _, item := range slice[1:] {
+		builder.WriteString(with)
+		builder.WriteString(item.String())
+	}
+
+	return builder.String()
 }
 
 func Chars(str string) iter.Seq[rune] {
@@ -37,6 +73,22 @@ func Map[T any, U any](slice []T, f func(T) U) []U {
 	}
 
 	return result
+}
+
+func TryMap[T any, U any](slice []T, f func(T) (U, error)) ([]U, error) {
+	result := []U{}
+
+	for _, t := range slice {
+		u, err := f(t)
+
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, u)
+	}
+
+	return result, nil
 }
 
 func Reduce[T any, U any](slice []T, f func(U, T) U, acc U) U {

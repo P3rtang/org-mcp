@@ -3,6 +3,7 @@
   :ID: 48524342
   :END:
   The structural rendering fix is now fully operational. This text is added via the unified toolset to verify that plain text is correctly prioritized over sub-headers.
+  * Test bullet for table management
 ** Headers
    :PROPERTIES:
    :ID: 28028254
@@ -783,13 +784,13 @@
    :ID: 51694977
    :END:
    - [ ] CSV quoting broken — ~query_table_tool.go:190~ uses ~strings.Join(row.Items(), ",")~ instead of ~encoding/csv~. Cells containing commas will corrupt output. Design doc (UID ~32788174~) explicitly requires auto-quoting.
-   - [ ] Tool description is wrong — Line 158 says "Executes a SQL query on a table..." but it also supports the ~simple~ method.
-   - [X] ~show_diff~ is meaningless — ~query_table~ is read-only, so writing to disk and showing a diff does nothing. Dead weight in the schema.
+   - [X] Tool description is wrong — Line 158 says "Executes a SQL query on a table..." but it also supports the ~simple~ method.
+   - [x] ~show_diff~ is meaningless — ~query_table~ is read-only, so writing to disk and showing a diff does nothing. Dead weight in the schema.
      * *Answer*: Not true the query_table is technically allowed to do table modification queries.
    - [ ] SQL method untested — ~QueryTableSql~ exists but has zero test coverage.
-   - [ ] Column selection not implemented — ~QueryTableSimple~ has a ~// TODO: support column selection as well~ comment on line 126.
-   - [ ] Neighborhood view not implemented — Should return surrounding rows context instead of just the selected range to save tokens (UID ~17984267.b3~).
-   - [ ] Ragged rows handling unverified — Design says mismatched column counts should be normalized with a warning (UID ~17984267.b6~). Is this actually implemented?
+   - [X] Column selection not implemented — ~QueryTableSimple~ has a ~// TODO: support column selection as well~ comment on line 126.
+   - [x] Neighborhood view not implemented — Should return surrounding rows context instead of just the selected range to save tokens (UID ~17984267.b3~).
+   - [x] Ragged rows handling unverified — Design says mismatched column counts should be normalized with a warning (UID ~17984267.b6~). Is this actually implemented?
    - [ ] Cells with special characters untested — Pipes, commas, newlines inside cells.
    - [ ] Type hints not implemented — Support ~#+TYPE: Name=text,Value=int~ for column type hints enabling proper numeric comparisons (UID ~26174735.b7~).
 * DONE Issue-12 fix: Header corruption when updating text content :issue:12:parsing:text:memory::

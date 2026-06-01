@@ -77,7 +77,7 @@ func NewTableFromReader(r *reader.PeekReader) (t Table, err error) {
 				t.columns = len(items)
 			}
 
-			t.rows = append(t.rows, &ContentRow{items: items[0:t.columns]})
+			t.rows = append(t.rows, &ContentRow{cells: items[0:min(len(items), t.columns)]})
 		} else if strings.HasPrefix(line, "|--") {
 			t.rows = append(t.rows, &DividerRow{})
 		} else if meta, ok := parseNameMetadata(line); ok {
@@ -95,6 +95,8 @@ func NewTableFromReader(r *reader.PeekReader) (t Table, err error) {
 	if errors.Is(err, ErrNotATable) || errors.Is(err, io.EOF) {
 		err = nil
 	}
+
+	t.header = t.rows[0]
 
 	return
 }
