@@ -731,13 +731,13 @@
    - [x] *Decision Resolved: Separator Handling*: Separators are metadata (list of divider indices). DataRows are addressable 0-N. Render logic generates `|---+---|` based on column widths.
    - [x] *Current Infrastructure Update*: `ParseIndentedLine` incorrectly treats `|` as `PlainText`. Integration point: Add `case '|'` to `ParseIndentedLine`.
    * *UID Stability Requirement*: Proposed `parent_uid.tbl[index]` to avoid collision with `.t` (PlainText) and `.b` (Bullet).
-   - [ ] *Decision Branch: Separator Handling*: Determine if separators are addressable rows or metadata. (Current: Under Discussion)
+   - [x] *Decision Branch: Separator Handling*: Determine if separators are addressable rows or metadata. (Current: Under Discussion)
    - [x] *Decision Resolved: Surgical Addressing*: Dedicated `read_table` tool for complex queries (row/col ranges). `manage_table` uses coordinate-based (R,C) addressing to keep queries surgical and token-efficient.
    - [x] *Decision Resolved: Alignment Strategy*: The `Render()` method will *always* auto-format with correct column widths. Correctness and human-readability are prioritized over minimal diff noise.
    - [x] *Decision Resolved: Parsing Fluidity*: `OrgFileFromReader` and `ParseIndentedLine` will both detect `|` as a structural marker. Tables are first-class `Render` nodes, capable of being children of `Header` or `Bullet`.
    - [ ] *Strategic Gap*: `OrgFileFromReader` panics on top-level text. High priority fix.
    - [ ] *Strategic Gap*: `items` map doesn't sync after `add` operations. Fix required for 'Temporary IDs'.
-   - [ ] *Design Decision*: Support `#+NAME` as a stable UID for Tables.
+   - [x] *Design Decision*: Support `#+NAME` as a stable UID for Tables.
    - [x] *Decision Resolved: Naming Stability*: `#+NAME` is the primary UID. If the user changes it, the AI must re-discover it via `query_items`. Not a system-level concern.
 ** Requirement Distillation
    :PROPERTIES:
@@ -746,8 +746,8 @@
    * *Functional*: Reading/Writing Org tables via MCP tools. Support for CSV-style addressing (e.g., `row:1, col:2`).
    * *Technical*: Token optimization — don't return the full table if only one cell is needed. Efficient re-rendering preserving alignments.
    * *Gap Analysis*: Missing `Table` struct, table parser, and `manage_table` tool implementation.
-   - [ ] *Critical Requirement*: `manage_table` must return a "Neighborhood" view (surrounding rows) rather than the full table to save tokens.
-   - [ ] *Critical Requirement*: Table struct must handle "Ragged Rows" (rows with mismatched column counts) gracefully during `Render`.
+   - [x] *Critical Requirement*: `manage_table` must return a "Neighborhood" view (surrounding rows) rather than the full table to save tokens.
+   - [x] *Critical Requirement*: Table struct must handle "Ragged Rows" (rows with mismatched column counts) gracefully during `Render`.
    - [x] *Decision Resolved: Surgical Return*: `manage_table` returns a summary/neighborhood by default. Full table returned only if `show_table: true` is passed.
    - [x] *Decision Resolved: Structural Validation*: Rows with mismatched column counts will be normalized (padded/truncated) during `Render` with a warning returned to the user.
 ** Data & Resource Mapping
@@ -783,16 +783,25 @@
    :PROPERTIES:
    :ID: 51694977
    :END:
-   - [ ] CSV quoting broken — ~query_table_tool.go:190~ uses ~strings.Join(row.Items(), ",")~ instead of ~encoding/csv~. Cells containing commas will corrupt output. Design doc (UID ~32788174~) explicitly requires auto-quoting.
-   - [X] Tool description is wrong — Line 158 says "Executes a SQL query on a table..." but it also supports the ~simple~ method.
+   - [x] CSV quoting broken — ~query_table_tool.go:190~ uses ~strings.Join(row.Items(), ",")~ instead of ~encoding/csv~. Cells containing commas will corrupt output. Design doc (UID ~32788174~) explicitly requires auto-quoting.
+   - [x] Tool description is wrong — Line 158 says "Executes a SQL query on a table..." but it also supports the ~simple~ method.
    - [x] ~show_diff~ is meaningless — ~query_table~ is read-only, so writing to disk and showing a diff does nothing. Dead weight in the schema.
      * *Answer*: Not true the query_table is technically allowed to do table modification queries.
-   - [ ] SQL method untested — ~QueryTableSql~ exists but has zero test coverage.
-   - [X] Column selection not implemented — ~QueryTableSimple~ has a ~// TODO: support column selection as well~ comment on line 126.
+   - [x] SQL method untested — ~QueryTableSql~ exists but has zero test coverage.
+   - [x] Column selection not implemented — ~QueryTableSimple~ has a ~// TODO: support column selection as well~ comment on line 126.
    - [x] Neighborhood view not implemented — Should return surrounding rows context instead of just the selected range to save tokens (UID ~17984267.b3~).
    - [x] Ragged rows handling unverified — Design says mismatched column counts should be normalized with a warning (UID ~17984267.b6~). Is this actually implemented?
-   - [ ] Cells with special characters untested — Pipes, commas, newlines inside cells.
+   - [x] Cells with special characters untested — Pipes, commas, newlines inside cells.
+     - [x] Parser should unescape ~\vert~ / ~\vert{}~ to literal ~|~ in cell content
+     - [x] Update path: when writing a cell with ~|~, render it as ~\vert{}~ (or ~\vert~ at word boundary)
+     - [x] Query output should expose literal ~|~ in CSV cells (no extra escaping needed)
+     - [x] Failing tests already exist in [[tools/test/query_table_special_chars_test.go]]
    - [ ] Type hints not implemented — Support ~#+TYPE: Name=text,Value=int~ for column type hints enabling proper numeric comparisons (UID ~26174735.b7~).
+*** DONE Pipe escaping for table cells
+    CLOSED: [2026-06-01 Mon 16:38]
+    :PROPERTIES:
+    :ID: 23416309
+    :END:
 * DONE Issue-12 fix: Header corruption when updating text content :issue:12:parsing:text:memory::
   CLOSED: [2026-03-28 Sat 15:25]
   :PROPERTIES:

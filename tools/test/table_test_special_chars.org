@@ -1,0 +1,10 @@
+* Header with special characters table
+  :PROPERTIES:
+  :ID: 66666666
+  :END:
+  | Plain  | EscapedPipe   | Comma | Quote  |
+  |--------+---------------+-------+--------|
+  | hello  | a\vert{}b     | x,y   | "q"    |
+  | middle | mid\vert{}end | a,,b  | 'apos' |
+  | end    | trailing\vert | ,,    | "x""y" |
+  #+NAME: special_chars_table

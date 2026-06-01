@@ -6,13 +6,14 @@ import (
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
-func (t *Table) createTableQuery() string {
+func (t *Table) createTableQuery(uid Uid) string {
 	b := strings.Builder{}
 
-	fmt.Fprintf(&b, "CREATE TABLE %s ", t.uid)
+	fmt.Fprintf(&b, "CREATE TABLE \"%s\" ", uid)
 
 	if len(t.rows) == 0 {
 		return ""
@@ -27,10 +28,10 @@ func (t *Table) createTableQuery() string {
 	return b.String()
 }
 
-func (t *Table) populateTableQuery() string {
+func (t *Table) populateTableQuery(uid Uid) string {
 	b := strings.Builder{}
 
-	fmt.Fprintf(&b, "INSERT INTO %s VALUES ", t.uid)
+	fmt.Fprintf(&b, "INSERT INTO \"%s\" VALUES ", uid)
 
 	if len(t.rows) <= 1 {
 		return ""
@@ -61,8 +62,12 @@ func (t *Table) Query(q string) (string, error) {
 		return "", err
 	}
 
-	_, err = db.Exec(t.createTableQuery())
-	_, err = db.Exec(t.populateTableQuery())
+	// Add the table for both the full uid + the short form uid (just table name)
+	// This allows agent to use both without failing and needing to rerun
+	_, err = db.Exec(t.createTableQuery(t.uid))
+	_, err = db.Exec(t.createTableQuery(t.Uid()))
+	_, err = db.Exec(t.populateTableQuery(t.uid))
+	_, err = db.Exec(t.populateTableQuery(t.Uid()))
 
 	// panic(fmt.Sprintf("----------------\n%s\n%s\n---------------------\n", t.createTableQuery(), t.populateTableQuery()))
 

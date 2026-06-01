@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -12,6 +13,11 @@ import (
 )
 
 func TestAutoClosed(t *testing.T) {
+	showDebug := os.Getenv("SHOW_DEBUG")
+	if showDebug == "" {
+		os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
+	}
+
 	of, err := mcp.LoadOrgFile(context.TODO(), "./test.org")
 	if err != nil {
 		t.Fatalf("failed to load org file: %v", err)
