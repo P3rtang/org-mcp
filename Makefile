@@ -1,2 +1,2 @@
 default:
-	go test -v ./...
+	SHOW_DEBUG="" \go test -v ./... -run "TestManageTableOperations"

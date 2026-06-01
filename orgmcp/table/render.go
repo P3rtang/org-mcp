@@ -2,6 +2,7 @@ package table
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -30,6 +31,8 @@ func (t *Table) Render(
 		builder.WriteRune('\n')
 	}
 
+	fmt.Fprintf(os.Stderr, "uid to be printed: %s\n", t.uid)
+
 	fmt.Fprintf(builder, "%s#+NAME: %s\n", indentStr, t.uid)
 }
 
@@ -44,8 +47,15 @@ func (t *Table) Preview(int) string {
 }
 
 func (tr *ContentRow) Render(b *strings.Builder, widths []int) {
-	for i, item := range tr.items {
-		fmt.Fprintf(b, "| %-*s ", widths[i], item)
+	items := tr.Items()
+
+	for i, w := range widths {
+		var item string
+		if len(items) > i {
+			item = items[i]
+		}
+
+		fmt.Fprintf(b, "| %-*s ", w, item)
 	}
 
 	b.WriteRune('|')

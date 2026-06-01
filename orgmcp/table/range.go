@@ -28,12 +28,60 @@ func NewTableRange(str string) result.Result[TableRange] {
 	return result.TryFunc(func() (TableRange, error) { return parsePythonRange(str) })
 }
 
+func NewTableRangeFull(begin int, end int) TableRange {
+	return TableRange{
+		begin: option.Some(begin),
+		end:   option.Some(end),
+	}
+}
+
 func (t *TableRange) UnmarshalText(text []byte) error {
 	r, err := parsePythonRange(string(text))
 	t.begin = r.begin
 	t.end = r.end
 
 	return err
+}
+
+func (t *Table) ApplyColumnSelectors(cs []ColumnSelector) (*Table, error) {
+	if len(cs) == 0 {
+		return t, nil
+	}
+
+	newTable := *t
+	newTable.rows = []TableRow{}
+
+	colIdcs := []int{}
+
+	for _, selector := range cs {
+		cols, err := selector.cols.cols(t)
+
+		if err != nil {
+			return nil, err
+		}
+
+		colIdcs = append(colIdcs, cols...)
+	}
+
+	for _, row := range t.rows {
+		if !row.HasContent() {
+			newTable.rows = append(newTable.rows, row)
+			continue
+		}
+
+		newRow := ContentRow{}
+
+		for _, idx := range colIdcs {
+			newRow.cells = append(newRow.cells, row.Items()[idx])
+		}
+
+		newTable.rows = append(newTable.rows, &newRow)
+	}
+
+	newTable.columns = len(newTable.rows)
+	newTable.header = newTable.rows[0]
+
+	return &newTable, nil
 }
 
 func (t *Table) GetRange(rg TableRange) ([]TableRow, error) {

@@ -65,6 +65,7 @@ This command can be simply run without the "serve" subcommand, as it is the defa
 		server.AddTool(&tools.VectorSearch)
 		server.AddTool(&tools.TextTool)
 		server.AddTool(&tools.QueryTableTool)
+		server.AddTool(&tools.ManageTableTool)
 
 		if err := server.Run(ctx); err != nil {
 			logger.Error(fmt.Sprintf("Server error: %v", err))
