@@ -2,83 +2,117 @@ package reader
 
 import (
 	"bufio"
-	"slices"
+	"bytes"
+	"errors"
+	"io"
 )
 
 type PeekReader struct {
-	Reader *bufio.Reader
-
+	reader     *bufio.Reader
 	peekBuffer []byte
 }
 
 func NewPeekReader(r *bufio.Reader) *PeekReader {
-	return &PeekReader{Reader: r}
+	return &PeekReader{reader: r}
 }
 
 /*
-Continue allows the PeekReader to continue reading from the underlying reader,
-it will continue after any data previously peeked.
+Discard clears the peek buffer so subsequent reads pull fresh data from the
+underlying reader. The underlying reader's read position has already advanced
+past any data returned by PeekBytes or Peek, so the next read will see the
+data that came after the peeked content.
 
 Calling this method multiple times is safe and has no additional effect.
 */
-func (p *PeekReader) Continue() {
+func (p *PeekReader) Discard() {
 	p.peekBuffer = nil
 }
 
-func (p *PeekReader) Peek(n int) (bytes []byte, err error) {
-	if len(p.peekBuffer) == 0 {
-		bytes = make([]byte, n)
+/*
+Peek returns up to n bytes from the stream without advancing the underlying
+reader's position. The data is cached in the internal peek buffer so that
+subsequent PeekBytes or ReadBytes calls see the same content.
 
-		return
+If the stream has fewer than n bytes remaining, the returned slice contains
+whatever is available along with io.EOF.
+*/
+func (p *PeekReader) Peek(n int) ([]byte, error) {
+	if n <= 0 {
+		return nil, nil
 	}
 
-	bytes = make([]byte, n)
-	copy(bytes, p.peekBuffer)
-	_, err = p.Reader.Read(bytes[len(p.peekBuffer):])
-
-	return
-}
-
-func (p *PeekReader) PeekBytes(r byte) (bytes []byte, err error) {
-	idx := slices.Index(p.peekBuffer, r)
-
-	// fmt.Fprintf(os.Stderr, "[INFO] PeekBytes\nPeekbuffer content: %s, found char at idx: %d\n", string(p.peekBuffer), idx)
-
-	if idx >= 0 {
-		bytes = make([]byte, idx)
-		copy(bytes, p.peekBuffer[0:idx])
-
-		return
+	if len(p.peekBuffer) >= n {
+		return p.peekBuffer[:n:n], nil
 	}
 
-	newBytes, err := p.Reader.ReadBytes(r)
-	p.peekBuffer = append(p.peekBuffer, newBytes...)
-	bytes = make([]byte, len(p.peekBuffer))
-	copy(bytes, p.peekBuffer)
+	need := n - len(p.peekBuffer)
+	chunk := make([]byte, need)
+	read, err := io.ReadFull(p.reader, chunk)
+	p.peekBuffer = append(p.peekBuffer, chunk[:read]...)
 
-	// fmt.Fprintf(os.Stderr, "[INFO] PeekBytes\nReturned bytes: %s\n", bytes)
+	if len(p.peekBuffer) >= n {
+		return p.peekBuffer[:n:n], nil
+	}
 
-	return
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		err = io.EOF
+	}
+
+	return p.peekBuffer, err
 }
 
-func (p *PeekReader) ReadBytes(r byte) (bytes []byte, err error) {
-	idx := slices.Index(p.peekBuffer, r)
-	bytes = make([]byte, len(p.peekBuffer))
+/*
+PeekBytes returns the bytes from the current position up to and including
+the first occurrence of delim. The data is cached in the internal peek
+buffer; subsequent PeekBytes calls with the same delim return the same
+content until Discard or ReadBytes is called.
 
-	// fmt.Fprintf(os.Stderr, "[INFO] ReadBytes\nPeekbuffer content: %s, found char at idx: %d\n", string(p.peekBuffer), idx)
+If delim is not found before EOF, the returned slice contains whatever
+bytes remain along with io.EOF.
+*/
+func (p *PeekReader) PeekBytes(delim byte) ([]byte, error) {
+	if idx := bytes.IndexByte(p.peekBuffer, delim); idx >= 0 {
+		return p.peekBuffer[:idx+1 : idx+1], nil
+	}
 
-	if idx >= 0 {
-		copy(bytes, p.peekBuffer[0:idx+1])
+	chunk, err := p.reader.ReadBytes(delim)
+	p.peekBuffer = append(p.peekBuffer, chunk...)
+
+	if idx := bytes.IndexByte(p.peekBuffer, delim); idx >= 0 {
+		return p.peekBuffer[:idx+1 : idx+1], nil
+	}
+
+	return p.peekBuffer, err
+}
+
+/*
+ReadBytes reads until the first occurrence of delim and returns the bytes
+including the delimiter. The consumed bytes are removed from the peek
+buffer; any data in the underlying reader that follows the delimiter
+becomes the new peek buffer for subsequent calls.
+
+If delim is not found before EOF, the returned slice contains whatever
+bytes remain along with io.EOF.
+*/
+func (p *PeekReader) ReadBytes(delim byte) ([]byte, error) {
+	if idx := bytes.IndexByte(p.peekBuffer, delim); idx >= 0 {
+		result := p.peekBuffer[:idx+1 : idx+1]
 		p.peekBuffer = p.peekBuffer[idx+1:]
-
-		return
+		return result, nil
 	}
 
-	copy(bytes, p.peekBuffer)
-	p.peekBuffer = nil
+	var result []byte
+	if len(p.peekBuffer) > 0 {
+		result = p.peekBuffer
+		p.peekBuffer = nil
+	}
 
-	extra, err := p.Reader.ReadBytes(r)
-	bytes = append(bytes, extra...)
+	chunk, err := p.reader.ReadBytes(delim)
+	result = append(result, chunk...)
 
-	return
+	if idx := bytes.IndexByte(result, delim); idx >= 0 {
+		return result[:idx+1 : idx+1], nil
+	}
+
+	return result, err
 }

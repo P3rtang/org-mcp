@@ -61,7 +61,7 @@ func NewTableFromReader(r *reader.PeekReader) (t Table, err error) {
 	}
 
 	if name, ok := parseNameMetadata(string(bytes)); ok {
-		r.Continue()
+		r.Discard()
 		bytes, err = r.PeekBytes('\n')
 
 		if err != nil {
@@ -78,7 +78,7 @@ func NewTableFromReader(r *reader.PeekReader) (t Table, err error) {
 	}
 
 	for ; err == nil && isTableRow(strings.TrimSpace(string(bytes))); bytes, err = r.PeekBytes('\n') {
-		r.Continue()
+		r.Discard()
 
 		line := strings.TrimSpace(string(bytes))
 

@@ -88,13 +88,13 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 		}
 
 		if len(strings.TrimSpace(string(val))) == 0 {
-			peek_reader.Continue()
+			peek_reader.Discard()
 			continue
 		}
 
 		switch val[0] {
 		case '*':
-			peek_reader.Continue()
+			peek_reader.Discard()
 			NewHeaderFromString(string(val), peek_reader).Then(func(h Header) {
 				h.Parent = option.Some(currentParent[h.Level()-1])
 				h.location = current_line
@@ -131,14 +131,14 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 				org_file.items[r.Uid()] = r
 			})
 		default:
-			peek_reader.Continue()
+			peek_reader.Discard()
 			continue
 		}
 	}
 
 	org_file.BuildLocationTable()
 
-	peek_reader.Continue()
+	peek_reader.Discard()
 
 	elapsed := time.Since(startTime)
 
@@ -173,7 +173,7 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 	// fmt.Fprintf(os.Stderr, "Indented: %s\n", string(bytes))
 
 	if len(trimmed) == 0 {
-		r.Continue()
+		r.Discard()
 		return option.Cast[*PlainText, Render](option.Some(&PlainText{content: "", indent: 0}))
 	}
 

@@ -111,7 +111,7 @@ func NewPropertiesFromReader(reader *reader.PeekReader) (p Properties) {
 	// p.indent = strings.Index(string(bytes), ":PROPERTIES:")
 
 	// advance the reader
-	reader.Continue()
+	reader.Discard()
 
 	// TODO: should also parse dates between [...]
 	for bytes, err := reader.ReadBytes('\n'); err == nil && !strings.Contains(string(bytes), ":END:"); bytes, err = reader.ReadBytes('\n') {
