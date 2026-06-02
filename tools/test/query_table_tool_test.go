@@ -9,6 +9,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
 func intoTableOneOfArray[T tools.QueryTableSimple | tools.QueryTableSql](t ...T) []mcp.GenericOneOf[*tools.QueryTableUnion, tools.TableApplicableTool] {

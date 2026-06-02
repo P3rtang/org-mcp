@@ -10,6 +10,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
 func TestHeaderGetMethod(t *testing.T) {

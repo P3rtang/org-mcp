@@ -61,7 +61,7 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 	bullet := Bullet{}
 
 	line, err := r.ReadBytes('\n')
-	// fmt.Fprintf(os.Stderr, "Parsing bullet: %s\n", string(line))
+
 	if err != nil {
 		return o.None[*Bullet]()
 	}
@@ -101,8 +101,6 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 
 func NewBulletFromString(str string) o.Option[Bullet] {
 	bullet := Bullet{}
-
-	// fmt.Fprintf(os.Stderr, "%s\n", str)
 
 	if str[1] != ' ' {
 		return o.None[Bullet]()

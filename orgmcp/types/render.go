@@ -17,6 +17,17 @@ func (r RenderStatus) String() string {
 	return string(r)
 }
 
+type WithChildren interface {
+	AddChildren(...Render) error
+	SetParent(Render) error
+	RemoveChildren(...Uid) error
+	Children() []Render
+	ChildrenRec(depth int) []Render
+	ChildIndentLevel() int
+	Insert(int, Render) error
+	Move(MoveOperation) error
+}
+
 type RenderBase interface {
 	Uid() Uid
 	ParentUid() Uid
@@ -28,15 +39,6 @@ type RenderBase interface {
 	Status() RenderStatus
 	CheckProgress() option.Option[Progress]
 	TagList() TagList
-
-	AddChildren(...Render) error
-	SetParent(Render) error
-	RemoveChildren(...Uid) error
-	Children() []Render
-	ChildrenRec(depth int) []Render
-	ChildIndentLevel() int
-	Insert(int, Render) error
-	Move(MoveOperation) error
 }
 
 type RenderOrg interface {
@@ -52,6 +54,7 @@ type RenderMarkdown interface {
 type Render interface {
 	RenderMarkdown
 	RenderOrg
+	WithChildren
 
 	Preview(length int) string
 }

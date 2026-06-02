@@ -10,6 +10,12 @@ import (
 	"github.com/p3rtang/org-mcp/utils/diff"
 )
 
+const (
+	ITEM_NOT_FOUND = "Uid %s was not found."
+	WRONG_TYPE     = "Uid %s is not a %s, but %s."
+	EMPTY_CONTEXT  = "%s was not found in context. This is a bug, please report."
+)
+
 // GetDiffOnly renders the OrgFile and returns a diff against the current disk content
 // without modifying the file on disk.
 func GetDiffOnly(of orgmcp.OrgFile, filePath string) (res string, err error) {

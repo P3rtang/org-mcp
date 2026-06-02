@@ -89,6 +89,14 @@ func (o Option[T]) UnwrapOr(t T) T {
 	return o.value
 }
 
+func (o Option[T]) UnwrapOrDefault() (t T) {
+	if o.IsSome() {
+		t = o.value
+	}
+
+	return
+}
+
 func (o Option[T]) UnwrapOrElse(fn func() T) T {
 	if o.IsNone() {
 		return fn()
@@ -123,6 +131,14 @@ func (o Option[T]) AndThen(fn func(T) bool) bool {
 	}
 
 	return fn(o.value)
+}
+
+func (o Option[T]) OkOr(e error) (t T, err error) {
+	if o.IsNone() {
+		return t, e
+	}
+
+	return t, nil
 }
 
 /*

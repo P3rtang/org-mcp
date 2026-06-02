@@ -103,7 +103,5 @@ func (t *Table) Query(q string) (string, error) {
 		csvB.WriteRune('\n')
 	}
 
-	fmt.Println(csvB.String())
-
 	return csvB.String(), nil
 }
