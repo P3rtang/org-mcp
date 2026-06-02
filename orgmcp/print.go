@@ -26,6 +26,8 @@ const (
 	ColScheduled     Column = "SCHEDULED"
 	ColDeadline      Column = "DEADLINE"
 	ColClosed        Column = "CLOSED"
+	// used only for code blocks
+	ColLanguage Column = "LANGUAGE"
 )
 
 var (
@@ -43,6 +45,7 @@ var (
 	ColScheduledValue     = ColScheduled
 	ColDeadlineValue      = ColDeadline
 	ColClosedValue        = ColClosed
+	ColLanguageValue      = ColLanguage
 )
 
 var AllColumns = []Column{
@@ -60,6 +63,7 @@ var AllColumns = []Column{
 	ColScheduled,
 	ColDeadline,
 	ColClosed,
+	ColLanguage,
 }
 
 var AllColumnsStr = strings.Join(slice.Map(AllColumns, func(c Column) string { return c.String() }), ", ")
@@ -132,6 +136,11 @@ func (c Column) Value(r Render, quoteChars string) (val string) {
 					val = date.T.Format("2006-01-02")
 				}
 			}
+		}
+
+	case ColLanguage:
+		if code_block, ok := r.(*CodeBlock); ok && code_block.Language().IsSome() {
+			val = code_block.Language().Unwrap()
 		}
 	}
 

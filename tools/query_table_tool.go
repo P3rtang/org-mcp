@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 
@@ -184,7 +183,6 @@ var QueryTableTool = mcp.GenericTool[QueryTableInput]{
 				builder := strings.Builder{}
 
 				if !input.HideTypes && res.types != "" {
-					fmt.Fprintf(os.Stderr, "hide_types: %v\n", input.HideTypes)
 					builder.WriteString("#+TYPE: " + res.types + "\n")
 				}
 

@@ -508,7 +508,7 @@
     - [ ] Create ~export_to_notion~ MCP tool.
     - [ ] Implement unit tests for the block converter.
     - [ ] Integration tests with a test Notion workspace.
-** PROG Tool Design & AI UX Improvements [3/13] :ux:ui:design:
+** PROG Tool Design & AI UX Improvements [4/13] :ux:ui:design:
    :PROPERTIES:
    :ID: 30384709
    :END:
@@ -571,7 +571,8 @@
     - [ ] *Decision Resolved: Temporary UIDs (AI-Specified)*: AI can specify a `temp_uid` (e.g., `temp:new-header`) in an `add` operation. This ID is registered in the in-memory `items` map immediately, allowing subsequent operations in the same call to reference it. Not persisted to disk.
     * *Technical Design: Temporary IDs (AI-Only)*: Implement `temp:[random]` prefix for in-memory-only addressing. UIDs are valid only for the duration of a single `tools/call` JSON-RPC execution.
     * *Implementation*: `OrgFile.RegisterTemp(Render) Uid` will be called during `AddChildren`. `GetUid` will resolve both stable and `temp:` prefixed IDs.
-*** TODO Issue-18 feat: Implement oneOf/Discriminated Union schema generation for strict AI tool schemas :issue:18:schema:mcp:ai::
+*** DONE Issue-18 feat: Implement oneOf/Discriminated Union schema generation for strict AI tool schemas :issue:18:schema:mcp:ai::
+    CLOSED: [2026-06-01 Mon 18:19]
     :PROPERTIES:
     :ID: 40413358
     :END:
@@ -615,108 +616,57 @@
   * Reproduction Branch**: ~repro/bullet-child-parsing~
   * Context**: Source UID ~99998891.b0.t0~ in ~tools/test/test.org~.
   [[https://github.com/P3rtang/org-mcp/issues/10]]
-* TODO Issue-3 fix: Ignore code block tokens when parsing :issue:3:parsing:
+* TODO Issue-3: Code Block Support :issue:3:parsing:
   :PROPERTIES:
   :ID: 10910806
   :END:
-** TODO Problem Description
+** References
    :PROPERTIES:
-   :ID: 29710607
+   :ID: 86160116
    :END:
-   * Code blocks delimited by `#+BEGIN_SRC` and `#+END_SRC` contain lines beginning with `*` or `-` that are incorrectly parsed as Org-mode headers and bullets.
-   * Example JavaScript code block that triggers the bug:
-   #+BEGIN_SRC javascript
-   \**
-   #+END_SRC
-   * The line `* Comment here` inside the JavaScript doc comment is being parsed as a Header because lines starting with `*` are treated as headers.
-   * This affects any multi-line comment (JSDoc, block comments, etc.) containing asterisk-prefixed lines.
-** TODO Root Cause Analysis
+   - GitHub Issue: [[https://github.com/P3rtang/org-mcp/issues/3]]
+** Phase 1: Code Block Parsing
    :PROPERTIES:
-   :ID: 52577647
+   :ID: 61171980
    :END:
-   * The parser in `orgmcp/file.go` has no concept of code block boundaries.
-   * Location 1: `OrgFileFromReader` function (lines 81-84) - lines starting with `*` are always treated as headers:
-   * Both parsing paths check the first character without considering whether we're inside a code block.
-** TODO Current Behavior
+   - [ ] Parser state tracking — `inCodeBlock bool` flag in `OrgFileFromReader` loop
+   - [ ] Detect `# +BEGIN_SRC` / `# +END_SRC` boundaries before main switch
+   - [ ] Route content during code block as PlainText (not header/bullet)
+   - [ ] Support multiple block types: SRC, EXAMPLE, LATEX, HTML, JSON, etc.
+   - [ ] Preserve language identifier after `# +BEGIN_SRC`
+   - [ ] Preserve header arguments (`:exports`, `:results`, `:dir`, etc.)
+   - [ ] Dedicated `CodeBlock` struct implementing `Render` interface
+   - [ ] UID construction — `#+NAME:` if present, else position-based (`parent.c0.c1`)
+   - [ ] Unit tests for parsing code blocks with `*` and `-` inside
+   - [ ] Inline src blocks (`src_lang{expr}`) — single-line evaluation
+   - [ ] Dedent content — remove leading indentation matching block start
+** Phase 2: Code Block Tools
    :PROPERTIES:
-   :ID: 23717333
+   :ID: 67472037
    :END:
-   * Input: `#+BEGIN_SRC javascript` → Code block start ✓
-   * Input: `/**` → Plain text ✓
-   * Input: `* Comment here` → **Header parsed** ✗ (should be PlainText)
-   * Input: `*/` → Plain text ✓
-   * Input: `#+END_SRC` → Code block end ✓
-   * Same issue applies to `-` lines inside code blocks being parsed as bullets.
-** TODO Expected Behavior
+   - [ ] `query_codeblock` — SQL-powered querying (SELECT, FILTER, etc.)
+   - [ ] Filter by LANGUAGE column (e.g., `WHERE language = 'python'`)
+   - [ ] Filter by NAME (e.g., `WHERE name = 'process-data'`)
+   - [ ] `manage_codeblock` — insert, update, delete code blocks
+   - [ ] Metadata columns: UID, PREVIEW, LANGUAGE, NAME, HEADERS (JSON), LINE_START, LINE_END, PARENT
+   - [ ] Both short UID (`my-block`) and full UID (`parentUid.my-block`) work in queries
+** Phase 3: Code Block Execution
    :PROPERTIES:
-   :ID: 70408833
+   :ID: 62645575
    :END:
-   * All content inside code blocks should be treated as PlainText - no structural parsing of `*` or `-` characters.
-   * Code block delimiters (`#+BEGIN_SRC`, `#+END_SRC`) should be parsed but their content should not be structurally interpreted.
-   * Lines like `* Comment here` or `- item` inside code blocks should render as plain text content, not as Org syntax.
-** TODO Implementation Strategy
+   - [ ] Execute code block — run language interpreter, capture stdout/stderr
+   - [ ] Store results inline (`:results` drawer) or as output file
+   - [ ] Support `:dir` header arg for working directory
+   - [ ] Support `:session` header arg (reuse interpreter session)
+   - [ ] Playwright test execution as a use case
+   - [ ] Inline src evaluation — `src_lang{expr}` syntax
+** Phase 4: Validation (ESLint etc.)
    :PROPERTIES:
-   :ID: 83724867
+   :ID: 51918927
    :END:
-*** TODO Step 1: Add State Tracking
-    :PROPERTIES:
-    :ID: 11850239
-    :END:
-    * Add `inCodeBlock bool` variable in the parsing loop of `OrgFileFromReader`
-    * Initialize to `false` before the main parsing loop
-    * This flag tracks whether we are currently inside a code block
-*** TODO Step 2: Detect Code Block Boundaries
-    :PROPERTIES:
-    :ID: 41471814
-    :END:
-    * When line matches `strings.HasPrefix(trimmed, "#+BEGIN_SRC")` pattern, set `inCodeBlock = true`
-    * When line matches `strings.HasPrefix(trimmed, "#+END_SRC")` pattern, set `inCodeBlock = false`
-    * Detection should happen before the main `switch val[0]` statement
-    * May want to use regex for more robust matching of the pattern (e.g., `^#\+BEGIN_SRC(\s+\w+)?$`)
-*** TODO Step 3: Route Content During Code Block
-    :PROPERTIES:
-    :ID: 87577954
-    :END:
-    * When `inCodeBlock == true`, do not route to header parsing (`case '*':`) or bullet parsing
-    * Instead, read the entire line as PlainText using `NewPlainTextFromReader`
-    * This ensures `*` and `-` characters inside code blocks are treated as content, not syntax
-    * The `#+END_SRC` line itself should be consumed and set `inCodeBlock = false`
-*** TODO Step 4: Unit Testing
-    :PROPERTIES:
-    :ID: 23800753
-    :END:
-    * Create a test file (e.g., `test/files/code_block.org`) with various code block scenarios
-    * Test case 1: JavaScript doc comment with `*` inside
-    * Test case 2: Python block comment with `-` inside
-    * Test case 3: Nested code blocks (if supported)
-    * Test case 4: Code block at different indentation levels
-    * Verify that UIDs of code block content are stable and not treated as headers/bullets
-** TODO Additional Considerations
-   :PROPERTIES:
-   :ID: 24953880
-   :END:
-   * Code blocks can appear at different indentation levels (inside headers, inside bullets)
-   * Consider support for other code block syntax: `#+BEGIN_EXAMPLE`, `#+BEGIN_QUOTE`
-   * Language identifier after `#+BEGIN_SRC` should be preserved but not affect parsing
-   * Inline code blocks (`~code~`) should NOT be affected - these are single-line
-   * Consider adding a dedicated `CodeBlock` struct that implements `Render` for more granular control
-** TODO Reproduction
-   :PROPERTIES:
-   :ID: 56246343
-   :END:
-   * Create test file `test/files/code_block.org`:
-   * * Header\n  #+BEGIN_SRC javascript\n  /**\n  * Comment here\n  */\n  #+END_SRC
-   * Run: `go test -v ./tools/test/... -run TestCodeBlock`
-   * Expected: Only one header (UID for `* Header`). The `* Comment here` line should be PlainText under the code block, not a header.
-   * Current Bug: Two headers are created - one for `* Header` and one for `* Comment here`
-** TODO References
-   :PROPERTIES:
-   :ID: 49614697
-   :END:
-   * GitHub Issue: [[https://github.com/P3rtang/org-mcp/issues/3]]
-   * Source file: `orgmcp/file.go`, function `OrgFileFromReader` (lines 45-152)
-   * Source file: `orgmcp/file.go`, function `ParseIndentedLine` (lines 154-187)
-   * Related: Issue-10 (bullet parsing), Issue-12 (header corruption) for similar parsing edge cases
+   - [ ] Language-specific linters (ESLint, Pylint, ShellCheck, etc.)
+   - [ ] Results stored as structured annotations in the Org file
+   - [ ] Error highlighting with line references
 * DONE Issue-11 feat: Table Support :issue:11:table:parsing:memory:
   CLOSED: [2026-06-01 Mon 18:16]
   :PROPERTIES:

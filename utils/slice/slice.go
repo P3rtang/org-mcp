@@ -91,6 +91,16 @@ func TryMap[T any, U any](slice []T, f func(T) (U, error)) ([]U, error) {
 	return result, nil
 }
 
+func KeyValueIter[T any, K comparable, V any](slice []T, getKey func(T) K, getValue func(T) V) iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, t := range slice {
+			if !yield(getKey(t), getValue(t)) {
+				return
+			}
+		}
+	}
+}
+
 func Reduce[T any, U any](slice []T, f func(U, T) U, acc U) U {
 	for _, t := range slice {
 		acc = f(acc, t)
@@ -116,4 +126,13 @@ func Ref[T any](slice []T) []*T {
 	}
 
 	return result
+}
+
+func Extend[T any](slice []T, to int) []T {
+	var zero T
+	for len(slice) < to {
+		slice = append(slice, zero)
+	}
+
+	return slice
 }

@@ -1,0 +1,62 @@
+* Code block parsing test
+  :PROPERTIES:
+  :ID: 11111111
+  :END:
+* Header with src block
+  :PROPERTIES:
+  :ID: 22222222
+  :END:
+  #+BEGIN_SRC javascript :exports both :results output
+  /**
+  function add(a, b) {
+  }
+  console.log(add(1, 2));
+  #+END_SRC
+* Header with example block
+  :PROPERTIES:
+  :ID: 33333333
+  :END:
+  #+BEGIN_EXAMPLE
+  This is example text
+  - with a dash
+  * and a star
+  #+END_EXAMPLE
+* Header with named code block
+  :PROPERTIES:
+  :ID: 44444444
+  :END:
+  #+BEGIN_SRC python :results output
+  def greet(name):
+  print(greet("World"))
+  #+END_SRC
+* Header with multiple code blocks
+  :PROPERTIES:
+  :ID: 55555555
+  :END:
+  First code block:
+  #+BEGIN_SRC go
+  package main
+  import "fmt"
+  func main() {
+  }
+  #+END_SRC
+  Second code block:
+  #+BEGIN_SRC bash
+  #!/bin/bash
+  echo "hello"
+  ls -la
+  #+END_SRC
+* Header with named and unnamed blocks
+  :PROPERTIES:
+  :ID: 66666666
+  :END:
+  Unnamed python:
+  #+BEGIN_SRC python
+  x = 1
+  y = 2
+  print(x + y)
+  #+END_SRC
+  #+BEGIN_SRC rust
+  fn main() {
+  }
+  #+END_SRC

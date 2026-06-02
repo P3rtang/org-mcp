@@ -10,6 +10,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
 const specialCharsTablePath = "./table_test_special_chars.org"
