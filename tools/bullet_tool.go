@@ -73,6 +73,7 @@ type BulletInputAdd struct {
 	Parent   string `json:"parent" jsonschema:"description=UID of the parent header or bullet under which to add the new bullet point."`
 	Content  string `json:"content" jsonschema:"description=Text content of the new bullet point."`
 	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
+	Status   string `json:"status,omitempty" jsonschema:"description=Alias for Checkbox will be ingored if Checkbox has a value.,enum=None;Uncheked;Checked"`
 }
 
 func (b *BulletInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
@@ -84,8 +85,27 @@ func (b *BulletInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res App
 		return
 	}
 
-	bullet := orgmcp.NewBullet(parent, orgmcp.NewBulletStatus(b.Checkbox))
+	bullet := orgmcp.NewBullet(parent, orgmcp.NewBulletStatus(b.Status))
+	
 	bullet.SetContent(b.Content)
+	if b.Checkbox != "" || b.Status != "" {
+		s := b.Status
+		if b.Status != "" {
+			s = b.Checkbox
+		}
+		
+		switch strings.ToLower(s) {
+		case "none":
+			bullet.SetCheckbox(orgmcp.NoCheck)
+		case "unchecked":
+			bullet.SetCheckbox(orgmcp.Unchecked)
+		case "checked":
+			bullet.SetCheckbox(orgmcp.Checked)
+		default:
+			res.err = fmt.Errorf("invalid checkbox value: %s", s)
+			return
+		}
+	}
 
 	res.affectedItems[bullet.Uid()] = bullet
 
@@ -97,6 +117,7 @@ type BulletInputUpdate struct {
 	Uid      string `json:"uid" jsonschema:"description=UID of the bullet point to modify.,required=true"`
 	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
 	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the bullet.,enum=None;Unchecked;Checked"`
+	Status   string `json:"status,omitempty" jsonschema:"description=Alias for Checkbox will be ingored if Checkbox has a value.,enum=None;Uncheked;Checked"`
 }
 
 func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
@@ -118,13 +139,18 @@ func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 		bullet.SetContent(b.Content)
 	}
 
-	if b.Checkbox != "" {
-		switch b.Checkbox {
-		case "None":
+	if b.Checkbox != "" || b.Status != "" {
+		s := b.Status
+		if b.Status != "" {
+			s = b.Checkbox
+		}
+		
+		switch strings.ToLower(s) {
+		case "none":
 			bullet.SetCheckbox(orgmcp.NoCheck)
-		case "Unchecked":
+		case "unchecked":
 			bullet.SetCheckbox(orgmcp.Unchecked)
-		case "Checked":
+		case "checked":
 			bullet.SetCheckbox(orgmcp.Checked)
 		default:
 			res.err = fmt.Errorf("invalid checkbox value: %s", b.Checkbox)
