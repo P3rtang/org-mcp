@@ -33,19 +33,19 @@ type CodeBlockApplyResult struct {
 type ManageCodeBlockInputUnion struct {
 	tag string
 
-	add    AddCodeBlock
-	update UpdateCodeBlock
-	remove RemoveCodeBlock
+	Add    AddCodeBlock
+	Update UpdateCodeBlock
+	Remove RemoveCodeBlock
 }
 
 func NewManageCodeBlockInputUnion[T AddCodeBlock | UpdateCodeBlock | RemoveCodeBlock](t T) *ManageCodeBlockInputUnion {
 	switch any(t).(type) {
 	case AddCodeBlock:
-		return &ManageCodeBlockInputUnion{tag: "add", add: any(t).(AddCodeBlock)}
+		return &ManageCodeBlockInputUnion{tag: "add", Add: any(t).(AddCodeBlock)}
 	case UpdateCodeBlock:
-		return &ManageCodeBlockInputUnion{tag: "update", update: any(t).(UpdateCodeBlock)}
+		return &ManageCodeBlockInputUnion{tag: "update", Update: any(t).(UpdateCodeBlock)}
 	case RemoveCodeBlock:
-		return &ManageCodeBlockInputUnion{tag: "remove", remove: any(t).(RemoveCodeBlock)}
+		return &ManageCodeBlockInputUnion{tag: "remove", Remove: any(t).(RemoveCodeBlock)}
 	default:
 		panic("unreachable")
 	}
@@ -56,11 +56,11 @@ func (mcb *ManageCodeBlockInputUnion) Tag() string { return mcb.tag }
 func (mcb *ManageCodeBlockInputUnion) Value() CodeBlockApplicableTool {
 	switch mcb.Tag() {
 	case "add":
-		return mcb.add
+		return mcb.Add
 	case "update":
-		return mcb.update
+		return mcb.Update
 	case "remove":
-		return mcb.remove
+		return mcb.Remove
 	default:
 		panic("unreachable")
 	}
@@ -78,13 +78,13 @@ func (mcb *ManageCodeBlockInputUnion) FromJSON(data []byte) error {
 	switch temp.Method {
 	case "add":
 		mcb.tag = "add"
-		return json.Unmarshal(data, &mcb.add)
+		return json.Unmarshal(data, &mcb.Add)
 	case "update":
 		mcb.tag = "update"
-		return json.Unmarshal(data, &mcb.update)
+		return json.Unmarshal(data, &mcb.Update)
 	case "remove":
 		mcb.tag = "remove"
-		return json.Unmarshal(data, &mcb.remove)
+		return json.Unmarshal(data, &mcb.Remove)
 	default:
 		return fmt.Errorf("invalid method for table operation: %s", temp.Method)
 	}
@@ -100,10 +100,10 @@ type ManageCodeBlockInput struct {
 
 type AddCodeBlock struct {
 	Method string `json:"method" jsonschema:"enum=add,required=true"`
-	Parent Uid    `json:"parent" jsonschema:"description=UID of the parent header or bullet under which to add the new bullet point."`
+	Parent Uid    `json:"parent" jsonschema:"description=UID of the parent header or bullet under which to add the new code block."`
 
-	Name     string `json:"name,omitempty" jsonschema:"description=Give the code block a custom name; this will function as the uid as well. If it is not unique within the file it will get a suffix."`
-	Language string `json:"lang,omitempty" jsonschema:"description=Then code language used in the code block. Can be left empty to make a generic code block with not special formatting or execution."`
+	Name     string `json:"name,omitempty" jsonschema:"description=Give the code block a custom name; Serves as both the name and the uid if specified, otherwise a numeric index based uid will be used for future method calls. If it is not unique within the file it will get a suffix."`
+	Language string `json:"lang,omitempty" jsonschema:"description=The code language used in the code block. Can be left empty to make a generic code block with not special formatting or execution."`
 	Content  string `json:"content" jsonschema:"description=Text content of the new code block."`
 }
 
@@ -141,12 +141,12 @@ func (a AddCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 }
 
 type UpdateCodeBlock struct {
-	Method string `json:"method" jsonschema:"enum=update,required=true"`
-	Uid    Uid    `json:"parent" jsonschema:"description=UID of the parent header or bullet under which to add the new bullet point."`
+	Method string `json:"method" jsonschema:"description=All fields in the update method are optional and only fields explicitly set will be updated.,enum=update,required=true"`
+	Uid    Uid    `json:"uid" jsonschema:"description=UID of the CodeBlock to edit."`
 
-	Name     string `json:"name,omitempty" jsonschema:"description=Give the code block a custom name; this will function as the uid as well. If it is not unique within the file it will get a suffix."`
-	Language string `json:"lang,omitempty" jsonschema:"description=Then code language used in the code block. Can be left empty to make a generic code block with not special formatting or execution."`
-	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the new code block."`
+	Name     string `json:"name,omitempty" jsonschema:"description=Update the name of the code block; when setting the name it will also change the uid of this code block. If it is not unique within the file it will get a suffix."`
+	Language string `json:"lang,omitempty" jsonschema:"description=The code language used in the code block. Can be left empty to make a generic code block with not special formatting or execution."`
+	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the code block."`
 }
 
 func (u UpdateCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
@@ -185,8 +185,8 @@ func (u UpdateCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 }
 
 type RemoveCodeBlock struct {
-	Method string `json:"method" jsonschema:"enum=update,required=true"`
-	Uid    Uid    `json:"parent" jsonschema:"description=UID of the parent header or bullet under which to add the new bullet point."`
+	Method string `json:"method" jsonschema:"enum=remove,required=true"`
+	Uid    Uid    `json:"uid" jsonschema:"description=UID of the CodeBlock to remove."`
 }
 
 func (r RemoveCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
@@ -215,8 +215,8 @@ func (r RemoveCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 }
 
 var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
-	Name:        "manage_table",
-	Description: "Add, update or remove rows in a table within an Org file.",
+	Name:        "manage_codeblock",
+	Description: "Add, update or remove a codeblock item in the org file. Codeblocks are mostly just decorators for raw text blocks at the moment, but do include a name and or a language tag.",
 	Callback: func(ctx context.Context, input ManageCodeBlockInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {

@@ -18,6 +18,9 @@
   import json
   data = {"key": "value"}
   print(json.dumps(data))
+  
+  def greet:
+    print("hello")
   #+END_SRC
 * Go service
   :PROPERTIES:

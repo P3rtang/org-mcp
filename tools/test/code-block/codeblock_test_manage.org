@@ -2,12 +2,10 @@
   :PROPERTIES:
   :ID: 11111111
   :END:
-
   Initial code block:
   #+BEGIN_SRC python
   print("hello")
   #+END_SRC
-
 * Second header
   :PROPERTIES:
   :ID: 22222222
