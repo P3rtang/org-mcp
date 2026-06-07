@@ -91,7 +91,7 @@ func (b *BulletInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res App
 	bullet.SetContent(b.Content)
 	if b.Checkbox != "" || b.Status != "" {
 		s := b.Status
-		if b.Status != "" {
+		if b.Checkbox != "" {
 			s = b.Checkbox
 		}
 
@@ -142,7 +142,7 @@ func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 
 	if b.Checkbox != "" || b.Status != "" {
 		s := b.Status
-		if b.Status != "" {
+		if b.Checkbox != "" {
 			s = b.Checkbox
 		}
 
