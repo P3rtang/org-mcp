@@ -6,11 +6,11 @@
   :PROPERTIES:
   :ID: 22222222
   :END:
-  #+BEGIN_SRC javascript :exports both :results output
+  #+BEGIN_SRC javascript
   /**
   function add(a, b) {
+      console.log(add(1, 2));
   }
-  console.log(add(1, 2));
   #+END_SRC
 * Header with example block
   :PROPERTIES:
@@ -25,9 +25,9 @@
   :PROPERTIES:
   :ID: 44444444
   :END:
-  #+BEGIN_SRC python :results output
+  #+BEGIN_SRC python
   def greet(name):
-  print(greet("World"))
+      print(greet("World"))
   #+END_SRC
 * Header with multiple code blocks
   :PROPERTIES:

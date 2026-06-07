@@ -87,7 +87,7 @@ func TestQueryItemsCodeBlocks(t *testing.T) {
 				Path: CODE_BLOCK_QUERY_TEST_PATH,
 			},
 			expected: []any{
-				`UID,TYPE\n33333333.http_handler,*orgmcp.codeblock.CodeBlock`,
+				`UID,TYPE\n33333333.http_handler,*codeblock.CodeBlock`,
 			},
 		},
 		{
@@ -105,7 +105,7 @@ func TestQueryItemsCodeBlocks(t *testing.T) {
 				Path: CODE_BLOCK_QUERY_TEST_PATH,
 			},
 			expected: []any{
-				`UID\n33333333.c1`,
+				`UID\n33333333.c0`,
 			},
 		},
 		{

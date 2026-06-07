@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"os"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -124,9 +126,9 @@ func (a AddCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 
 	var lang option.Option[string]
 	if strings.TrimSpace(a.Language) == "" {
-		name = option.None[string]()
+		lang = option.None[string]()
 	} else {
-		name = option.Some(a.Language)
+		lang = option.Some(a.Language)
 	}
 
 	code_block := codeblock.NewCodeBlock(a.Content, name, lang)
@@ -144,11 +146,42 @@ type UpdateCodeBlock struct {
 
 	Name     string `json:"name,omitempty" jsonschema:"description=Give the code block a custom name; this will function as the uid as well. If it is not unique within the file it will get a suffix."`
 	Language string `json:"lang,omitempty" jsonschema:"description=Then code language used in the code block. Can be left empty to make a generic code block with not special formatting or execution."`
-	Content  string `json:"content" jsonschema:"description=Text content of the new code block."`
+	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the new code block."`
 }
 
 func (u UpdateCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
-	panic("NOT IMPLEMENTED YET")
+	var of *orgmcp.OrgFile
+	of, res.err = orgmcp.OrgFileFromContext(ctx).OkOr(fmt.Errorf(EMPTY_CONTEXT, "orgfile"))
+	if res.err != nil {
+		return
+	}
+
+	var item Render
+	item, res.err = of.GetUid(u.Uid).OkOr(fmt.Errorf(ITEM_NOT_FOUND, u.Uid))
+
+	if res.err != nil {
+		return
+	}
+
+	if code_block, ok := item.(*codeblock.CodeBlock); ok {
+		if u.Content != "" {
+			code_block.SetContent(u.Content)
+		}
+
+		if u.Language != "" {
+			code_block.SetLanguage(u.Language)
+		}
+
+		if u.Name != "" {
+			code_block.SetName(u.Name)
+		}
+
+		res.affected = append(res.affected, code_block)
+	} else {
+		res.err = fmt.Errorf(WRONG_TYPE, u.Uid, "CodeBlock", reflect.TypeOf(item))
+	}
+
+	return
 }
 
 type RemoveCodeBlock struct {
@@ -157,7 +190,28 @@ type RemoveCodeBlock struct {
 }
 
 func (r RemoveCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
-	panic("NOT IMPLEMENTED YET")
+	var of *orgmcp.OrgFile
+	of, res.err = orgmcp.OrgFileFromContext(ctx).OkOr(fmt.Errorf(EMPTY_CONTEXT, "orgfile"))
+	if res.err != nil {
+		return
+	}
+
+	var item Render
+	item, res.err = of.GetUid(r.Uid).OkOr(fmt.Errorf(ITEM_NOT_FOUND, r.Uid))
+
+	if res.err != nil {
+		return
+	}
+
+	var parent Render
+	parent, res.err = of.GetUid(item.ParentUid()).OkOr(fmt.Errorf(PARENT_NOT_FOUND, r.Uid))
+	if res.err != nil {
+		return
+	}
+
+	res.err = parent.RemoveChildren(r.Uid)
+
+	return
 }
 
 var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
@@ -174,7 +228,7 @@ var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
 		orgFile, err := mcp.LoadOrgFile(ctx, path)
 		ctx = orgFile.OrgFileToContext(ctx)
 		if err != nil {
-			return
+			return resp, err
 		}
 
 		affectedMap := map[Uid]Render{}
@@ -183,7 +237,7 @@ var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
 			res := item.GetValue().Apply(ctx)
 
 			if res.err != nil {
-				resp = append(resp, err)
+				resp = append(resp, res.err)
 				continue
 			}
 
@@ -194,8 +248,20 @@ var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
 			))
 		}
 
-		if !input.HideAffected {
+		if !input.HideAffected && len(affectedMap) > 0 {
+			if len(input.Columns) == 0 {
+				input.Columns = append(input.Columns, &orgmcp.ColUidValue, &orgmcp.ColPreviewValue)
+			}
+
+			fmt.Fprintf(os.Stderr, "%#v", affectedMap)
 			resp = append(resp, orgmcp.PrintCsv(slices.Collect(maps.Values(affectedMap)), input.Columns))
+		}
+
+		var diff string
+		diff, err = mcp.WriteOrgFileToDisk(ctx, orgFile, path)
+
+		if input.ShowDiff {
+			resp = append(resp, diff)
 		}
 
 		return

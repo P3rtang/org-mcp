@@ -87,14 +87,14 @@ func (b *BulletInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res App
 	}
 
 	bullet := orgmcp.NewBullet(parent, orgmcp.NewBulletStatus(b.Status))
-	
+
 	bullet.SetContent(b.Content)
 	if b.Checkbox != "" || b.Status != "" {
 		s := b.Status
 		if b.Status != "" {
 			s = b.Checkbox
 		}
-		
+
 		switch strings.ToLower(s) {
 		case "none":
 			bullet.SetCheckbox(orgmcp.NoCheck)
@@ -145,7 +145,7 @@ func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 		if b.Status != "" {
 			s = b.Checkbox
 		}
-		
+
 		switch strings.ToLower(s) {
 		case "none":
 			bullet.SetCheckbox(orgmcp.NoCheck)
@@ -250,6 +250,10 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 		slices.SortFunc(ordered, func(a, b Render) int {
 			return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 		})
+
+		if len(input.Columns) == 0 {
+			input.Columns = append(input.Columns, &orgmcp.ColUidValue, &orgmcp.ColPreviewValue)
+		}
 
 		resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
 		resp = append(resp, map[string]any{

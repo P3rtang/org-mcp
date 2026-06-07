@@ -72,14 +72,14 @@ bytes remain along with io.EOF.
 */
 func (p *PeekReader) PeekBytes(delim byte) ([]byte, error) {
 	if idx := bytes.IndexByte(p.peekBuffer, delim); idx >= 0 {
-		return p.peekBuffer[:idx+1 : idx+1], nil
+		return p.peekBuffer[: idx+1 : idx+1], nil
 	}
 
 	chunk, err := p.reader.ReadBytes(delim)
 	p.peekBuffer = append(p.peekBuffer, chunk...)
 
 	if idx := bytes.IndexByte(p.peekBuffer, delim); idx >= 0 {
-		return p.peekBuffer[:idx+1 : idx+1], nil
+		return p.peekBuffer[: idx+1 : idx+1], nil
 	}
 
 	return p.peekBuffer, err
@@ -96,7 +96,7 @@ bytes remain along with io.EOF.
 */
 func (p *PeekReader) ReadBytes(delim byte) ([]byte, error) {
 	if idx := bytes.IndexByte(p.peekBuffer, delim); idx >= 0 {
-		result := p.peekBuffer[:idx+1 : idx+1]
+		result := p.peekBuffer[: idx+1 : idx+1]
 		p.peekBuffer = p.peekBuffer[idx+1:]
 		return result, nil
 	}
@@ -108,10 +108,14 @@ func (p *PeekReader) ReadBytes(delim byte) ([]byte, error) {
 	}
 
 	chunk, err := p.reader.ReadBytes(delim)
+	if err != nil {
+		return chunk, err
+	}
+
 	result = append(result, chunk...)
 
 	if idx := bytes.IndexByte(result, delim); idx >= 0 {
-		return result[:idx+1 : idx+1], nil
+		return result[: idx+1 : idx+1], nil
 	}
 
 	return result, err

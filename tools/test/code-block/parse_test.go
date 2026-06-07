@@ -103,22 +103,22 @@ func TestParseCodeBlock(t *testing.T) {
 		},
 		{
 			name:       "FirstCodeBlockUnder55555555Exists",
-			uid:        "55555555.c0",
-			wantExists: true,
-		},
-		{
-			name:       "SecondCodeBlockUnder55555555Exists",
 			uid:        "55555555.c1",
 			wantExists: true,
 		},
 		{
+			name:       "SecondCodeBlockUnder55555555Exists",
+			uid:        "55555555.c3",
+			wantExists: true,
+		},
+		{
 			name:       "UnnamedCodeBlockUnder66666666Exists",
-			uid:        "66666666.c0",
+			uid:        "66666666.c1",
 			wantExists: true,
 		},
 		{
 			name:         "UnnamedCodeBlock66666666c0IsPython",
-			uid:          "66666666.c0",
+			uid:          "66666666.c1",
 			wantExists:   true,
 			wantLanguage: "python",
 		},

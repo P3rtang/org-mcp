@@ -8,7 +8,7 @@ import (
 )
 
 func (c *CodeBlock) Uid() Uid {
-	return NewUid(c.parent.Uid().String() + c.name.UnwrapOr(fmt.Sprintf("c%d", c.index)))
+	return NewUid(c.parent.Uid().String() + "." + c.name.UnwrapOr(fmt.Sprintf("c%d", c.index)))
 }
 
 func (c *CodeBlock) ParentUid() Uid       { return c.parent.Uid() }

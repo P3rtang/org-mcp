@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ import (
 	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
-const codeBlockManageTestPath = "./code-block/codeblock_test_manage.org"
+const codeBlockManageTestPath = "./codeblock_test_manage.org"
 
 type ManageCodeBlockTest struct {
 	name              string
@@ -110,16 +111,17 @@ func TestManageCodeBlock(t *testing.T) {
 			name: "UpdateCodeBlockContent",
 			ops: newCodeBlockUnionArray(tools.NewManageCodeBlockInputUnion(tools.UpdateCodeBlock{
 				Method:  "update",
-				Uid:     NewUid("11111111.c0"),
+				Uid:     NewUid("11111111.c1"),
 				Content: "print(\"updated\")\n",
 			})),
+			expectedResp:   []string{"updated"},
 			expectedInFile: []string{"updated"},
 		},
 		{
 			name: "RemoveCodeBlock",
 			ops: newCodeBlockUnionArray(tools.NewManageCodeBlockInputUnion(tools.RemoveCodeBlock{
 				Method: "remove",
-				Uid:    NewUid("11111111.c0"),
+				Uid:    NewUid("11111111.c1"),
 			})),
 			notExpectedInFile: []string{"#+BEGIN_SRC python"},
 		},
@@ -130,7 +132,7 @@ func TestManageCodeBlock(t *testing.T) {
 				Uid:     NewUid("11111111.c99"),
 				Content: "x",
 			})),
-			expectError: true,
+			expectedResp: []string{fmt.Sprintf(tools.ITEM_NOT_FOUND, "11111111.c99")},
 		},
 		{
 			name: "RemoveNonExistentCodeBlock",
@@ -138,7 +140,7 @@ func TestManageCodeBlock(t *testing.T) {
 				Method: "remove",
 				Uid:    NewUid("11111111.c99"),
 			})),
-			expectError: true,
+			expectedResp: []string{fmt.Sprintf(tools.ITEM_NOT_FOUND, "11111111.c99")},
 		},
 	}
 

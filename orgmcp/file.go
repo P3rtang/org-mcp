@@ -22,6 +22,7 @@ import (
 	"github.com/p3rtang/org-mcp/utils/result"
 	"github.com/p3rtang/org-mcp/utils/slice"
 
+	codeblock "github.com/p3rtang/org-mcp/orgmcp/code-block"
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
@@ -45,7 +46,7 @@ type OrgFile struct {
 var _ Render = (*OrgFile)(nil)
 
 func OrgFileFromContext(ctx context.Context) option.Option[*OrgFile] {
-	if of, ok := ctx.Value(key).(*OrgFile); ok {
+	if of, ok := ctx.Value(key).(*OrgFile); ok && of != nil {
 		return option.Some(of)
 	}
 
@@ -108,7 +109,7 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 			})
 		case ' ':
 			indent := len(val) - len(strings.TrimLeft(string(val), " "))
-			ParseIndentedLine(peek_reader, currentParent[currentParentIdx]).Then(func(r Render) {
+			ParseIndentedLine(peek_reader, currentParent[currentParentIdx], option.None[string]()).Then(func(r Render) {
 				if currentContentIndent == 0 {
 				} else if currentContentIndent < indent {
 					currentContentIndent = indent
@@ -166,7 +167,7 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 	return result.Ok(org_file)
 }
 
-func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render] {
+func ParseIndentedLine(r *reader.PeekReader, parent Render, name option.Option[string]) option.Option[Render] {
 	// errors have already been handled at this point
 	bytes, _ := r.PeekBytes('\n')
 	trimmed := strings.TrimSpace(string(bytes))
@@ -190,6 +191,26 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render
 		}
 	case '#':
 		if len(trimmed) > 1 && trimmed[1] == '+' {
+			if strings.HasPrefix(trimmed[2:], "NAME: ") {
+				r.Discard()
+				name = option.Some(trimmed[8:])
+				return ParseIndentedLine(r, parent, name)
+			}
+
+			if strings.HasPrefix(trimmed[2:], "BEGIN_SRC") {
+				cb, err := codeblock.NewCodeBlockFromReader(r)
+				if err != nil {
+					// TODO: pass context with the ability to log
+					return option.None[Render]()
+				}
+
+				name.Then(func(s string) {
+					cb.SetName(s)
+				})
+
+				return option.Cast[*codeblock.CodeBlock, Render](option.Some(&cb))
+			}
+
 			t, err := table.NewTableFromReader(r)
 			if err == nil {
 				// fall through to plain text
