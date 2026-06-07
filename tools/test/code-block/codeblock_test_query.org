@@ -2,41 +2,37 @@
   :PROPERTIES:
   :ID: 11111111
   :END:
-
-  | Lang    | Purpose     | Lines |
-  |---------+-------------+-------|
-  | python  | scripting   |     3 |
-  | go      | services    |     5 |
-  | rust    | systems     |     4 |
-
+  | Lang   | Purpose   | Lines |
+  |--------+-----------+-------|
+  | python | scripting | 3     |
+  | go     | services  | 5     |
+  | rust   | systems   | 4     |
+  #+NAME: table_82140322
+  #+TYPE: 
 * Python utility
   :PROPERTIES:
   :ID: 22222222
   :END:
-
   #+NAME: parse_json
-  #+BEGIN_SRC python :exports both :results value
+  #+BEGIN_SRC python
   import json
   data = {"key": "value"}
   print(json.dumps(data))
   #+END_SRC
-
 * Go service
   :PROPERTIES:
   :ID: 33333333
   :END:
-
   #+NAME: http_handler
-  #+BEGIN_SRC go :tangle main.go
+  #+BEGIN_SRC go
   package main
-
+  
   import "net/http"
-
+  
   func handler(w http.ResponseWriter, r *http.Request) {
       w.Write([]byte("hello"))
   }
   #+END_SRC
-
   #+NAME: main_func
   #+BEGIN_SRC go
   func main() {
@@ -44,18 +40,15 @@
       http.ListenAndServe(":8080", nil)
   }
   #+END_SRC
-
 * Rust example
   :PROPERTIES:
   :ID: 44444444
   :END:
-
   #+BEGIN_SRC rust
   fn main() {
       println!("hello world");
   }
   #+END_SRC
-
   #+BEGIN_SRC rust
   fn add(a: i32, b: i32) -> i32 {
       a + b

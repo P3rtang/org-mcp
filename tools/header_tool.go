@@ -254,6 +254,10 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 				return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 			})
 
+			if len(input.Columns) == 0 {
+				input.Columns = append(input.Columns, &orgmcp.ColUidValue, &orgmcp.ColPreviewValue)
+			}
+
 			resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
 			resp = append(resp, map[string]any{
 				"affected_count": affectedCount,

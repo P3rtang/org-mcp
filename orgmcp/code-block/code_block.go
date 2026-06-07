@@ -31,6 +31,26 @@ func (c *CodeBlock) Language() option.Option[string] {
 	return c.lang
 }
 
+func (c *CodeBlock) SetLanguage(lang string) {
+	c.lang = option.Some(lang)
+}
+
 func (c *CodeBlock) Lines() []string {
 	return strings.Split(c.content, "\n")
+}
+
+func (c *CodeBlock) Name() option.Option[string] {
+	return c.name
+}
+
+func (c *CodeBlock) SetName(name string) {
+	c.name = option.Some(name)
+}
+
+func (c *CodeBlock) Content() string {
+	return c.content
+}
+
+func (c *CodeBlock) SetContent(content string) {
+	c.content = content
 }

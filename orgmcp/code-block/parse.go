@@ -2,6 +2,7 @@ package codeblock
 
 import (
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 
@@ -19,7 +20,8 @@ const (
 )
 
 type CodeBlockBegin struct {
-	lang string
+	indent int
+	lang   string
 	// TODO: add <switches>
 	// TODO: add <header arguments>
 }
@@ -27,6 +29,9 @@ type CodeBlockBegin struct {
 func parseBeginSrc(r *reader.PeekReader) (*CodeBlockBegin, error) {
 	bytes, err := r.ReadBytes('\n')
 	line := strings.TrimSpace(string(bytes))
+
+	indent := len(strings.TrimRight(string(bytes), "\n")) - len(line)
+
 	if err != nil {
 		return nil, fmt.Errorf(UNEXPECTED_END, "CodeBlock")
 	}
@@ -47,16 +52,23 @@ func parseBeginSrc(r *reader.PeekReader) (*CodeBlockBegin, error) {
 		return nil, fmt.Errorf(INVALID_PREFIX, parts[0], "CodeBlock")
 	}
 
-	return &CodeBlockBegin{lang: parts[1]}, nil
+	return &CodeBlockBegin{indent: indent, lang: parts[1]}, nil
 }
 
 func NewCodeBlockFromReader(r *reader.PeekReader) (cb CodeBlock, err error) {
 	var begin *CodeBlockBegin
 	begin, err = parseBeginSrc(r)
 
+	if err != nil {
+		return
+	}
+
+	indent_prefix := strings.Repeat(" ", begin.indent)
+
 	builder := strings.Builder{}
 
-	for line, err := r.ReadBytes('\n'); err != nil; line, err = r.ReadBytes('\n') {
+	var line []byte
+	for line, err = r.ReadBytes('\n'); ; line, err = r.ReadBytes('\n') {
 		if strings.ToUpper(strings.TrimSpace(string(line))) == CODE_BLOCK_END {
 			var lang option.Option[string]
 			if begin.lang == "" {
@@ -68,8 +80,10 @@ func NewCodeBlockFromReader(r *reader.PeekReader) (cb CodeBlock, err error) {
 			return NewCodeBlock(builder.String(), option.None[string](), lang), nil
 		}
 
-		builder.Write(line)
-	}
+		if err == io.EOF {
+			return cb, fmt.Errorf(UNEXPECTED_END, "CodeBlock")
+		}
 
-	return
+		builder.Write([]byte(strings.TrimPrefix(string(line), indent_prefix)))
+	}
 }

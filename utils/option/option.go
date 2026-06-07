@@ -42,6 +42,32 @@ func (o Option[T]) IsSome() bool {
 	return o.set
 }
 
+/*
+Returns true if either
+1. the Option does not contain a value
+2. The value inside the option returns true when called as an argument of the predicate
+*/
+func (o Option[T]) IsNoneOr(predicate func(t T) bool) bool {
+	if o.IsNone() {
+		return true
+	}
+
+	return predicate(o.value)
+}
+
+/*
+Returns true if both
+1. The option contains a value
+2. The value inside the option returns true when called as an argument of the predicate
+*/
+func (o Option[T]) IsSomeAnd(predicate func(t T) bool) bool {
+	if o.IsNone() {
+		return false
+	}
+
+	return predicate(o.value)
+}
+
 func (o Option[T]) Split() (T, bool) {
 	return o.value, o.set
 }
@@ -138,7 +164,7 @@ func (o Option[T]) OkOr(e error) (t T, err error) {
 		return t, e
 	}
 
-	return t, nil
+	return o.value, nil
 }
 
 /*
