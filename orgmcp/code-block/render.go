@@ -20,7 +20,7 @@ func (c *CodeBlock) Render(builder *strings.Builder, depth int) {
 	builder.WriteRune('\n')
 
 	for line := range strings.Lines(c.content) {
-		fmt.Fprintf(builder, "%s%s", indent, line)
+		fmt.Fprintf(builder, "%s%s\n", indent, strings.TrimRight(line, "\n"))
 	}
 
 	fmt.Fprintf(builder, "%s#+END_SRC\n", indent)
@@ -35,6 +35,10 @@ func (c *CodeBlock) RenderMarkdown(builder *strings.Builder, depth int) {
 }
 
 func (c *CodeBlock) Preview(length int) string {
+	if length < 0 {
+		return c.content
+	}
+
 	lines := c.Lines()
 
 	if len(lines) <= 1 {

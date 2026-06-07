@@ -25,6 +25,7 @@
   :PROPERTIES:
   :ID: 44444444
   :END:
+  #+NAME: greet
   #+BEGIN_SRC python
   def greet(name):
       print(greet("World"))
@@ -56,6 +57,7 @@
   y = 2
   print(x + y)
   #+END_SRC
+  #+NAME: named_rust
   #+BEGIN_SRC rust
   fn main() {
   }

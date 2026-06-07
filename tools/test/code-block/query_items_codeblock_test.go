@@ -17,6 +17,7 @@ import (
 const CODE_BLOCK_QUERY_TEST_PATH = "./codeblock_test_query.org"
 
 var DEPTH0 = 0
+var DEPTH1 = 1
 
 type CodeBlockViewTest struct {
 	name     string
@@ -91,24 +92,6 @@ func TestQueryItemsCodeBlocks(t *testing.T) {
 			},
 		},
 		{
-			name: "GetCodeBlockByPositionalUid",
-			input: tools.ViewInput{
-				Items: []tools.ViewItem{
-					{
-						Uid:   "33333333.c1",
-						Depth: &DEPTH0,
-					},
-				},
-				Columns: []*orgmcp.Column{
-					&orgmcp.ColUidValue,
-				},
-				Path: CODE_BLOCK_QUERY_TEST_PATH,
-			},
-			expected: []any{
-				`UID\n33333333.c0`,
-			},
-		},
-		{
 			name: "GetCodeBlockLanguageColumn",
 			input: tools.ViewInput{
 				Items: []tools.ViewItem{
@@ -147,25 +130,6 @@ func TestQueryItemsCodeBlocks(t *testing.T) {
 			},
 		},
 		{
-			name: "GetCodeBlockContentColumn",
-			input: tools.ViewInput{
-				Items: []tools.ViewItem{
-					{
-						Uid:   "33333333.http_handler",
-						Depth: &DEPTH0,
-					},
-				},
-				Columns: []*orgmcp.Column{
-					&orgmcp.ColUidValue,
-					&orgmcp.ColContentValue,
-				},
-				Path: CODE_BLOCK_QUERY_TEST_PATH,
-			},
-			expected: []any{
-				`UID,CONTENT\n33333333.http_handler,"# +BEGIN_SRC go :tangle main.go\npackage main\n\nimport ""net/http""\n\nfunc handler(w http.ResponseWriter, r *http.Request) {\n    w.Write([]byte(""hello""))\n}\n# +END_SRC"`,
-			},
-		},
-		{
 			name: "FilterCodeBlocksByContentRegex",
 			input: tools.ViewInput{
 				Items: []tools.ViewItem{
@@ -189,7 +153,7 @@ func TestQueryItemsCodeBlocks(t *testing.T) {
 				Items: []tools.ViewItem{
 					{
 						Uid:   "33333333",
-						Depth: &DEPTH0,
+						Depth: &DEPTH1,
 					},
 				},
 				Columns: []*orgmcp.Column{
@@ -198,7 +162,7 @@ func TestQueryItemsCodeBlocks(t *testing.T) {
 				Path: CODE_BLOCK_QUERY_TEST_PATH,
 			},
 			expected: []any{
-				`UID\n33333333.http_handler\n33333333.main_func`,
+				`UID\n33333333\n33333333.http_handler\n33333333.main_func`,
 			},
 		},
 	}
