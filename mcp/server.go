@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -246,7 +247,7 @@ func (s *Server) handleToolCall(ctx context.Context, id any, params json.RawMess
 			if task, ok := r.(*Task); ok {
 				task.result = append(task.result, resp)
 
-				s.log.Info("Tool responded with a running task: %s", task.Id)
+				s.log.Info(fmt.Sprintf("Tool responded with a running task: %s", task.Id))
 				s.sender.SendMcpTask(id, task)
 
 				return
@@ -370,10 +371,14 @@ func (s *Server) handlePing(id any) {
 }
 
 func (s *Server) handleTaskList(ctx context.Context, id any) error {
+	fmt.Fprintf(os.Stderr, "%#v", NewTaskStore(nil).tasks)
 	tasks := slices.Collect(maps.Values(NewTaskStore(nil).tasks))
 	if tasks == nil {
 		tasks = []*Task{}
 	}
+
+	str, _ := json.Marshal(tasks)
+	s.log.Info(fmt.Sprintf("tasks/list tool call result, %s", string(str)))
 
 	return s.sender.SendResponse(id, map[string][]*Task{
 		"tasks": tasks,

@@ -16,7 +16,7 @@ Test tool for tasks capability in the mcp spec
 `,
 	Callback: func(_ context.Context, input TestTaskInput, options mcp.FuncOptions) ([]any, error) {
 		return []any{
-			mcp.NewTask(mcp.NewTaskStore(nil), func() ([]any, error) {
+			mcp.NewTaskStore(nil).Add(func() ([]any, error) {
 				time.Sleep(time.Second * 60)
 
 				return []any{"DONE"}, nil

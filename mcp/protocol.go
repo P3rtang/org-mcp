@@ -233,12 +233,6 @@ func (ms *MessageSender) SendMcpContent(id any, content []any) error {
 
 func (ms *MessageSender) SendMcpTask(id any, task *Task) error {
 	return ms.SendResponse(id, map[string]any{
-		"task": map[string]any{
-			"taskId":        task.Id,
-			"status":        task.Status,
-			"createdAt":     task.CreatedAt,
-			"lastUpdatedAt": task.UpdatedAt,
-			"ttlMs":         15 * 60 * 1000,
-		},
+		"task": task,
 	})
 }

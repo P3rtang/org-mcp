@@ -18,15 +18,6 @@ const (
 	CANCELLED TaskStatus = "cancelled"
 )
 
-type TaskStatusUpdate struct {
-	TaskId        TaskId     `json:"taskId"`
-	Status        TaskStatus `json:"status"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	LastUpdatedAt time.Time  `json:"lastUpdatedAt"`
-	Ttl           int        `json:"ttl,omitempty"`
-	PollInterval  int        `json:"pollInterval,omitempty"`
-}
-
 type Task struct {
 	Id     TaskId     `json:"taskId"`
 	Status TaskStatus `json:"status"`
@@ -60,9 +51,11 @@ func (t *Task) Run(s *TaskStore, f func() ([]any, error)) {
 	resp, err := f()
 
 	update := Task{
-		Id:        t.Id,
-		CreatedAt: t.CreatedAt,
-		UpdatedAt: t.UpdatedAt,
+		Id:           t.Id,
+		CreatedAt:    t.CreatedAt,
+		UpdatedAt:    t.UpdatedAt,
+		Ttl:          t.Ttl,
+		PollInterval: t.PollInterval,
 	}
 
 	if err != nil {
@@ -112,14 +105,7 @@ func (t *TaskStore) Run() {
 	for task := range t.channel {
 		t.tasks[task.Id] = task
 
-		t.server.sender.SendNotification("notifications/tasks/update", TaskStatusUpdate{
-			TaskId:        task.Id,
-			Status:        task.Status,
-			CreatedAt:     task.CreatedAt,
-			LastUpdatedAt: task.UpdatedAt,
-			Ttl:           15 * 60 * 1000,
-			PollInterval:  5 * 1000,
-		})
+		t.server.sender.SendNotification("notifications/tasks/update", task)
 	}
 }
 
@@ -133,6 +119,9 @@ func (t *TaskStore) Get(id TaskId) *Task {
 
 func (t *TaskStore) Add(f func() ([]any, error)) *Task {
 	task := NewTask(t, f)
+
+	t.server.sender.SendNotification("notifications/tasks/update", t.tasks)
+
 	t.Update(task)
 
 	return task
