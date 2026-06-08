@@ -1,0 +1,42 @@
+* Code block execution test
+  :PROPERTIES:
+  :ID: 33333333
+  :END:
+  #+NAME: hello_python
+  #+BEGIN_SRC python
+  print("hello world")
+  #+END_SRC
+  #+NAME: print_args
+  #+BEGIN_SRC python
+  for arg in ["a", "b", "c"]:
+      print(arg)
+  #+END_SRC
+  #+NAME: warning_code
+  #+BEGIN_SRC python
+  import sys
+  sys.stderr.write("WARNING: deprecated feature used\n")
+  print("done")
+  #+END_SRC
+  #+NAME: error_code
+  #+BEGIN_SRC python
+  x = 1 / 0
+  #+END_SRC
+  #+NAME: infinite_loop
+  #+BEGIN_SRC python
+  while True:
+      pass
+  #+END_SRC
+  #+NAME: hello_js
+  #+BEGIN_SRC javascript
+  console.log("hello javascript");
+  #+END_SRC
+  #+NAME: hello_bash
+  #+BEGIN_SRC bash
+  echo "hello bash"
+  #+END_SRC
+  #+NAME: rust_code
+  #+BEGIN_SRC rust
+  fn main() {
+      println!("hello rust");
+  }
+  #+END_SRC

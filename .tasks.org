@@ -770,3 +770,63 @@
   - [x] *Reproduction*: `TestTextTool/HeaderCorruptionRepro` in `tools/test/text_tool_test.go` and `test.org`.
   - [x] *Fix*: Ensure `PlainText.SetContent` in `orgmcp/plain.go` appends a newline if it's missing, or ensure `manage_text` doesn't strip it. (SetContent should probably be the authoritative gatekeeper).
   [[https://github.com/P3rtang/org-mcp/issues/12]]
+* TODO Code Block Execution & Concurrent Tasks :execution:concurrency:docker:mcp-tasks:
+  :PROPERTIES:
+  :ID: 49264660
+  :END:
+** TODO Async: Task storage & lifecycle
+   :PROPERTIES:
+   :ID: 16508179
+   :END:
+   - [X] Create `Task` struct with ID, Status, Uid, Result, CreatedAt, UpdatedAt fields
+   - [X] Implement in-memory `TaskStore` with sync.RWMutex for concurrent access
+   - [X] Add `CreateTask(uid Uid, async bool) *Task` method
+   - [X] Add `GetTask(id string) (*Task, bool)` method
+   - [X] Add `UpdateTask(id string, status string, result *ExecutionResult)` method
+   - [ ] Add background goroutine to purge completed tasks after TTL (e.g., 24h)
+** TODO Protocol: MCP Tasks extension support
+   :PROPERTIES:
+   :ID: 24308523
+   :END:
+   - [ ] Add `io.modelcontextprotocol/tasks` to server capabilities in `mcp.Server`
+   - [ ] Check client capabilities before returning `CreateTaskResult`
+   - [ ] Implement `tasks/get` JSON-RPC handler
+   - [ ] Implement `tasks/cancel` JSON-RPC handler
+   - [ ] Return proper `CreateTaskResult` with taskId, status, pollIntervalMs when async=true
+** TODO Core: ExecuteCodeBlock type & union integration
+   :PROPERTIES:
+   :ID: 28243229
+   :END:
+   - [ ] Add `ExecuteCodeBlock` struct to `tools/code_block_tool.go` with Method, Uid, Async, Timeout, InsertResults fields
+   - [ ] Add `execute` tag case to `ManageCodeBlockInputUnion` struct and `Tag()`/`Value()` methods
+   - [ ] Update `FromJSON` to unmarshal `method: "execute"` into `ExecuteCodeBlock`
+   - [ ] Implement `Apply(ctx context.Context) CodeBlockApplyResult` on `ExecuteCodeBlock`
+   - [ ] Update tool schema description for `method` field to document `execute` option
+** TODO Engine: Docker execution runner
+   :PROPERTIES:
+   :ID: 51874302
+   :END:
+   - [ ] Create `orgmcp/executor/` package with Docker client wrapper
+   - [ ] Implement `RunContainer(image string, code string, timeout time.Duration) (stdout, stderr string, exitCode int, err error)`
+   - [ ] Map language tags to Docker images: `python`→`python:3-slim`, `javascript`→`node:alpine`, `bash`→`alpine`
+   - [ ] Handle unsupported languages with clear error messages
+   - [ ] Write temp file with code content, mount as volume, execute, cleanup
+** TODO Results: #+RESULTS block rendering
+   :PROPERTIES:
+   :ID: 1574131
+   :END:
+   - [ ] Create `ExecutionResult` struct with Stdout, Stderr, ExitCode, ExecutionTimeMs fields
+   - [ ] Implement `#+RESULTS:` block rendering below source block in `CodeBlock.Render` or separate method
+   - [ ] Support `:results output` (default) and `:results value` modes
+   - [ ] Handle stderr separately - prefix with `stderr:` or separate drawer
+   - [ ] Only insert results when `InsertResults=true` (default) and sync mode
+** PROG Tests: TDD execution tests
+   :PROPERTIES:
+   :ID: 26439320
+   :END:
+   - [ ] Write `execute_codeblock_test.go` with test cases for sync execution
+   - [ ] Write test fixture `codeblock_test_execute.org` with executable code blocks
+   - [ ] Add async execution test cases (task creation, polling, cancellation)
+   - [ ] Add timeout test cases
+   - [ ] Add unsupported language error test cases
+   - [ ] Verify tests fail to compile (TDD red phase)

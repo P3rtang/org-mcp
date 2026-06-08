@@ -107,18 +107,32 @@ func (g *GenericTool[Schema]) Execute(ctx context.Context, input map[string]any,
 	return g.Callback(ctx, schema, options)
 }
 
+type ToolCapabilities struct {
+	ListChanged bool `json:"listChanged,omitempty"`
+}
+
 // ServerCapabilities defines what the MCP server can do
 type ServerCapabilities struct {
-	Logging   map[string]any        `json:"logging,omitempty"`
-	Tools     map[string]EncodeTool `json:"tools,omitempty"`
-	Resources map[string]any        `json:"resources,omitempty"`
-	Prompts   map[string]any        `json:"prompts,omitempty"`
+	Logging    map[string]any   `json:"logging,omitempty"`
+	Tools      ToolCapabilities `json:"tools,omitempty"`
+	Resources  map[string]any   `json:"resources,omitempty"`
+	Prompts    map[string]any   `json:"prompts,omitempty"`
+	Extensions map[string]any   `json:"extensions,omitempty"`
+	Tasks      map[string]any   `json:"tasks,omitempty"`
 }
 
 // ServerInfo contains information about the server
 type ServerInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+}
+
+type DiscoverResult struct {
+	ResultType        string             `json:"resultType"`
+	SupportedVersions []string           `json:"supportedVersions"`
+	Capabilities      ServerCapabilities `json:"capabilities"`
+	ServerInfo        ServerInfo         `json:"serverInfo"`
+	Instructions      string             `json:"instructions"`
 }
 
 // InitializeResult is the response to initialize request
@@ -213,5 +227,18 @@ func (ms *MessageSender) SendMcpContent(id any, content []any) error {
 
 	return ms.SendResponse(id, map[string]any{
 		"content": contentList,
+		"isError": false,
+	})
+}
+
+func (ms *MessageSender) SendMcpTask(id any, task *Task) error {
+	return ms.SendResponse(id, map[string]any{
+		"task": map[string]any{
+			"taskId":        task.Id,
+			"status":        task.Status,
+			"createdAt":     task.CreatedAt,
+			"lastUpdatedAt": task.UpdatedAt,
+			"ttlMs":         15 * 60 * 1000,
+		},
 	})
 }

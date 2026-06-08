@@ -67,6 +67,7 @@ This command can be simply run without the "serve" subcommand, as it is the defa
 		server.AddTool(&tools.QueryTableTool)
 		server.AddTool(&tools.ManageTableTool)
 		server.AddTool(&tools.ManageCodeBlockTool)
+		server.AddTool(&tools.TestTaskTool)
 
 		if err := server.Run(ctx); err != nil {
 			logger.Error(fmt.Sprintf("Server error: %v", err))

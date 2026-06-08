@@ -14,6 +14,75 @@ import (
 	"time"
 )
 
+const MCP_INSTRUCTIONS = `
+# Org-MCP Server Instructions
+
+The org-mcp server provides surgical tools for reading and modifying org-mode files. The org file is the **single source of truth** - information not stored in it is lost between sessions.
+
+## Core Principles
+
+1. **Surgical over bulk** - Use targeted queries and updates. Never pass entire file contents.
+2. **Tool over direct read** - Use query/manage tools to maintain consistency. Direct reading is for inspection only.
+3. **Org file as memory** - Every task, decision, and piece of context belongs in the org file.
+4. **CSV output** - Tool responses use CSV for token efficiency. Specify columns to avoid context bloat.
+
+## Available Tools
+
+| Tool | Purpose |
+|------|---------|
+| query_items | Search/filter headers and bullets with column selection |
+| manage_header | Add, update, remove, move headers |
+| manage_bullet | Add, update, remove, complete checkboxes |
+| manage_text | Add, update, remove plain text blocks |
+| manage_table | Add, update, remove table rows/columns |
+| manage_codeblock | Add, update, remove, execute code blocks |
+| status_overview | Get counts of all statuses and tags |
+| vector_search | Semantic search across headers |
+
+## Tool Input Patterns
+
+Tools use a **oneOf union pattern** for operations:
+- 'method: "add"' / '"update"' / '"remove"' / '"execute"'
+- Pass only fields relevant to the operation (others are ignored)
+
+## Columns Reference
+
+Specify columns to control response size:
+
+| Column | Description |
+|--------|-------------|
+| UID | Unique identifier (e.g., "12345678" or "12345678.b0.t1") |
+| PREVIEW | First ~100 chars, clean text without org syntax |
+| CONTENT | Full raw content including org syntax |
+| TYPE | Go type (Header, Bullet, PlainText, CodeBlock, Table) |
+| STATUS | TODO, NEXT, PROG, DONE, CHECKED, UNCHECKED |
+| PROGRESS | X/Y for items with children |
+| PARENT | UID of parent item |
+| CHILDREN_COUNT | Number of direct children |
+| LEVEL | Numeric depth (1 = top-level) |
+| TAGS | Comma-separated, quoted for CSV safety |
+| PATH | Hierarchical UID stack (e.g., "//ROOT/PARENT/ID") |
+| SCHEDULED / DEADLINE / CLOSED | Date columns for scheduling queries |
+| LANGUAGE | A field specific to code blocks, specifying the language contained in the block |
+
+## MCP Tasks Extension
+
+For long-running operations (async mode), the server supports the MCP Tasks extension:
+- Server advertises 'io.modelcontextprotocol/tasks' capability
+- Async calls return 'CreateTaskResult' with taskId
+- Poll 'tasks/get' for status updates
+- Task states: working → completed / failed / cancelled
+
+## Best Practices
+
+- **UIDs are stable within a single tool call** - Re-query after structural changes
+- **Use PATH for navigation** - Token-efficient hierarchy reference
+- **Bulk operations are efficient** - Multiple items in one call beats sequential calls
+- **Checkboxes track sub-tasks** - Headers track parent task status
+- **Tags are inherited** - Child headers inherit parent tags
+- **Dates use YYYY-MM-DD format** - For filtering by date ranges
+`
+
 type FuncOptions struct {
 	DefaultPath string
 	Logger      *slog.Logger
@@ -69,7 +138,7 @@ func NewServer(reader io.Reader, sender *MessageSender, logger *slog.Logger) *Se
 		*workspace += "."
 	}
 
-	return &Server{
+	server := &Server{
 		reader: bufio.NewReader(reader),
 		sender: sender,
 		log:    logger,
@@ -79,6 +148,10 @@ func NewServer(reader io.Reader, sender *MessageSender, logger *slog.Logger) *Se
 		workspace: *workspace,
 		tools:     map[string]McpTool{},
 	}
+
+	NewTaskStore(server)
+
+	return server
 }
 
 // Run starts the server and begins listening for messages
@@ -125,9 +198,20 @@ func (s *Server) handleMessage(ctx context.Context, msg JSONRPCMessage) {
 	case "tools/list":
 		s.handleListTools(msg.ID, msg.Params)
 	case "tools/call":
-		s.handleToolCall(ctx, msg.ID, msg.Params)
+		go s.handleToolCall(ctx, msg.ID, msg.Params)
+	case "tasks/get":
+		s.handleTaskGet(ctx, msg.ID, msg.Params)
+	case "tasks/result":
+		s.handleTaskResult(ctx, msg.ID, msg.Params)
+	case "tasks/list":
+		s.handleTaskList(ctx, msg.ID)
 	case "logging/setLevel":
 		s.handleSetLoggingLevel(msg.ID, msg.Params)
+	case "server/discover":
+		err := s.handleDiscover(ctx, msg.ID, msg.Params)
+		if err != nil {
+			s.sender.SendError(msg.ID, -32603, err.Error())
+		}
 	case "ping":
 		s.handlePing(msg.ID)
 	default:
@@ -158,6 +242,17 @@ func (s *Server) handleToolCall(ctx context.Context, id any, params json.RawMess
 
 		resp, error := tool.Execute(ctx, toolCall.Arguments, FuncOptions{DefaultPath: default_path, Logger: s.log})
 
+		for _, r := range resp {
+			if task, ok := r.(*Task); ok {
+				task.result = append(task.result, resp)
+
+				s.log.Info("Tool responded with a running task: %s", task.Id)
+				s.sender.SendMcpTask(id, task)
+
+				return
+			}
+		}
+
 		if error != nil {
 			s.log.Warn(fmt.Sprintf("Tool error: %v", error))
 		}
@@ -177,6 +272,38 @@ func (s *Server) handleToolCall(ctx context.Context, id any, params json.RawMess
 	s.sender.SendError(id, -32601, fmt.Sprintf("Unknown tool: %s", toolCall.Name))
 }
 
+func (s *Server) handleDiscover(_ context.Context, id any, _ json.RawMessage) error {
+	encodedTools := map[string]EncodeTool{}
+	for name, tool := range s.tools {
+		encodedTools[name] = tool.ToEncode()
+	}
+
+	result := DiscoverResult{
+		Capabilities: ServerCapabilities{
+			Tools: ToolCapabilities{ListChanged: false},
+			Tasks: map[string]any{
+				"list": struct{}{},
+				// "cancel":   struct{}{},
+				"requests": map[string]any{
+					"tools": map[string]any{
+						"call": struct{}{},
+					},
+				},
+			},
+			Extensions: map[string]any{
+				"io.modelcontextprotocol/tasks": struct{}{},
+			},
+		},
+		ServerInfo: ServerInfo{
+			Name:    "org-mcp",
+			Version: "0.2.0",
+		},
+		Instructions: MCP_INSTRUCTIONS,
+	}
+
+	return s.sender.SendResponse(id, result)
+}
+
 // handleInitialize handles the initialize request
 func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 	s.state.Initialized = true
@@ -187,52 +314,26 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 	}
 
 	result := InitializeResult{
-		ProtocolVersion: "2024-11-05",
+		ProtocolVersion: "2025-11-25",
 		Capabilities: ServerCapabilities{
-			Tools: encodedTools,
+			Tools: ToolCapabilities{ListChanged: false},
+			Tasks: map[string]any{
+				"list": struct{}{},
+				"requests": map[string]any{
+					"tools": map[string]any{
+						"call": struct{}{},
+					},
+				},
+			},
+			Extensions: map[string]any{
+				"io.modelcontextprotocol/tasks": struct{}{},
+			},
 		},
 		ServerInfo: ServerInfo{
 			Name:    "org-mcp",
 			Version: "0.2.0",
 		},
-		Instructions: `
-When working with org-mcp, you can use the tool to parse / change org-mode files.
-This should be used to increase your understanding of the project, tasks and notes.
-
-Tooling to traverse headers, extract metadata, and update statuses are available.
-Using these tools has the benifit of keeping the org-mode file consistent and reducing the amount of data in the context window.
-Since targeted updates and queries are possible, there is no need to pass the entire file contents back and forth.
-
-The org-mode file is the single source of truth for both the programmer and the LLM.
-Every task, bullet point, or step must be added to the document.
-Implementation begins with extracting the relevant metadata and statuses from the document.
-
-Direct modification of the org file is discouraged. Use the tooling provided by the org-mcp server to ensure consistency and maintain integrity.
-Direct reading should be avoided as it may lead to blowing up the context window and losing important information.
-
-An org file serves as a long-term memory and organizational tool for the project. Always refer to it as the main reference point.
-It also functions as long term memory between session, this means that any information not stored in the org file will be lost between sessions.
-Use this together with the programmer to ensure that all important information is captured in the org file.
-
-## Columns
-!!IMPORTANT!!
-Tools with output that can be large have the option to specify columns to return in the response.
-This allows you to get only the relevant information without blowing up the context window.
-Possible column to specify in a return are the following
-	- UID: Unique identifier for the org item.
-	- PREVIEW: A short preview of the header content (first 60 characters).
-	- CONTENT: The full content of the header, including all text and metadata. Use with caution as it can be very large.
-	- PARENT: The UID of the parent header, if any.
-	- LEVEL: The depth level of the header in the org file (e.g. 1 for top-level headers, 2 for their children, etc.).
-	- STATUS: The TODO or checkbox status of the header or bullet (e.g. TODO, DONE, CHECKED, UNCHECKED).
-	- TAGS: A comma-separated list of tags associated with the header.
-	- PROGRESS: The progress of the header/bullet formatted as "X/Y" where X is the number of completed child items and Y is the total number of child items.
-	- CHILDREN_COUNT: The number of child headers under this header or bullet.
-	- PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
-	- SCHEDULED: The scheduled date of the header, if any.
-	- DEADLINE: The deadline date of the header, if any.
-	- CLOSED: The closed date of the header, if any.
-`,
+		Instructions: MCP_INSTRUCTIONS,
 	}
 
 	if err := s.sender.SendResponse(id, result); err != nil {
@@ -265,5 +366,64 @@ func (s *Server) handleListTools(id any, _ json.RawMessage) {
 func (s *Server) handlePing(id any) {
 	if err := s.sender.SendResponse(id, map[string]any{}); err != nil {
 		s.log.Error(fmt.Sprintf("Error sending ping response: %v\n", err))
+	}
+}
+
+func (s *Server) handleTaskList(ctx context.Context, id any) error {
+	tasks := slices.Collect(maps.Values(NewTaskStore(nil).tasks))
+	if tasks == nil {
+		tasks = []*Task{}
+	}
+
+	return s.sender.SendResponse(id, map[string][]*Task{
+		"tasks": tasks,
+	})
+}
+
+func (s *Server) handleTaskGet(ctx context.Context, id any, params json.RawMessage) error {
+	type GetTaskCall struct {
+		TaskId TaskId `json:"taskId"`
+	}
+
+	var taskCall GetTaskCall
+	if err := json.Unmarshal(params, &taskCall); err != nil {
+		return err
+	}
+
+	ts := NewTaskStore(nil)
+	task := ts.Get(taskCall.TaskId)
+
+	return s.sender.SendMcpContent(id, []any{task})
+}
+
+func (s *Server) handleTaskResult(ctx context.Context, id any, params json.RawMessage) error {
+	type TaskResultCall struct {
+		TaskId TaskId `json:"taskId"`
+	}
+
+	var taskCall TaskResultCall
+	if err := json.Unmarshal(params, &taskCall); err != nil {
+		return err
+	}
+
+	ts := NewTaskStore(nil)
+	task := ts.Get(taskCall.TaskId)
+
+	for task.Status == WORKING {
+		time.Sleep(time.Millisecond * 500)
+	}
+
+	switch task.Status {
+	case COMPLETED:
+		return s.sender.SendMcpContent(id, task.result)
+	case CANCELLED:
+		return s.sender.SendMcpContent(id, []any{"CANCELLED"})
+	case FAILED:
+		return s.sender.SendResponse(id, map[string]any{
+			"content": []any{},
+			"isError": true,
+		})
+	default:
+		panic("unreachable")
 	}
 }

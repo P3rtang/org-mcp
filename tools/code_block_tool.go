@@ -215,8 +215,57 @@ func (r RemoveCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 }
 
 var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
-	Name:        "manage_codeblock",
-	Description: "Add, update or remove a codeblock item in the org file. Codeblocks are mostly just decorators for raw text blocks at the moment, but do include a name and or a language tag.",
+	Name: "manage_codeblock",
+	Description: `
+Add, update, remove, or execute codeblock items in an Org file.
+
+## Code Block Structure
+Code blocks are delimited by '#+BEGIN_SRC' and '#+END_SRC'. They support:
+- '#+NAME:' for stable identification
+- Language tag after '#+BEGIN_SRC'
+- Arbitrary content between delimiters
+
+## Methods
+
+### add
+Adds a new codeblock under the specified parent header or bullet.
+- 'parent' (required): UID of the parent
+- 'content' (required): The code block content
+- 'name' (optional): Sets #+NAME for stable UID
+- 'lang' (optional): Language tag (python, javascript, bash, etc.)
+
+### update
+Updates an existing codeblock. All fields optional - only provided fields are updated.
+- 'uid' (required): UID of the codeblock to update
+- 'content' (optional): New content
+- 'name' (optional): Rename (changes UID)
+- 'lang' (optional): Change language
+
+### remove
+Removes a codeblock from the file.
+- 'uid' (required): UID of the codeblock to remove
+
+### execute (WIP: not implemented yet)
+Executes the codeblock content and returns results.
+- 'uid' (required): UID of the codeblock to execute
+- 'async' (optional, default false): If true, returns taskId immediately for polling
+- 'timeout' (optional, default 60): Max execution time in seconds
+- 'insert_results' (optional, default true): Whether to insert #+RESULTS block below source
+
+**Sync mode** (async=false): Blocks until execution complete, returns stdout/stderr/exit code directly.
+
+**Async mode** (async=true): Returns CreateTaskResult with taskId. Poll tasks/get for completion. Use for long-running code (e.g., Playwright tests with browser setup).
+
+**Supported languages**: python, javascript, bash
+
+**Execution environment**: Docker containers with resource limits. 60s max timeout.
+
+**Results format**:
+- stdout: Standard output
+- stderr: Standard error (separate from stdout)
+- exitCode: Process exit code
+- executionTimeMs: How long execution took
+`,
 	Callback: func(ctx context.Context, input ManageCodeBlockInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {
