@@ -247,8 +247,10 @@ func (b *Bullet) AddChildren(r ...Render) error {
 	for _, child := range r {
 		_, ok_bullet := child.(*Bullet)
 		_, ok_text := child.(*PlainText)
+		_, ok_code_block := child.(*CodeBlock)
+		_, ok_table := child.(*Table)
 
-		if !ok_bullet && !ok_text {
+		if !ok_bullet && !ok_text && !ok_code_block && !ok_table {
 			return errors.New("only bullets and plain text can be added as children to a bullet")
 		}
 
