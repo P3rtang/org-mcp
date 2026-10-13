@@ -7,6 +7,10 @@ import (
 )
 
 func (t *Table) Uid() Uid {
+	if t.parent == nil {
+		return t.uid
+	}
+
 	return NewUid(fmt.Sprintf("%s.%s", t.parent.Uid(), t.uid))
 }
 

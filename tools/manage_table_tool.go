@@ -10,7 +10,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
-	"github.com/p3rtang/org-mcp/utils/option"
+	"github.com/p3rtang/org-mcp/utils/result"
 )
 
 var (
@@ -26,7 +26,7 @@ func getTable(ctx context.Context, uid Uid) (*table.Table, error) {
 	}
 
 	var t *table.Table
-	if t, ok = option.Cast[Render, *table.Table](of.GetUid(uid)).Split(); !ok {
+	if t, ok = of.GetUid(uid).Cast[*table.Table]().Split(); !ok {
 		return nil, fmt.Errorf("Could not find table with uid `%s`.", uid)
 	}
 
@@ -51,10 +51,16 @@ type ManageTableInputUnion struct {
 	AddCol    AddTableColumn
 	UpdateCol UpdateTableColumn
 	RemoveCol RemoveTableColumn
+	Create    CreateTable
 }
 
-func NewManageTableInputUnion[T AddTableRow | UpdateTableRow | RemoveTableRow | AddTableColumn | UpdateTableColumn | RemoveTableColumn](input T) *ManageTableInputUnion {
+func NewManageTableInputUnion[T AddTableRow | UpdateTableRow | RemoveTableRow | AddTableColumn | UpdateTableColumn | RemoveTableColumn | CreateTable](input T) *ManageTableInputUnion {
 	switch any(input).(type) {
+	case CreateTable:
+		return &ManageTableInputUnion{
+			tag:    "create",
+			Create: any(input).(CreateTable),
+		}
 	case AddTableRow:
 		return &ManageTableInputUnion{
 			tag: "add",
@@ -104,6 +110,8 @@ func (u ManageTableInputUnion) Uid() Uid {
 		return u.UpdateCol.Uid
 	case "remove_col":
 		return u.RemoveCol.Uid
+	case "create":
+		return u.Create.Uid
 	default:
 		panic("unreachable")
 	}
@@ -123,6 +131,8 @@ func (u ManageTableInputUnion) Apply(ctx context.Context) (res TableApplyResult)
 		return u.UpdateCol.Apply(ctx)
 	case "remove_col":
 		return u.RemoveCol.Apply(ctx)
+	case "create":
+		return u.Create.Apply(ctx)
 	default:
 		panic("unreachable")
 	}
@@ -146,6 +156,8 @@ func (u ManageTableInputUnion) Value() TableApplicableTool {
 		return &u.UpdateCol
 	case "remove_col":
 		return &u.RemoveCol
+	case "create":
+		return &u.Create
 	default:
 		return nil
 	}
@@ -179,9 +191,41 @@ func (u *ManageTableInputUnion) FromJSON(data []byte) error {
 	case "remove_col":
 		u.tag = "remove_col"
 		return json.Unmarshal(data, &u.RemoveCol)
+	case "create":
+		u.tag = "create"
+		return json.Unmarshal(data, &u.Create)
 	default:
 		return fmt.Errorf("invalid method for table operation: %s", temp.Method)
 	}
+}
+
+type CreateTable struct {
+	Method string   `json:"method" jsonschema:"enum=create"`
+	Uid    Uid      `json:"uid" jsonschema:"description=The uid of the header under which to create the table."`
+	Name   string   `json:"name" jsonschema:"description=The name for the table; becomes the #+NAME: line and completes the table uid together with the header uid."`
+	Header []string `json:"cells" jsonschema:"description=The cell values for the header row of the new table."`
+}
+
+func (c *CreateTable) Apply(ctx context.Context) (res TableApplyResult) {
+	var parent Render
+	parent, res.err = orgmcp.OrgFileFromContext(ctx).Try(func(of *orgmcp.OrgFile) result.Result[Render] {
+		return of.GetUid(c.Uid).OkOr(fmt.Errorf("Could not find %s in the specified org file.", c.Uid))
+	}).Split()
+
+	if res.err != nil {
+		return
+	}
+
+	t := table.NewTable(c.Name, c.Header)
+
+	res.err = parent.AddChildren(t)
+	if res.err != nil {
+		return
+	}
+
+	res.rows, res.err = t.GetRange(table.NewTableRangeAll())
+
+	return
 }
 
 type AddTableRow struct {
@@ -236,7 +280,12 @@ func (a *AddTableRow) Apply(ctx context.Context) (res TableApplyResult) {
 	row := table.NewContentRow(a.Cells)
 	t.AddRow(a.Row, &row)
 
-	res.rows, res.err = t.GetRange(table.NewTableRangeFull(max(a.Row-1, 0), a.Row+2))
+	mod := len(t.ContentRows(false)) + 1
+	// make sure to modulo the negative indices to a positive from 0 to len(t.rows)
+	// normal % does keep negatives which we do not want
+	idx := ((a.Row)%mod + mod) % mod
+
+	res.rows, res.err = t.GetRange(table.NewTableRangeFull(max(idx-2, 0), min(idx+2, t.Len(false))))
 
 	return
 }
@@ -255,7 +304,12 @@ func (u *UpdateTableRow) Apply(ctx context.Context) (res TableApplyResult) {
 		return
 	}
 
-	res.rows, res.err = t.GetRange(table.NewTableRangeFull(max(u.Row-1, 0), u.Row+2))
+	mod := len(t.ContentRows(false)) + 1
+	// make sure to modulo the negative indices to a positive from 0 to len(t.rows)
+	// normal % does keep negatives which we do not want
+	idx := ((u.Row)%mod + mod) % mod
+
+	res.rows, res.err = t.GetRange(table.NewTableRangeFull(max(idx-2, 0), min(idx+2, t.Len(false))))
 
 	return
 }
@@ -273,7 +327,12 @@ func (r *RemoveTableRow) Apply(ctx context.Context) (res TableApplyResult) {
 		return
 	}
 
-	res.rows, res.err = t.GetRange(table.NewTableRangeFull(max(r.Row-1, 0), r.Row+1))
+	mod := len(t.ContentRows(false)) + 1
+	// make sure to modulo the negative indices to a positive from 0 to len(t.rows)
+	// normal % does keep negatives which we do not want
+	idx := ((r.Row)%mod + mod) % mod
+
+	res.rows, res.err = t.GetRange(table.NewTableRangeFull(max(idx-2, 0), min(idx+2, t.Len(false))))
 
 	return
 }
@@ -286,8 +345,7 @@ func (r *AddTableColumn) Apply(ctx context.Context) (res TableApplyResult) {
 		return
 	}
 
-	t.AddColumn(r.Col, r.Name, r.Default)
-
+	res.err = t.AddColumn(r.Col, r.Name, r.Default)
 	res.raw = fmt.Sprintf(COLUMN_ADDED, r.Name, t.GetHeader())
 
 	return
@@ -329,8 +387,18 @@ func (r *RemoveTableColumn) Apply(ctx context.Context) (res TableApplyResult) {
 }
 
 var ManageTableTool = mcp.GenericTool[ManageTableInput]{
-	Name:        "manage_table",
-	Description: "Add, update or remove rows in a table within an Org file.",
+	Name: "manage_table",
+	Description: "Add, update or remove rows and columns in a table, or create a new table, within an Org file.\n" +
+		"The method parameter defines the action to take: 'add', 'update', or 'remove' for rows; 'add_col', 'update_col', or 'remove_col' for columns; or 'create' for a new table.\n" +
+		"In these instructions:\n" +
+		"- 'add': Adds a new row at the specified index under the given table uid. Row 0 sits directly below the table header; row numbers refer to content rows only. An out-of-range row appends at the end, with the actual index reported back. Negative index errors.\n" +
+		"- 'update': Updates the cell values of an existing row. Out-of-range errors.\n" +
+		"- 'remove': Removes a row, bumping rows after it. Out-of-range errors.\n" +
+		"- 'add_col': Adds a new column at the given index with an optional default value; out-of-range appends the column at the end.\n" +
+		"- 'update_col': Renames a column heading. Out-of-range errors.\n" +
+		"- 'remove_col': Removes a column from every row.\n" +
+		"- 'create': Creates a new table under a header uid (pass the HEADER uid, not a table uid). Requires 'name' (becomes the #+NAME: line; completes the table uid as parent_uid.name) and 'cells' (the header row of the new table). Creating a second table under the same header is allowed; a name that already exists under that header errors.\n" +
+		"IMPORTANT: The input 'uid' always refers to a table unless method is 'create', which targets a header. Multiple operations can be performed in a single call; each returns its own result chunk. Check the response for per-op errors instead of assuming all operations succeeded.",
 	Callback: func(ctx context.Context, input ManageTableInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {

@@ -10,7 +10,6 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp/code-block"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	. "github.com/p3rtang/org-mcp/tools/test/utils"
-	"github.com/p3rtang/org-mcp/utils/option"
 )
 
 const CODE_BLOCK_PARSE_TEST_PATH = "./codeblock_test_parse.org"
@@ -38,7 +37,7 @@ func fetchCodeBlock(t *testing.T, of *orgmcp.OrgFile, uidStr string) *codeblock.
 	t.Helper()
 
 	render := of.GetUid(NewUid(uidStr))
-	cb, ok := option.Cast[Render, *codeblock.CodeBlock](render).Split()
+	cb, ok := render.Cast[*codeblock.CodeBlock]().Split()
 	if !ok {
 		return nil
 	}

@@ -151,7 +151,8 @@ func (q *QueryTableSimple) Apply(ctx context.Context) (res TableApplyResult) {
 
 var QueryTableTool = mcp.GenericTool[QueryTableInput]{
 	Name:        "query_table",
-	Description: "This tool can query table in detail, with two methods for querying: SQL, and simple. For quick query that don't require complex queries simple is by far the prefered method to query. If calculation have to be run or more complex behaviour is needed the SQL method is the right choice. The SQL backend is sqlite so queries should keep it's dialect of SQL in mind.",
+	Description: "Query a table in detail, with two methods for querying: SQL, and simple. For quick query that don't require complex queries simple is by far the prefered method to query. If calculation have to be run or more complex behaviour is needed the SQL method is the right choice. The SQL backend is sqlite so queries should keep it's dialect of SQL in mind.\n" +
+		"Results return as CSV lines, one row per element. A leading #+TYPE: line in the file appears as a hint row with type information; hide_types skips it. Column selection limits which columns return.",
 	Callback: func(ctx context.Context, input QueryTableInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {

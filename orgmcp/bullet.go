@@ -199,7 +199,7 @@ func (b *Bullet) Render(builder *strings.Builder, depth int) {
 }
 
 func (b *Bullet) IndentLevel() int {
-	return option.Map(b.parent, func(r Render) int {
+	return b.parent.Map(func(r Render) int {
 		return r.ChildIndentLevel()
 	}).UnwrapOr(0)
 }
@@ -209,7 +209,7 @@ func (b *Bullet) ChildIndentLevel() int {
 }
 
 func (b *Bullet) Level() int {
-	return option.Map(b.parent, func(r Render) int { return r.Level() }).UnwrapOr(0)
+	return b.parent.Map(func(r Render) int { return r.Level() }).UnwrapOr(0)
 }
 
 func (b *Bullet) BulletLevel() int {
@@ -263,7 +263,7 @@ func (b *Bullet) AddChildren(r ...Render) error {
 }
 
 func (b *Bullet) SetParent(render Render) error {
-	if option.Map(b.parent, func(r Render) Uid { return r.Uid() }) == option.Some(render.Uid()) {
+	if b.parent.Map(func(r Render) Uid { return r.Uid() }) == option.Some(render.Uid()) {
 		return nil
 	}
 
@@ -299,13 +299,13 @@ func (b *Bullet) ChildrenRec(depth int) (children []Render) {
 }
 
 func (b *Bullet) Uid() Uid {
-	return option.Map(b.parent, func(r Render) Uid {
+	return b.parent.Map(func(r Render) Uid {
 		return NewUid(fmt.Sprintf("%s.b%d", r.Uid(), b.index))
 	}).UnwrapOr(NewUid(-1))
 }
 
 func (b *Bullet) ParentUid() Uid {
-	return option.Map(b.parent, func(r Render) Uid {
+	return b.parent.Map(func(r Render) Uid {
 		return r.Uid()
 	}).UnwrapOr(NewUid(0))
 }

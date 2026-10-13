@@ -45,12 +45,12 @@ type OrgFile struct {
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
 
-func OrgFileFromContext(ctx context.Context) option.Option[*OrgFile] {
+func OrgFileFromContext(ctx context.Context) result.Result[*OrgFile] {
 	if of, ok := ctx.Value(key).(*OrgFile); ok && of != nil {
-		return option.Some(of)
+		return result.Ok(of)
 	}
 
-	return option.None[*OrgFile]()
+	return result.Err[*OrgFile](fmt.Errorf("Missing `%s` in the functions context value. This is a bug please report.", key))
 }
 
 func (of *OrgFile) OrgFileToContext(ctx context.Context) context.Context {
@@ -175,19 +175,19 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render, name option.Option[s
 
 	if len(trimmed) == 0 {
 		r.Discard()
-		return option.Cast[*PlainText, Render](option.Some(&PlainText{content: "", indent: 0}))
+		return option.Some(&PlainText{content: "", indent: 0}).Cast[Render]()
 	}
 
 	switch trimmed[0] {
 	case '-':
 		fallthrough
 	case '*':
-		return option.Cast[*Bullet, Render](NewBulletFromReader(r))
+		return NewBulletFromReader(r).Cast[Render]()
 	case '|':
 		t, err := table.NewTableFromReader(r)
 		if err == nil {
 			// fall through to plain text
-			return option.Cast[*table.Table, Render](option.Some(&t))
+			return option.Some(&t).Cast[Render]()
 		}
 	case '#':
 		if len(trimmed) > 1 && trimmed[1] == '+' {
@@ -208,18 +208,18 @@ func ParseIndentedLine(r *reader.PeekReader, parent Render, name option.Option[s
 					cb.SetName(s)
 				})
 
-				return option.Cast[*codeblock.CodeBlock, Render](option.Some(&cb))
+				return option.Some(&cb).Cast[Render]()
 			}
 
 			t, err := table.NewTableFromReader(r)
 			if err == nil {
 				// fall through to plain text
-				return option.Cast[*table.Table, Render](option.Some(&t))
+				return option.Some(&t).Cast[Render]()
 			}
 		}
 	}
 
-	return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
+	return NewPlainTextFromReader(r).Cast[Render]()
 }
 
 func (of *OrgFile) Name() string {
@@ -431,22 +431,19 @@ func (of *OrgFile) ParentUid() Uid {
 }
 
 func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
-	return option.Map(
-		itertools.Find(
-			maps.Values(of.items),
-			func(r Render) bool {
-				header, ok := r.(*Header)
-				if !ok {
-					return false
-				}
+	return itertools.Find(
+		maps.Values(of.items),
+		func(r Render) bool {
+			header, ok := r.(*Header)
+			if !ok {
+				return false
+			}
 
-				return option.Map(header.Tags, func(t TagList) bool {
-					return slices.Contains(t, tag)
-				}).UnwrapOr(false)
-			},
-		),
-		func(r Render) *Header { return r.(*Header) },
-	)
+			return header.Tags.Map(func(t TagList) bool {
+				return slices.Contains(t, tag)
+			}).UnwrapOr(false)
+		},
+	).Map(func(r Render) *Header { return r.(*Header) })
 }
 
 func (of *OrgFile) GetHeaderByStatus(status RenderStatus) []*Header {

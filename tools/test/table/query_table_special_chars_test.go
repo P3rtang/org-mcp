@@ -1,4 +1,4 @@
-package test
+package table_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/types"
 	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
@@ -29,8 +30,8 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 
 	tests := []TableTest{
 		{
-			name: "EscapedPipeBetweenLetters",
-			input: tools.QueryTableInput{
+			Name: "EscapedPipeBetweenLetters",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("66666666.special_chars_table"),
 					Method: "simple",
@@ -38,11 +39,11 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 				}),
 				Path: specialCharsTablePath,
 			},
-			expected: []any{"hello,a|b,\"x,y\",\"q\""},
+			Expected: []any{"hello,a|b,\"x,y\",\"q\""},
 		},
 		{
-			name: "EscapedPipeInsideWord",
-			input: tools.QueryTableInput{
+			Name: "EscapedPipeInsideWord",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("66666666.special_chars_table"),
 					Method: "simple",
@@ -50,11 +51,11 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 				}),
 				Path: specialCharsTablePath,
 			},
-			expected: []any{"middle,mid|end,\"a,,b\",'apos'"},
+			Expected: []any{"middle,mid|end,\"a,,b\",'apos'"},
 		},
 		{
-			name: "TrailingEscapedPipe",
-			input: tools.QueryTableInput{
+			Name: "TrailingEscapedPipe",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("66666666.special_chars_table"),
 					Method: "simple",
@@ -62,11 +63,11 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 				}),
 				Path: specialCharsTablePath,
 			},
-			expected: []any{`end,trailing|,",,","x""y"`},
+			Expected: []any{`end,trailing|,",,","x""y"`},
 		},
 		{
-			name: "FullTableWithSpecialChars",
-			input: tools.QueryTableInput{
+			Name: "FullTableWithSpecialChars",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("66666666.special_chars_table"),
 					Method: "simple",
@@ -74,15 +75,15 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 				}),
 				Path: specialCharsTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				`hello,a|b,"x,y","q"`,
 				`middle,mid|end,"a,,b",'apos'`,
 				`end,trailing|,",,","x""y"`,
 			},
 		},
 		{
-			name: "HeaderRowUnaffected",
-			input: tools.QueryTableInput{
+			Name: "HeaderRowUnaffected",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("66666666.special_chars_table"),
 					Method: "simple",
@@ -90,21 +91,21 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 				}),
 				Path: specialCharsTablePath,
 			},
-			expected: []any{"Plain,EscapedPipe,Comma,Quote"},
+			Expected: []any{"Plain,EscapedPipe,Comma,Quote"},
 		},
 	}
 
 	ctx := context.TODO()
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := tools.QueryTableTool.Callback(ctx, tt.input, mcp.FuncOptions{})
+		t.Run(tt.Name, func(t *testing.T) {
+			resp, err := tools.QueryTableTool.Callback(ctx, tt.Input, mcp.FuncOptions{})
 
-			if tt.expectEmpty {
+			if tt.ExpectEmpty {
 				if err == nil {
-					t.Errorf("expected error for test case '%s', but got nil", tt.name)
+					t.Errorf("expected error for test case '%s', but got nil", tt.Name)
 				}
-				for _, entry := range tt.expected {
+				for _, entry := range tt.Expected {
 					if !ContainsString(err.Error(), entry.(string)) {
 						t.Errorf("unexpected error message: got '%s', expected to contain '%s'", err.Error(), entry.(string))
 					}
@@ -116,7 +117,7 @@ func TestTableSpecialCharsQuery(t *testing.T) {
 				t.Error(err)
 			}
 
-			for _, entry := range tt.expected {
+			for _, entry := range tt.Expected {
 				found := false
 				for _, r := range resp {
 					if str, ok := r.(string); ok {

@@ -1,82 +1,16 @@
-package test
+package table_test
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
-	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
-
-func runManageTableTest(t *testing.T, ctx context.Context, input tools.ManageTableInput, expectError bool, expectedResp ...string) {
-	t.Helper()
-
-	resp, err := tools.ManageTableTool.Callback(ctx, input, mcp.FuncOptions{DefaultPath: "./table_test_manage.org"})
-	if expectError {
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		return
-	}
-	if err != nil {
-		t.Fatalf("ManageTableTool failed: %v", err)
-	}
-
-	for _, exp := range expectedResp {
-		found := false
-		for _, r := range resp {
-			if str, ok := r.(string); ok && ContainsString(str, exp) {
-				found = true
-				break
-			} else if str, ok := r.(error); ok && ContainsString(str.Error(), exp) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected response to contain %s, got %v", exp, resp)
-		}
-	}
-}
-
-func queryFullTable(t *testing.T, ctx context.Context) string {
-	t.Helper()
-	resp, err := tools.QueryTableTool.Callback(ctx, tools.QueryTableInput{
-		Queries: []mcp.GenericOneOf[*tools.QueryTableUnion, tools.TableApplicableTool]{
-			{Value: tools.NewQueryTableUnion(tools.QueryTableSimple{
-				Uid:    NewUid("55555555.table_manage_test"),
-				Method: "simple",
-				Range:  table.NewTableRange("0:").Unwrap(),
-			})},
-		},
-		Path: "./table_test_manage.org",
-	}, mcp.FuncOptions{})
-	if err != nil {
-		t.Fatalf("QueryTableTool failed: %v", err)
-	}
-	for _, r := range resp {
-		if str, ok := r.(string); ok {
-			return strings.TrimSpace(str)
-		}
-	}
-	t.Fatal("no string response from QueryTableTool")
-	return ""
-}
-
-func resetTableFile(t *testing.T, ctx context.Context) {
-	t.Helper()
-	of, err := mcp.LoadOrgFile(ctx, "./table_test_manage.org")
-	if err != nil {
-		t.Fatal(err)
-	}
-	mcp.WriteOrgFileToDisk(ctx, of, "./table_test_manage.org")
-}
 
 func TestManageTableOperations(t *testing.T) {
 	showDebug := os.Getenv("SHOW_DEBUG")
@@ -200,7 +134,7 @@ func TestManageTableOperations(t *testing.T) {
 			input := tools.ManageTableInput{Items: tt.ops}
 			runManageTableTest(t, ctx, input, tt.expectError, tt.expectedResp...)
 			if !tt.expectError && tt.expectedTable != "" {
-				if got := queryFullTable(t, ctx); got != tt.expectedTable {
+				if got := queryTableByUid(t, ctx, "", "55555555.table_manage_test"); got != tt.expectedTable {
 					t.Errorf("full table mismatch:\ngot: %s\nexpected: %s", got, tt.expectedTable)
 				}
 			}
@@ -234,7 +168,7 @@ func TestManageTableMultipleOperations(t *testing.T) {
 
 	runManageTableTest(t, ctx, input, false, "Alice,TODO,10\nEve,PROG,50\nCarol,TODO,30")
 
-	if got := queryFullTable(t, ctx); got != "Name,Status,Value\nAlice,DONE,10\nEve,PROG,50\nCarol,TODO,30" {
+	if got := queryTableByUid(t, ctx, "", "55555555.table_manage_test"); got != "Name,Status,Value\nAlice,DONE,10\nEve,PROG,50\nCarol,TODO,30" {
 		t.Errorf("full table mismatch: got %s", got)
 	}
 }

@@ -36,6 +36,22 @@ type Table struct {
 	rows    []TableRow
 }
 
+func NewTable(name string, header []string) *Table {
+	return &Table{
+		uid:     NewUid(name),
+		columns: len(header),
+		header: &ContentRow{
+			cells: header,
+		},
+		rows: []TableRow{
+			&ContentRow{
+				cells: header,
+			},
+			&DividerRow{},
+		},
+	}
+}
+
 func (t *Table) ContentRows(includeHeader bool) (rows []TableRow) {
 	for idx, r := range t.rows {
 		if r.HasContent() {
@@ -52,6 +68,14 @@ func (t *Table) ContentRows(includeHeader bool) (rows []TableRow) {
 
 func (t *Table) GetHeader() TableRow {
 	return t.header
+}
+
+func (t *Table) Len(includeHeader bool) int {
+	if includeHeader {
+		return len(t.rows)
+	}
+
+	return len(t.rows) - 1
 }
 
 // TODO: This might need to become structured data if we ever want to validate of do auto defaults

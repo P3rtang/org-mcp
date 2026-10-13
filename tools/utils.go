@@ -14,7 +14,6 @@ const (
 	ITEM_NOT_FOUND   = "Uid `%s` was not found."
 	PARENT_NOT_FOUND = "The parent of Codeblock `%s` could not be found. This is a bug, please report."
 	WRONG_TYPE       = "Uid `%s` is not a `%s`, but a `%s`."
-	EMPTY_CONTEXT    = "`%s` was not found in context. This is a bug, please report."
 )
 
 // GetDiffOnly renders the OrgFile and returns a diff against the current disk content

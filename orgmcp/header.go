@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/p3rtang/org-mcp/embeddings"
+	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
@@ -117,6 +118,10 @@ type Header struct {
 	properties Properties
 	embedding  option.Option[embeddings.Embedding]
 
+	// A general set to store every uid obtained by its children.
+	// This set is checked when adding children to avoid duplication of names
+	childrenUids map[Uid]bool
+
 	Content string
 }
 
@@ -130,6 +135,8 @@ func NewHeader(status HeaderStatus, content string) Header {
 		children:  []Render{},
 		schedule:  option.None[Schedule](),
 		embedding: option.None[embeddings.Embedding](),
+
+		childrenUids: map[Uid]bool{},
 
 		Content: content,
 	}
@@ -149,7 +156,10 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 	// Trim the line to remove any trailing newline characters
 	str = strings.TrimSpace(str)
 
-	header := Header{}
+	header := Header{
+		childrenUids: map[Uid]bool{},
+	}
+
 	next, stop := iter.Pull(strings.SplitSeq(str, " "))
 	defer stop()
 
@@ -187,7 +197,7 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 		return option.Some(header)
 	}
 
-	header.schedule = option.Map(NewScheduleFromReader(reader), func(s Schedule) Schedule {
+	header.schedule = NewScheduleFromReader(reader).Map(func(s Schedule) Schedule {
 		s.parent = &header
 		return s
 	})
@@ -199,8 +209,18 @@ func NewHeaderFromString(str string, reader *reader.PeekReader) option.Option[He
 }
 
 func (h *Header) AddChildren(render ...Render) error {
-	for _, child := range render {
-		child.SetParent(h)
+	// Check first for a mistaken uid that is duplicated.
+	// Only then modification is allowed on this header.
+	for _, r := range render {
+		r.SetParent(h)
+
+		if h.childrenUids[r.Uid()] {
+			return fmt.Errorf(DUPLICATE_UID, h, h.Uid(), r.Uid())
+		}
+	}
+
+	for _, r := range render {
+		h.childrenUids[r.Uid()] = true
 	}
 
 	h.children = append(h.children, render...)
@@ -275,8 +295,17 @@ func (h *Header) Render(builder *strings.Builder, depth int) {
 		}
 	}
 
+	// Adjacent table blocks must be separated by a blank line: org-mode
+	// treats contiguous | rows as a single table, so two sibling tables
+	// written without one would merge back into one on the next parse.
+	previousWasTable := false
 	for _, child := range body {
+		_, isTable := child.(*table.Table)
+		if isTable && previousWasTable {
+			builder.WriteRune('\n')
+		}
 		child.Render(builder, depth-1)
+		previousWasTable = isTable
 	}
 
 	for _, child := range subheaders {
@@ -289,7 +318,7 @@ func (h *Header) CheckProgress() option.Option[Progress] {
 		return option.Some(NewProgress(option.Some(h.status == Done)))
 	}
 
-	return option.Map(h.Progress, func(_ Progress) Progress {
+	return h.Progress.Map(func(_ Progress) Progress {
 		progress := Progress{}
 
 		for _, child := range h.children {
@@ -377,12 +406,12 @@ func (b *Header) ChildrenRec(depth int) (children []Render) {
 }
 
 func (b *Header) Uid() Uid {
-	return NewUid(b.properties.content["ID"].Int().Unwrap())
+	return NewUid(b.properties.content["ID"].String())
 }
 
 // GetParentUid returns the UID of the parent header, if it exists
 func (h *Header) ParentUid() Uid {
-	return option.Map(h.Parent, func(r Render) Uid {
+	return h.Parent.Map(func(r Render) Uid {
 		return r.Uid()
 	}).UnwrapOr(NewUid(0))
 }

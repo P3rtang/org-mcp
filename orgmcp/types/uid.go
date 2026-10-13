@@ -2,6 +2,7 @@ package orgmcp_types
 
 import (
 	"fmt"
+	"math/rand/v2"
 )
 
 type UidValue interface {
@@ -14,6 +15,10 @@ type Uid struct {
 
 func NewUid[T UidValue](uid T) Uid {
 	return Uid{uid: fmt.Sprintf("%v", uid)}
+}
+
+func NewRandomUid() Uid {
+	return NewUid(rand.IntN(10000000))
 }
 
 func (u Uid) String() string {

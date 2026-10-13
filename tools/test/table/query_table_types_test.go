@@ -1,4 +1,4 @@
-package test
+package table_test
 
 import (
 	"context"

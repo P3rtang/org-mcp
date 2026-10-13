@@ -1,4 +1,9 @@
-* Header with manageable table
+* Header with no table yet
+  :PROPERTIES:
+  :ID: 88880000
+  :END:
+
+* Header with existing table
   :PROPERTIES:
   :ID: 55555555
   :END:
@@ -6,5 +11,4 @@
   |-------+--------+-------|
   | Alice | TODO   | 10    |
   | Bob   | DONE   | 20    |
-  | Carol | TODO   | 30    |
-  #+NAME: table_manage_test
+  #+NAME: existing_table

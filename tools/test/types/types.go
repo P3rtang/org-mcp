@@ -22,10 +22,10 @@ type ManageTextTest struct {
 }
 
 type TableTest struct {
-	name        string
-	input       tools.QueryTableInput
-	expected    []any
-	expectEmpty bool
+	Name        string
+	Input       tools.QueryTableInput
+	Expected    []any
+	ExpectEmpty bool
 }
 
 type CodeBlockTest struct{}
