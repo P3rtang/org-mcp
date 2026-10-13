@@ -10,7 +10,6 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp"
 	codeblock "github.com/p3rtang/org-mcp/orgmcp/code-block"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
-	"github.com/p3rtang/org-mcp/utils/option"
 )
 
 const CODE_BLOCK_BULLET_TEST_PATH = "./codeblock_bullet_test.org"
@@ -56,7 +55,7 @@ func fetchCodeBlockFromOrg(t *testing.T, of *orgmcp.OrgFile, uidStr string) *cod
 	t.Helper()
 
 	render := of.GetUid(NewUid(uidStr))
-	cb, ok := option.Cast[Render, *codeblock.CodeBlock](render).Split()
+	cb, ok := render.Cast[*codeblock.CodeBlock]().Split()
 	if !ok {
 		return nil
 	}
@@ -315,63 +314,63 @@ func TestRoundTripCodeBlockUnderBullet(t *testing.T) {
 		{
 			caseName: "BasicBulletWithCodeBlock",
 			orgContent: `* Header
-			:PROPERTIES:
-			:ID: 11111111
-			:END:
-			- [ ] Task
-			#+BEGIN_SRC rust
-			fn main() {}
-			#+END_SRC
-			`,
+  :PROPERTIES:
+  :ID: 11111111
+  :END:
+  - [ ] Task
+    #+BEGIN_SRC rust
+    fn main() {}
+    #+END_SRC
+`,
 			bulletUid:    "11111111.b0",
 			codeBlockUid: "11111111.b0.c0",
 			expectedRendered: `    #+BEGIN_SRC rust
-			fn main() {}
-			#+END_SRC
-			`,
+    fn main() {}
+    #+END_SRC
+`,
 		},
 		{
 			caseName: "BulletWithNamedCodeBlock",
 			orgContent: `* Header
-			:PROPERTIES:
-			:ID: 22222222
-			:END:
-			- [x] Done
-			#+NAME: greet
-			#+BEGIN_SRC python
-			def greet():
-			print("hi")
-			#+END_SRC
-			`,
+  :PROPERTIES:
+  :ID: 22222222
+  :END:
+  - [x] Done
+    #+NAME: greet
+    #+BEGIN_SRC python
+    def greet():
+    print("hi")
+    #+END_SRC
+`,
 			bulletUid:    "22222222.b0",
 			codeBlockUid: "22222222.b0.greet",
 			expectedRendered: `    #+NAME: greet
-			#+BEGIN_SRC python
-			def greet():
-			print("hi")
-			#+END_SRC
-			`,
+    #+BEGIN_SRC python
+    def greet():
+    print("hi")
+    #+END_SRC
+`,
 		},
 		{
 			caseName: "BulletWithMultipleCodeBlocks",
 			orgContent: `* Header
-			:PROPERTIES:
-			:ID: 33333333
-			:END:
-			- [ ] Task
-			#+BEGIN_SRC go
-			package main
-			#+END_SRC
-			#+BEGIN_SRC bash
-			echo hello
-			#+END_SRC
-			`,
+  :PROPERTIES:
+  :ID: 33333333
+  :END:
+  - [ ] Task
+    #+BEGIN_SRC go
+    package main
+    #+END_SRC
+    #+BEGIN_SRC bash
+    echo hello
+    #+END_SRC
+`,
 			bulletUid:    "33333333.b0",
 			codeBlockUid: "33333333.b0.c0",
 			expectedRendered: `    #+BEGIN_SRC go
-			package main
-			#+END_SRC
-			`,
+    package main
+    #+END_SRC
+`,
 		},
 	}
 
@@ -419,14 +418,14 @@ func TestRoundTripCodeBlockUnderBulletFullParse(t *testing.T) {
 		{
 			caseName: "ParseAndRenderBulletWithCodeBlock",
 			orgContent: `* Header
-			:PROPERTIES:
-			:ID: 11111111
-			:END:
-			- [ ] Task
-			#+BEGIN_SRC rust
-			fn main() {}
-			#+END_SRC
-			`,
+  :PROPERTIES:
+  :ID: 11111111
+  :END:
+  - [ ] Task
+    #+BEGIN_SRC rust
+    fn main() {}
+    #+END_SRC
+`,
 			wantBulletUid:        "11111111.b0",
 			wantCodeBlockUid:     "11111111.b0.c0",
 			wantCodeBlockLang:    "rust",
@@ -435,16 +434,16 @@ func TestRoundTripCodeBlockUnderBulletFullParse(t *testing.T) {
 		{
 			caseName: "ParseAndRenderBulletWithNamedCodeBlock",
 			orgContent: `* Header
-			:PROPERTIES:
-			:ID: 22222222
-			:END:
-			- [x] Done
-			#+NAME: my_func
-			#+BEGIN_SRC python
-			def my_func():
-			pass
-			#+END_SRC
-			`,
+  :PROPERTIES:
+  :ID: 22222222
+  :END:
+  - [x] Done
+    #+NAME: my_func
+    #+BEGIN_SRC python
+    def my_func():
+    pass
+    #+END_SRC
+`,
 			wantBulletUid:        "22222222.b0",
 			wantCodeBlockUid:     "22222222.b0.my_func",
 			wantCodeBlockLang:    "python",
@@ -522,4 +521,3 @@ func TestRoundTripCodeBlockUnderBulletFullParse(t *testing.T) {
 		})
 	}
 }
-

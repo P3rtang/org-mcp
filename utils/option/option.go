@@ -1,5 +1,7 @@
 package option
 
+import "github.com/p3rtang/org-mcp/utils/result"
+
 type Option[T any] struct {
 	value T
 	set   bool
@@ -159,31 +161,31 @@ func (o Option[T]) AndThen(fn func(T) bool) bool {
 	return fn(o.value)
 }
 
-func (o Option[T]) OkOr(e error) (t T, err error) {
+func (o Option[T]) OkOr(e error) result.Result[T] {
 	if o.IsNone() {
-		return t, e
+		return result.Err[T](e)
 	}
 
-	return o.value, nil
+	return result.Ok(o.value)
 }
 
 /*
 This function applies the given function to the Option value and returns the result.
 */
-func Map[T any, U any](option Option[T], fn func(T) U) Option[U] {
-	if option.IsNone() {
+func (o Option[T]) Map[U any](fn func(T) U) Option[U] {
+	if o.IsNone() {
 		return Option[U]{}
 	}
 
-	return Some(fn(option.value))
+	return Some(fn(o.value))
 }
 
-func Cast[T any, U any](option Option[T]) Option[U] {
-	if option.IsNone() {
+func (o Option[T]) Cast[U any]() Option[U] {
+	if o.IsNone() {
 		return None[U]()
 	}
 
-	casted, ok := any(option.value).(U)
+	casted, ok := any(o.value).(U)
 	if !ok {
 		return None[U]()
 	}

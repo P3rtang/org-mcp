@@ -760,6 +760,16 @@
     :PROPERTIES:
     :ID: 23416309
     :END:
+** TODO Session feedback: table tool ergonomics observed in vivo :session:table:ux:issue:31:
+   :PROPERTIES:
+   :ID: 44496102
+   :END:
+   * manage_table has no create operation — calling =add= against a header with no table returns ={}= silently; tables can only exist if hand-written on disk first. GH: https://github.com/P3rtang/org-mcp/issues/31, spec: docs/tables/issue-31.org
+   * manage_table output manufactures duplicates: batched ops each return overlapping GetRange neighborhood snapshots (row-1..row+2), so the same rows appear in multiple CSV chunks and can't be mapped back to ops
+   * manage_table responses are unlabeled []any (CSV / error / prose per op, positionally) — with N ops and M failures the model must guess which item belongs to which op; proposed per-op JSON contract in issue-31 spec header =31l12=
+   * manage_table writes a stray ~#+TYPE: ~ (empty) line into the file on every edit
+   * parsers ignore flush-left tables after a blank line and a later manage_table write deleted my hand-written table wholesale — silent data destruction, reverse of the inteded UX
+   * query_items TYPE column returns raw Go type names like ~*orgmcp.Header~ instead of friendly values (e.g. =header=) — fine for debugging, noisy for steering; suggest a doc-level enum
 * DONE Issue-12 fix: Header corruption when updating text content :issue:12:parsing:text:memory::
   CLOSED: [2026-03-28 Sat 15:25]
   :PROPERTIES:

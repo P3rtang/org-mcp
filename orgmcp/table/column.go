@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
@@ -13,7 +14,6 @@ const (
 	TO_COLUMN_NOT_FOUND   = "Did not find the column associated with the end of the range. Open ended ranges are not allowed with named columns."
 	BACKWARDS_INDECES     = "Column ranges are not allowed to be backwards, the starting index has to be lower than the ending index."
 	COLUMN_NOT_FOUND      = "The specified column name could not be found. Got: %s, Possible values: %s"
-	COLUMN_OUT_OF_RANGE   = "The specified column index was out of range. Columns: %d, got: %d."
 	INVALID_SELECTOR      = "Invalid pattern for the column selector, use either numeric columns `$1` or named columns `${name}`. Got: %s"
 	TOO_MANY_COLONS       = "A selector string cannot contain more than one : outside of ${} column names."
 	CANNOT_COMBINE        = "A combination of numeric and named selectors are not allowed within a single range. Use either `$1:$2` or `${col1}:${col2}`"
@@ -86,7 +86,7 @@ type ColumnIndex struct {
 
 func (c *ColumnIndex) cols(t *Table) (cols []int, err error) {
 	if c.idx > t.columns {
-		err = fmt.Errorf(COLUMN_OUT_OF_RANGE, t.columns, c.idx)
+		err = fmt.Errorf(COLUMN_OUT_OF_RANGE, t, t.Uid(), t.columns, c.idx)
 		return
 	}
 

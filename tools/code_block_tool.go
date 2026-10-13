@@ -109,13 +109,13 @@ type AddCodeBlock struct {
 
 func (a AddCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 	var of *orgmcp.OrgFile
-	of, res.err = orgmcp.OrgFileFromContext(ctx).OkOr(fmt.Errorf(EMPTY_CONTEXT, "orgfile"))
+	of, res.err = orgmcp.OrgFileFromContext(ctx).Split()
 	if res.err != nil {
 		return
 	}
 
 	var parent Render
-	parent, res.err = of.GetUid(a.Parent).OkOr(fmt.Errorf(ITEM_NOT_FOUND, a.Parent))
+	parent, res.err = of.GetUid(a.Parent).OkOr(fmt.Errorf(ITEM_NOT_FOUND, a.Parent)).Split()
 
 	var name option.Option[string]
 	if strings.TrimSpace(a.Name) == "" {
@@ -151,13 +151,13 @@ type UpdateCodeBlock struct {
 
 func (u UpdateCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 	var of *orgmcp.OrgFile
-	of, res.err = orgmcp.OrgFileFromContext(ctx).OkOr(fmt.Errorf(EMPTY_CONTEXT, "orgfile"))
+	of, res.err = orgmcp.OrgFileFromContext(ctx).Split()
 	if res.err != nil {
 		return
 	}
 
 	var item Render
-	item, res.err = of.GetUid(u.Uid).OkOr(fmt.Errorf(ITEM_NOT_FOUND, u.Uid))
+	item, res.err = of.GetUid(u.Uid).OkOr(fmt.Errorf(ITEM_NOT_FOUND, u.Uid)).Split()
 
 	if res.err != nil {
 		return
@@ -191,20 +191,20 @@ type RemoveCodeBlock struct {
 
 func (r RemoveCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 	var of *orgmcp.OrgFile
-	of, res.err = orgmcp.OrgFileFromContext(ctx).OkOr(fmt.Errorf(EMPTY_CONTEXT, "orgfile"))
+	of, res.err = orgmcp.OrgFileFromContext(ctx).Split()
 	if res.err != nil {
 		return
 	}
 
 	var item Render
-	item, res.err = of.GetUid(r.Uid).OkOr(fmt.Errorf(ITEM_NOT_FOUND, r.Uid))
+	item, res.err = of.GetUid(r.Uid).OkOr(fmt.Errorf(ITEM_NOT_FOUND, r.Uid)).Split()
 
 	if res.err != nil {
 		return
 	}
 
 	var parent Render
-	parent, res.err = of.GetUid(item.ParentUid()).OkOr(fmt.Errorf(PARENT_NOT_FOUND, r.Uid))
+	parent, res.err = of.GetUid(item.ParentUid()).OkOr(fmt.Errorf(PARENT_NOT_FOUND, r.Uid)).Split()
 	if res.err != nil {
 		return
 	}
@@ -216,7 +216,8 @@ func (r RemoveCodeBlock) Apply(ctx context.Context) (res CodeBlockApplyResult) {
 
 var ManageCodeBlockTool = mcp.GenericTool[ManageCodeBlockInput]{
 	Name:        "manage_codeblock",
-	Description: "Add, update or remove a codeblock item in the org file. Codeblocks are mostly just decorators for raw text blocks at the moment, but do include a name and or a language tag.",
+	Description: "Add, update or remove a codeblock item in the org file. Codeblocks are mostly just decorators for raw text blocks at the moment, but do include a name and or a language tag.\n" +
+		"A leading #+NAME: line before the block names it — the name doubles as the stable uid suffix (parent_uid.name); unnamed blocks get a generated uid that changes on reload. The language tag is optional and only affects rendering.",
 	Callback: func(ctx context.Context, input ManageCodeBlockInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
 		if input.Path == "" {

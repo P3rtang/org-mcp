@@ -16,6 +16,14 @@ func TryFunc[T any](fn func() (T, error)) Result[T] {
 	return Ok(value)
 }
 
+func From[T any](value T, err error) Result[T] {
+	if err != nil {
+		return Err[T](err)
+	}
+
+	return Ok(value)
+}
+
 func Err[T any](err error) Result[T] {
 	return Result[T]{err: err}
 }
@@ -113,7 +121,7 @@ func (o Result[T]) AndThen(fn func(T) bool) bool {
 /*
 This function applies the given function to the Option value and returns the result.
 */
-func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
+func (r Result[T]) Map[U any](fn func(T) U) Result[U] {
 	if r.IsErr() {
 		return Result[U]{err: r.err}
 	}
@@ -121,7 +129,7 @@ func Map[T any, U any](r Result[T], fn func(T) U) Result[U] {
 	return Ok(fn(r.value))
 }
 
-func Try[T any, U any](r Result[T], fn func(T) Result[U]) Result[U] {
+func (r Result[T]) Try[U any](fn func(T) Result[U]) Result[U] {
 	if r.IsErr() {
 		return Result[U]{err: r.err}
 	}

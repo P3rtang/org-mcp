@@ -2,7 +2,8 @@ package table
 
 import (
 	"fmt"
-	"os"
+
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 var (
@@ -10,18 +11,43 @@ var (
 )
 
 func (t *Table) AddRow(idx int, row TableRow) {
-	newRows := []TableRow{t.header}
-	ptr := 0
+	cr := t.ContentRows(false)
 
-	for _, r := range t.rows[1:] {
-		newRows = append(newRows, r)
-		if r.HasContent() {
-			ptr += 1
+	if idx >= t.Len(false) {
+		t.rows = append(t.rows, row)
+
+		return
+	}
+
+	if idx < -t.Len(false) {
+		idx = 0
+	}
+
+	// Bound the idx to at most the length of the slice -1
+	boundedIdx := min(idx, len(cr))
+	// make sure to modulo the negative indices to a positive from 0 to len(t.rows)
+	// normal % does keep negatives which we do not want
+	modIdx := ((boundedIdx)%(len(cr)+1) + (len(cr) + 1)) % (len(cr) + 1)
+
+
+	newRows := []TableRow{}
+	counter := 0
+	for idx, r := range t.rows {
+		if !r.HasContent() || idx == 0 {
+			newRows = append(newRows, r)
+			continue
 		}
 
-		if ptr == idx {
+		if counter == modIdx {
 			newRows = append(newRows, row)
 		}
+
+		counter += 1
+		newRows = append(newRows, r)
+	}
+
+	if counter == modIdx {
+		newRows = append(newRows, row)
 	}
 
 	t.rows = newRows
@@ -30,11 +56,16 @@ func (t *Table) AddRow(idx int, row TableRow) {
 func (t *Table) UpdateRow(idx int, row TableRow) error {
 	cr := t.ContentRows(false)
 
-	if len(cr) <= idx {
+	if len(cr) <= idx || -len(cr) > idx {
 		return fmt.Errorf(ROW_OUT_OF_RANGE, len(cr), idx)
 	}
 
-	cr[idx].setCells(row.Items())
+
+	// make sure to modulo the negative indices to a positive from 0 to len(t.rows)
+	// normal % does keep negatives which we do not want
+	modIdx := ((idx)%len(cr) + len(cr)) % len(cr)
+
+	cr[modIdx].setCells(row.Items())
 
 	return nil
 }
@@ -42,12 +73,16 @@ func (t *Table) UpdateRow(idx int, row TableRow) error {
 func (t *Table) RemoveRow(idx int) error {
 	cr := t.ContentRows(false)
 
-	if len(cr) <= idx {
+	if len(cr) <= idx || -len(cr) > idx {
 		return fmt.Errorf(ROW_OUT_OF_RANGE, len(cr), idx)
 	}
 
 	newRows := []TableRow{t.header}
 	ptr := 0
+
+	// make sure to modulo the negative indices to a positive from 0 to len(t.rows)
+	// normal % does keep negatives which we do not want
+	modIdx := ((idx)%len(cr) + len(cr)) % len(cr)
 
 	for _, r := range t.rows[1:] {
 		if !r.HasContent() {
@@ -55,7 +90,7 @@ func (t *Table) RemoveRow(idx int) error {
 			continue
 		}
 
-		if ptr != idx {
+		if ptr != modIdx {
 			newRows = append(newRows, r)
 		}
 
@@ -67,7 +102,12 @@ func (t *Table) RemoveRow(idx int) error {
 	return nil
 }
 
-func (t *Table) AddColumn(idx int, name string, d string) {
+func (t *Table) AddColumn(idx int, name string, d string) error {
+
+	if idx < 0 {
+		return fmt.Errorf(COLUMN_OUT_OF_RANGE, t, t.Uid(), len(t.GetHeader().Items()), idx)
+	}
+
 	t.columns += 1
 
 	if idx >= t.columns {
@@ -77,10 +117,8 @@ func (t *Table) AddColumn(idx int, name string, d string) {
 			r.setCells(append(r.Items(), d))
 		}
 
-		return
+		return nil
 	}
-
-	fmt.Fprintf(os.Stderr, "rows: %v\n", t.ContentRows(true))
 
 	for i, r := range t.ContentRows(true) {
 		colBefore := r.Items()[:idx]
@@ -100,13 +138,19 @@ func (t *Table) AddColumn(idx int, name string, d string) {
 
 		r.setCells(newCells)
 	}
+
+	return nil
 }
 
 func (t *Table) UpdateColumn(idx int, name string) (string, error) {
+	if idx < 0 {
+		return "", fmt.Errorf(COLUMN_OUT_OF_RANGE, t, t.Uid(), len(t.GetHeader().Items()), idx)
+	}
+
 	headerItems := t.header.Items()
 
 	if t.columns <= idx && len(headerItems) <= idx {
-		return "", fmt.Errorf(COLUMN_OUT_OF_RANGE, t.columns, idx)
+		return "", fmt.Errorf(COLUMN_OUT_OF_RANGE, t, t.Uid(), t.columns, idx)
 	}
 
 	oldName := headerItems[idx]
@@ -118,10 +162,14 @@ func (t *Table) UpdateColumn(idx int, name string) (string, error) {
 }
 
 func (t *Table) RemoveColumn(idx int) (string, error) {
+	if idx < 0 {
+		return "", fmt.Errorf(COLUMN_OUT_OF_RANGE, t, t.Uid(), len(t.GetHeader().Items()), idx)
+	}
+
 	headerItems := t.header.Items()
 
 	if t.columns <= idx && len(headerItems) <= idx {
-		return "", fmt.Errorf(COLUMN_OUT_OF_RANGE, t.columns, idx)
+		return "", fmt.Errorf(COLUMN_OUT_OF_RANGE, t, t.Uid(), t.columns, idx)
 	}
 
 	for _, r := range t.ContentRows(true) {

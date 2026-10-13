@@ -1,14 +1,9 @@
 package orgmcp_types
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/p3rtang/org-mcp/utils/option"
-)
-
-var (
-	HasNoChildren = errors.New("This item cannot have children.")
 )
 
 type RenderStatus string

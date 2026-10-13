@@ -1,10 +1,9 @@
-package test
+package table_test
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/p3rtang/org-mcp/mcp"
@@ -13,61 +12,6 @@ import (
 	"github.com/p3rtang/org-mcp/tools"
 	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
-
-func runManageTableColumnTest(t *testing.T, ctx context.Context, input tools.ManageTableInput, expectError bool, expectedResp ...string) {
-	t.Helper()
-
-	resp, err := tools.ManageTableTool.Callback(ctx, input, mcp.FuncOptions{DefaultPath: "./table_test_manage.org"})
-	if expectError {
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		return
-	}
-	if err != nil {
-		t.Fatalf("ManageTableTool failed: %v", err)
-	}
-
-	for _, exp := range expectedResp {
-		found := false
-		for _, r := range resp {
-			if str, ok := r.(string); ok && ContainsString(str, exp) {
-				found = true
-				break
-			} else if str, ok := r.(error); ok && ContainsString(str.Error(), exp) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("expected response to contain %s, got %v", exp, resp)
-		}
-	}
-}
-
-func queryFullTableColumns(t *testing.T, ctx context.Context) string {
-	t.Helper()
-	resp, err := tools.QueryTableTool.Callback(ctx, tools.QueryTableInput{
-		Queries: []mcp.GenericOneOf[*tools.QueryTableUnion, tools.TableApplicableTool]{
-			{Value: tools.NewQueryTableUnion(tools.QueryTableSimple{
-				Uid:    NewUid("55555555.table_manage_test"),
-				Method: "simple",
-				Range:  table.NewTableRange("0:").Unwrap(),
-			})},
-		},
-		Path: "./table_test_manage.org",
-	}, mcp.FuncOptions{})
-	if err != nil {
-		t.Fatalf("QueryTableTool failed: %v", err)
-	}
-	for _, r := range resp {
-		if str, ok := r.(string); ok {
-			return strings.TrimSpace(str)
-		}
-	}
-	t.Fatal("no string response from QueryTableTool")
-	return ""
-}
 
 func TestManageTableColumnOperations(t *testing.T) {
 	showDebug := os.Getenv("SHOW_DEBUG")
@@ -135,7 +79,7 @@ func TestManageTableColumnOperations(t *testing.T) {
 			ops: []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool]{
 				{Value: tools.NewManageTableInputUnion(tools.UpdateTableColumn{Method: "update_col", Uid: NewUid("55555555.table_manage_test"), Col: 99, Name: "Bad"})},
 			},
-			expectedResp: []string{fmt.Sprintf(table.COLUMN_OUT_OF_RANGE, 3, 99)},
+			expectedResp: []string{fmt.Sprintf(COLUMN_OUT_OF_RANGE, &table.Table{}, NewUid("55555555.table_manage_test"), 3, 99)},
 		},
 		{
 			name: "RemoveColumn",
@@ -150,16 +94,16 @@ func TestManageTableColumnOperations(t *testing.T) {
 			ops: []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool]{
 				{Value: tools.NewManageTableInputUnion(tools.RemoveTableColumn{Method: "remove_col", Uid: NewUid("55555555.table_manage_test"), Col: 99})},
 			},
-			expectedResp: []string{fmt.Sprintf(table.COLUMN_OUT_OF_RANGE, 3, 99)},
+			expectedResp: []string{fmt.Sprintf(COLUMN_OUT_OF_RANGE, &table.Table{}, NewUid("55555555.table_manage_test"), 3, 99)},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			input := tools.ManageTableInput{Items: tt.ops}
-			runManageTableColumnTest(t, ctx, input, tt.expectError, tt.expectedResp...)
+			runManageTableTest(t, ctx, input, tt.expectError, tt.expectedResp...)
 			if !tt.expectError && tt.expectedTable != "" {
-				if got := queryFullTableColumns(t, ctx); got != tt.expectedTable {
+				if got := queryTableByUid(t, ctx, "", "55555555.table_manage_test"); got != tt.expectedTable {
 					t.Errorf("full table mismatch:\ngot: %s\nexpected: %s", got, tt.expectedTable)
 				}
 			}
@@ -191,9 +135,9 @@ func TestManageTableMultipleColumnOperations(t *testing.T) {
 		},
 	}
 
-	runManageTableColumnTest(t, ctx, input, false, "ID", "State", "Notes")
+	runManageTableTest(t, ctx, input, false, "ID", "State", "Notes")
 
-	if got := queryFullTableColumns(t, ctx); !ContainsString(got, "ID,Name,State,Value,Notes\n,Alice,TODO,10,\n,Bob,DONE,20,\n,Carol,TODO,30,") {
+	if got := queryTableByUid(t, ctx, "", "55555555.table_manage_test"); !ContainsString(got, "ID,Name,State,Value,Notes\n,Alice,TODO,10,\n,Bob,DONE,20,\n,Carol,TODO,30,") {
 		t.Errorf("full table mismatch: got %s, expected: %s", got, "ID,Name,State,Value,Notes\n,Alice,TODO,10,\n,Bob,DONE,20,\n,Carol,TODO,30,")
 	}
 }

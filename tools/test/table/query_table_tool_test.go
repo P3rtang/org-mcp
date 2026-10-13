@@ -1,4 +1,4 @@
-package test
+package table_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/types"
 	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
@@ -34,8 +35,8 @@ func TestTableComplexScenarios(t *testing.T) {
 
 	testMap := []TableTest{
 		{
-			name: "MultipleTablesFirstTable",
-			input: tools.QueryTableInput{
+			Name: "MultipleTablesFirstTable",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("11111111.multi_table_1"),
 					Method: "simple",
@@ -43,11 +44,11 @@ func TestTableComplexScenarios(t *testing.T) {
 				}),
 				Path: "./table_test_complex.org",
 			},
-			expected: []any{"A,B,C\n1,2,3\n4,5,6"},
+			Expected: []any{"A,B,C\n1,2,3\n4,5,6"},
 		},
 		{
-			name: "MultipleTablesSecondTable",
-			input: tools.QueryTableInput{
+			Name: "MultipleTablesSecondTable",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("11111111.multi_table_2"),
 					Method: "simple",
@@ -55,12 +56,12 @@ func TestTableComplexScenarios(t *testing.T) {
 				}),
 				Path: "./table_test_complex.org",
 			},
-			expected: []any{"X,Y\na,b\nc,d\ne,f"},
+			Expected: []any{"X,Y\na,b\nc,d\ne,f"},
 		},
 		// We expect the tool to omit empty rows completely
 		{
-			name: "EmptyRowsTable",
-			input: tools.QueryTableInput{
+			Name: "EmptyRowsTable",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("22222222.empty_rows_table"),
 					Method: "simple",
@@ -68,11 +69,11 @@ func TestTableComplexScenarios(t *testing.T) {
 				}),
 				Path: "./table_test_complex.org",
 			},
-			expected: []any{"Col1,Col2\na,b\nc,d\ne,f"},
+			Expected: []any{"Col1,Col2\na,b\nc,d\ne,f"},
 		},
 		{
-			name: "SingleRowTable",
-			input: tools.QueryTableInput{
+			Name: "SingleRowTable",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("33333333.single_row_table"),
 					Method: "simple",
@@ -80,11 +81,11 @@ func TestTableComplexScenarios(t *testing.T) {
 				}),
 				Path: "./table_test_complex.org",
 			},
-			expected: []any{"OnlyHeader"},
+			Expected: []any{"OnlyHeader"},
 		},
 		// {
 		// 	name: "NoTableHeader",
-		// 	input: tools.QueryTableInput{
+		// 	Input: tools.QueryTableInput{
 		// 		Queries: intoTableOneOfArray(tools.QueryTableSimple{
 		// 			Uid:    NewUid("44444444.some_table"),
 		// 			Method: "simple",
@@ -92,12 +93,12 @@ func TestTableComplexScenarios(t *testing.T) {
 		// 		}),
 		// 		Path: "./table_test_complex.org",
 		// 	},
-		// 	expected:    []any{},
-		// 	expectEmpty: true,
+		// 	Expected:    []any{},
+		// 	ExpectEmpty: true,
 		// },
 		// {
 		// 	name: "RangeBeyondRowCount",
-		// 	input: tools.QueryTableInput{
+		// 	Input: tools.QueryTableInput{
 		// 		Queries: intoTableOneOfArray(tools.QueryTableSimple{
 		// 			Uid:    NewUid("11111111.multi_table_1"),
 		// 			Method: "simple",
@@ -105,22 +106,22 @@ func TestTableComplexScenarios(t *testing.T) {
 		// 		}),
 		// 		Path: "./table_test_complex.org",
 		// 	},
-		// 	expected:    []any{"Start of table bounds out of range"},
-		// 	expectEmpty: true,
+		// 	Expected:    []any{"Start of table bounds out of range"},
+		// 	ExpectEmpty: true,
 		// },
 	}
 
 	ctx := context.TODO()
 
 	for _, tt := range testMap {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := tools.QueryTableTool.Callback(ctx, tt.input, mcp.FuncOptions{})
+		t.Run(tt.Name, func(t *testing.T) {
+			resp, err := tools.QueryTableTool.Callback(ctx, tt.Input, mcp.FuncOptions{})
 
-			if tt.expectEmpty {
+			if tt.ExpectEmpty {
 				if err == nil {
-					t.Errorf("expected error for test case '%s', but got nil", tt.name)
+					t.Errorf("expected error for test case '%s', but got nil", tt.Name)
 				}
-				for _, entry := range tt.expected {
+				for _, entry := range tt.Expected {
 					if !ContainsString(err.Error(), entry.(string)) {
 						t.Errorf("unexpected error message: got '%s', expected to contain '%s'", err.Error(), entry.(string))
 					}
@@ -132,7 +133,7 @@ func TestTableComplexScenarios(t *testing.T) {
 				t.Error(err)
 			}
 
-			for _, entry := range tt.expected {
+			for _, entry := range tt.Expected {
 				found := false
 				for _, r := range resp {
 					if str, ok := r.(string); ok {
@@ -158,8 +159,8 @@ func TestTableSimpleTool(t *testing.T) {
 
 	testMap := []TableTest{
 		{
-			name: "RequestRow",
-			input: tools.QueryTableInput{
+			Name: "RequestRow",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("42829732.table_349032"),
 					Method: "simple",
@@ -167,11 +168,11 @@ func TestTableSimpleTool(t *testing.T) {
 				}),
 				Path: "./table_test.org",
 			},
-			expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
+			Expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
 		},
 		{
-			name: "RequestRowRangeAll",
-			input: tools.QueryTableInput{
+			Name: "RequestRowRangeAll",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("42829732.table_349032"),
 					Method: "simple",
@@ -179,11 +180,11 @@ func TestTableSimpleTool(t *testing.T) {
 				}),
 				Path: "./table_test.org",
 			},
-			expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
+			Expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
 		},
 		{
-			name: "RequestRowRangeEmpty",
-			input: tools.QueryTableInput{
+			Name: "RequestRowRangeEmpty",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("42829732.table_349032"),
 					Method: "simple",
@@ -191,11 +192,11 @@ func TestTableSimpleTool(t *testing.T) {
 				}),
 				Path: "./table_test.org",
 			},
-			expected: []any{"Col 1,Col 2,Col 3"},
+			Expected: []any{"Col 1,Col 2,Col 3"},
 		},
 		{
-			name: "RequestRowRangeNegative",
-			input: tools.QueryTableInput{
+			Name: "RequestRowRangeNegative",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("42829732.table_349032"),
 					Method: "simple",
@@ -203,11 +204,11 @@ func TestTableSimpleTool(t *testing.T) {
 				}),
 				Path: "./table_test.org",
 			},
-			expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
+			Expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
 		},
 		{
-			name: "RequestRowRangeOutOfBounds",
-			input: tools.QueryTableInput{
+			Name: "RequestRowRangeOutOfBounds",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:    NewUid("42829732.table_349032"),
 					Method: "simple",
@@ -215,11 +216,11 @@ func TestTableSimpleTool(t *testing.T) {
 				}),
 				Path: "./table_test.org",
 			},
-			expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
+			Expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3"},
 		},
 		{
-			name: "RequestMultipleQueries",
-			input: tools.QueryTableInput{
+			Name: "RequestMultipleQueries",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(
 					tools.QueryTableSimple{
 						Uid:    NewUid("42829732.table_349032"),
@@ -234,11 +235,11 @@ func TestTableSimpleTool(t *testing.T) {
 				),
 				Path: "./table_test.org",
 			},
-			expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3", "Value 1,Value 2,Value 3"},
+			Expected: []any{"Col 1,Col 2,Col 3\nValue 1,Value 2,Value 3", "Value 1,Value 2,Value 3"},
 		},
 		// {
 		// 	name: "RequestInvalidUid",
-		// 	input: tools.QueryTableInput{
+		// 	Input: tools.QueryTableInput{
 		// 		Queries: intoTableOneOfArray(tools.QueryTableSimple{
 		// 			Uid:    NewUid("nonexistent.table"),
 		// 			Method: "simple",
@@ -246,22 +247,22 @@ func TestTableSimpleTool(t *testing.T) {
 		// 		}),
 		// 		Path: "./table_test.org",
 		// 	},
-		// 	expected:    []any{},
-		// 	expectEmpty: true,
+		// 	Expected:    []any{},
+		// 	ExpectEmpty: true,
 		// },
 	}
 
 	ctx := context.TODO()
 
 	for _, tt := range testMap {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := tools.QueryTableTool.Callback(ctx, tt.input, mcp.FuncOptions{})
+		t.Run(tt.Name, func(t *testing.T) {
+			resp, err := tools.QueryTableTool.Callback(ctx, tt.Input, mcp.FuncOptions{})
 
-			if tt.expectEmpty {
+			if tt.ExpectEmpty {
 				if err == nil {
-					t.Errorf("expected error for test case '%s', but got nil", tt.name)
+					t.Errorf("expected error for test case '%s', but got nil", tt.Name)
 				}
-				for _, entry := range tt.expected {
+				for _, entry := range tt.Expected {
 					if !ContainsString(err.Error(), entry.(string)) {
 						t.Errorf("unexpected error message: got '%s', expected to contain '%s'", err.Error(), entry.(string))
 					}
@@ -273,7 +274,7 @@ func TestTableSimpleTool(t *testing.T) {
 				t.Error(err)
 			}
 
-			for _, entry := range tt.expected {
+			for _, entry := range tt.Expected {
 				found := false
 				for _, r := range resp {
 					if str, ok := r.(string); ok {

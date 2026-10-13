@@ -1,4 +1,4 @@
-package test
+package table_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"github.com/p3rtang/org-mcp/orgmcp/table"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/types"
 	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
@@ -49,8 +50,8 @@ func TestTableColumnSelection(t *testing.T) {
 
 	testMap := []TableTest{
 		{
-			name: "SelectSingleIndexedColumn",
-			input: tools.QueryTableInput{
+			Name: "SelectSingleIndexedColumn",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -58,11 +59,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"Name\nAlice\nBob\nCharlie"},
+			Expected: []any{"Name\nAlice\nBob\nCharlie"},
 		},
 		{
-			name: "SelectMultipleIndexedColumns",
-			input: tools.QueryTableInput{
+			Name: "SelectMultipleIndexedColumns",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -71,11 +72,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"Name,Age\nAlice,30\nBob,25\nCharlie,35"},
+			Expected: []any{"Name,Age\nAlice,30\nBob,25\nCharlie,35"},
 		},
 		{
-			name: "SelectNamedColumn",
-			input: tools.QueryTableInput{
+			Name: "SelectNamedColumn",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -84,11 +85,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"City\nNYC\nLA\nChicago"},
+			Expected: []any{"City\nNYC\nLA\nChicago"},
 		},
 		{
-			name: "SelectColumnsInNonTableOrder",
-			input: tools.QueryTableInput{
+			Name: "SelectColumnsInNonTableOrder",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -97,11 +98,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"Age,Name\n30,Alice\n25,Bob\n35,Charlie"},
+			Expected: []any{"Age,Name\n30,Alice\n25,Bob\n35,Charlie"},
 		},
 		{
-			name: "SelectColumnRange",
-			input: tools.QueryTableInput{
+			Name: "SelectColumnRange",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -110,11 +111,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"Name,Age,City\nAlice,30,NYC\nBob,25,LA\nCharlie,35,Chicago"},
+			Expected: []any{"Name,Age,City\nAlice,30,NYC\nBob,25,LA\nCharlie,35,Chicago"},
 		},
 		{
-			name: "SelectMixedIndexedAndNamed",
-			input: tools.QueryTableInput{
+			Name: "SelectMixedIndexedAndNamed",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -123,11 +124,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"City,Name\nNYC,Alice\nLA,Bob\nChicago,Charlie"},
+			Expected: []any{"City,Name\nNYC,Alice\nLA,Bob\nChicago,Charlie"},
 		},
 		{
-			name: "SelectSingleDataRow",
-			input: tools.QueryTableInput{
+			Name: "SelectSingleDataRow",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -136,11 +137,11 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"Name,Score\nAlice,95.5"},
+			Expected: []any{"Name,Score\nAlice,95.5"},
 		},
 		{
-			name: "SelectAllColumnsDefault",
-			input: tools.QueryTableInput{
+			Name: "SelectAllColumnsDefault",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSimple{
 					Uid:     NewUid("55555555.table_56218675"),
 					Method:  "simple",
@@ -149,21 +150,21 @@ func TestTableColumnSelection(t *testing.T) {
 				}),
 				Path: "./table_column_test.org",
 			},
-			expected: []any{"Name,Age,City,Score\nAlice,30,NYC,95.5\nBob,25,LA,82.3\nCharlie,35,Chicago,91.0"},
+			Expected: []any{"Name,Age,City,Score\nAlice,30,NYC,95.5\nBob,25,LA,82.3\nCharlie,35,Chicago,91.0"},
 		},
 	}
 
 	ctx := context.TODO()
 
 	for _, tt := range testMap {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := tools.QueryTableTool.Callback(ctx, tt.input, mcp.FuncOptions{})
+		t.Run(tt.Name, func(t *testing.T) {
+			resp, err := tools.QueryTableTool.Callback(ctx, tt.Input, mcp.FuncOptions{})
 
-			if tt.expectEmpty {
+			if tt.ExpectEmpty {
 				if err == nil {
-					t.Errorf("expected error for test case '%s', but got nil", tt.name)
+					t.Errorf("expected error for test case '%s', but got nil", tt.Name)
 				}
-				for _, entry := range tt.expected {
+				for _, entry := range tt.Expected {
 					if !ContainsString(err.Error(), entry.(string)) {
 						t.Errorf("unexpected error message: got '%s', expected to contain '%s'", err.Error(), entry.(string))
 					}
@@ -175,7 +176,7 @@ func TestTableColumnSelection(t *testing.T) {
 				t.Error(err)
 			}
 
-			for _, entry := range tt.expected {
+			for _, entry := range tt.Expected {
 				found := false
 				for _, r := range resp {
 					if str, ok := r.(string); ok {

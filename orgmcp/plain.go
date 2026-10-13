@@ -58,7 +58,7 @@ func (p *PlainText) Render(builder *strings.Builder, depth int) {
 }
 
 func (p *PlainText) IndentLevel() int {
-	return option.Map(p.parent, func(r Render) int {
+	return p.parent.Map(func(r Render) int {
 		return r.ChildIndentLevel()
 	}).UnwrapOr(0)
 }
@@ -68,7 +68,7 @@ func (p *PlainText) ChildIndentLevel() int {
 }
 
 func (p *PlainText) Level() int {
-	return option.Map(p.parent, func(r Render) int {
+	return p.parent.Map(func(r Render) int {
 		return r.Level() + 1
 	}).UnwrapOr(0)
 }

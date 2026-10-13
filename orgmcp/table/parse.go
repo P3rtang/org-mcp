@@ -115,6 +115,13 @@ func NewTableFromReader(r *reader.PeekReader) (t Table, err error) {
 		err = nil
 	}
 
+	// A metadata-only or empty block (#+NAME: / #+TYPE: / stream end with no
+	// | rows) is not a table; return ErrNotATable so the caller falls through
+	// to plain text instead of panicking on an empty rows slice.
+	if len(t.rows) == 0 {
+		return t, ErrNotATable
+	}
+
 	t.header = t.rows[0]
 
 	return

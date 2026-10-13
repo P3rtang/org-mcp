@@ -1,4 +1,4 @@
-package test
+package table_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/p3rtang/org-mcp/mcp"
 	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/types"
 )
 
 const sqlTestTablePath = "./table_test_sql.org"
@@ -27,8 +28,8 @@ func TestTableSqlQueries(t *testing.T) {
 
 	tests := []TableTest{
 		{
-			name: "SelectAll",
-			input: tools.QueryTableInput{
+			Name: "SelectAll",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -36,13 +37,13 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"Name,Age,Department,Salary",
 			},
 		},
 		{
-			name: "WhereEquals",
-			input: tools.QueryTableInput{
+			Name: "WhereEquals",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -50,15 +51,15 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"Name",
 				"Alice",
 				"Carol",
 			},
 		},
 		{
-			name: "WhereGreaterThan",
-			input: tools.QueryTableInput{
+			Name: "WhereGreaterThan",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -66,7 +67,7 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"Name,Salary",
 				"Alice,90000",
 				"Carol,100000",
@@ -74,8 +75,8 @@ func TestTableSqlQueries(t *testing.T) {
 			},
 		},
 		{
-			name: "OrderBy",
-			input: tools.QueryTableInput{
+			Name: "OrderBy",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -83,7 +84,7 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"Name,Salary",
 				"Carol,100000",
 				"Alice,90000",
@@ -93,8 +94,8 @@ func TestTableSqlQueries(t *testing.T) {
 			},
 		},
 		{
-			name: "Count",
-			input: tools.QueryTableInput{
+			Name: "Count",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -102,14 +103,14 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"COUNT(*)",
 				"5",
 			},
 		},
 		{
-			name: "SumAndAverage",
-			input: tools.QueryTableInput{
+			Name: "SumAndAverage",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -117,13 +118,13 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"SUM(Salary),AVG(Salary)",
 			},
 		},
 		{
-			name: "GroupByDepartment",
-			input: tools.QueryTableInput{
+			Name: "GroupByDepartment",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -131,7 +132,7 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"Department,COUNT(*)",
 				"Eng,2",
 				"Sales,2",
@@ -139,8 +140,8 @@ func TestTableSqlQueries(t *testing.T) {
 			},
 		},
 		{
-			name: "Limit",
-			input: tools.QueryTableInput{
+			Name: "Limit",
+			Input: tools.QueryTableInput{
 				Queries: intoTableOneOfArray(tools.QueryTableSql{
 					Uid:    NewUid("77777777.sql_test_table"),
 					Method: "sql",
@@ -148,7 +149,7 @@ func TestTableSqlQueries(t *testing.T) {
 				}),
 				Path: sqlTestTablePath,
 			},
-			expected: []any{
+			Expected: []any{
 				"Name",
 				"Bob",
 				"Dave",
@@ -159,12 +160,12 @@ func TestTableSqlQueries(t *testing.T) {
 	ctx := context.TODO()
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := tools.QueryTableTool.Callback(ctx, tt.input, mcp.FuncOptions{})
+		t.Run(tt.Name, func(t *testing.T) {
+			resp, err := tools.QueryTableTool.Callback(ctx, tt.Input, mcp.FuncOptions{})
 
-			if tt.expectEmpty {
+			if tt.ExpectEmpty {
 				if err == nil {
-					t.Errorf("expected error for test case '%s', but got nil", tt.name)
+					t.Errorf("expected error for test case '%s', but got nil", tt.Name)
 				}
 				return
 			}
@@ -182,7 +183,7 @@ func TestTableSqlQueries(t *testing.T) {
 			}
 			combinedStr := combined.String()
 
-			for _, entry := range tt.expected {
+			for _, entry := range tt.Expected {
 				expected := entry.(string)
 				if !strings.Contains(combinedStr, expected) {
 					t.Errorf("expected response to contain %q, got:\n%s", expected, combinedStr)

@@ -35,6 +35,13 @@ func NewTableRangeFull(begin int, end int) TableRange {
 	}
 }
 
+func NewTableRangeAll() TableRange {
+	return TableRange{
+		begin: option.Some(0),
+		end:   option.Some(-1),
+	}
+}
+
 func (t *TableRange) UnmarshalText(text []byte) error {
 	r, err := parsePythonRange(string(text))
 	t.begin = r.begin

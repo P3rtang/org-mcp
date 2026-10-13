@@ -1,0 +1,39 @@
+* Downsides driving this (what models actually get wrong)
+  :PROPERTIES:
+  :ID: 51183451
+  :END:
+  - [ ] *Backtick bias* — models emit markdown code spans ( backtick x backtick ) and triple-backtick fences by default instead of =~x~= / ==x== / =#+BEGIN_SRC=; observed live in =docs/errors.org= (mcperror_spec block stored with literal ``` fences)
+  - [ ] *Markdown emphasis* — =**bold**= written in org body renders as junk asterisks; italic marks too (_ like this _ vs /like this/)
+  - [ ] *Planning lines never offered organically* — models do not attach =SCHEDULED= or =DEADLINE= unless asked every time; the date filters exist in the query layer but stay empty because nothing feeds them
+  - [ ] *Invented statuses* — non-canonical status keywords (IN PROGRESS etc.) in handwritten headers mang parse (live example: DEADLINE-in-content producing a garbled NEXT header); status enums exist per-tool but nothing catches prose-level drift
+  - [ ] *Block contracts bite* — table metadata placement, pipe escaping ( =vert{}= ), drawer closure (:END:) trip hand-written org; tools are the canonical writer but free-text content fields inherit every bad habit
+* Design decision (2026-10-11): accept the model dialect, render canonically :design:
+  :PROPERTIES:
+  :ID: 68565330
+  :END:
+  - [ ] *Principle*: accept liberally at the write surface, render canonically on disk — every content field input passes through a normalizer that converts the model-dialect markdown reflexes into their org equivalents, so hand-invented org never persists. The file is always valid org; the human never sees markdown debris
+  - [ ] *Conversions (initial set)*: triple-backtick fences → =#+BEGIN_SRC/=#+END_SRC= (language tag preserved); inline backticks → ==...== (verbatim); =**bold**= → =*bold*=; asterisk italics → =/.../=; list markers -= / * on content-bearing bullets stay as-is (bullet tool owns them); escaped straight quotes degrade to smart quotes gracefully when no better escape exists
+  - [ ] *Matrices live with the tool* — conversion happens in content-accepting tools (manage_text, manage_bullet, manage_header, table cells, codeblock content); query-only tools are untouched
+  - [ ] *Never normalize inside codeblocks' raw content or table cells whose content came from somewhere that already annotated intent — conversion is an input-surface nicety, not a file rewrite pass* (idempotent, only at write time)
+* Opt-out flag — disable_conversion
+  :PROPERTIES:
+  :ID: 89313552
+  :END:
+  - [ ] *Per-item flag* =disable_conversion: boolean=false= — added to every content-accepting tool's input schema and to each manage_* item entry (matches existing per-item op shape); true means the caller wants those characters verbatim (raw code samples, regex,SHOW diffs); conversion defaults ON because the model reflexes are the common case
+  - [ ] *Naming consideration* — =disable_conversion= reads negatively (double negative with opt-out semantics inverted); alternates: =convert= (bool, default true) or =raw= (bool, default false). User placed theAI name — keep =disable_conversion= unless the tools' other flags suggest a rename pass
+  - [ ] *TDD shape* — table-driven normalizer tests ( =orgmcp/norm= package?): fence → src, backtick → verbatim, bold, italics, status alias, and the disable flag as a pass-through case. Per-tool integration cases assert the flag actually skips conversion
+* Optional scheduled / deadline / closed fields on tools :design:
+  :PROPERTIES:
+  :ID: 71710187
+  :END:
+  - [ ] *Schema-first fix* — add optional =scheduled= / =deadline= / =closed= fields to relevant tools (manage_header, manage_bullet, status_overview filters already handle dates) so the model fills an argument it can SEE instead of needing to remember org planning syntax; parses to =<YYYY-MM-DD>= planning lines on write
+  - [ ] *Lift heuristics (optional, gate carefully)* — a content line starting with a date or being the only prose line is NOT auto-magically converted unless it matches strict patterns (e.g. =DEADLINE: <date>= misspelled variants); silent conversion of prose into metadata risks eating meaning, prefer asking via structured fields
+  - [ ] *Server instruction nudge (already shipped)* — the base instructions include date-filter capabilities; consider one line: when creating or progressing items, attach =scheduled=/=deadline= through the structured fields where a real date exists
+* Open questions :design:
+  :PROPERTIES:
+  :ID: 28513115
+  :END:
+  - [ ] *Scope creep guard* — normalizer must not touch content inside =#+BEGIN_SRC= blocks (they ARE code, backticks may be legitimate in it); define the boundary precisely before implementing, fence detection must be pre-src-scan
+  - [ ] *Flag inheritance* — batched ops carry per-item flags; a call-level override (input.disable_conversion) vs per-item key both needed? decide before schema work
+  - [ ] *Status alias map* — where do non-canonical statuses normalize to? =IN PROGRESS= / =WIP= → =NEXT= is opinionated; document the mapping in the same instructions channel it lands in
+  - [ ] *Where this intersect issue-31* — table cell conversion inherits the pipe-escaping rules; verify a cell holding an escaped backtick round-trips through the normalizer without dropping sequences
