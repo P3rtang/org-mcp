@@ -226,10 +226,6 @@ func (of *OrgFile) Name() string {
 	return of.name
 }
 
-func (of *OrgFile) Name() string {
-	return of.name
-}
-
 func (of *OrgFile) SetName(name string) {
 	of.name = name
 }
