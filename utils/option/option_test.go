@@ -264,7 +264,7 @@ func TestMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Map(tt.option, func(val int) int {
+			result := tt.option.Map(func(val int) int {
 				return val * 2
 			})
 
@@ -284,11 +284,11 @@ func TestMapChaining(t *testing.T) {
 	option := Some(5)
 
 	// Chain multiple maps
-	result := Map(option, func(val int) int {
+	result := option.Map(func(val int) int {
 		return val * 2
 	})
 
-	result = Map(result, func(val int) int {
+	result = result.Map(func(val int) int {
 		return val + 3
 	})
 
@@ -306,7 +306,7 @@ func TestMapChaining(t *testing.T) {
 func TestMapDifferentTypes(t *testing.T) {
 	option := Some("hello")
 
-	result := Map(option, func(val string) int {
+	result := option.Map(func(val string) int {
 		return len(val)
 	})
 
@@ -358,7 +358,7 @@ func TestWithSliceType(t *testing.T) {
 	}
 
 	// Test Map with slice type
-	result := Map(option, func(s []int) int {
+	result := option.Map(func(s []int) int {
 		return len(s)
 	})
 	if result.Unwrap() != 3 {
@@ -386,7 +386,7 @@ func TestWithStructType(t *testing.T) {
 	}
 
 	// Test Map with struct type
-	result := Map(option, func(p Person) string {
+	result := option.Map(func(p Person) string {
 		return p.name
 	})
 	if result.Unwrap() != "Alice" {

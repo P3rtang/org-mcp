@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 
@@ -72,19 +74,39 @@ type BulletInputAdd struct {
 	Parent   string `json:"parent" jsonschema:"description=UID of the parent header or bullet under which to add the new bullet point."`
 	Content  string `json:"content" jsonschema:"description=Text content of the new bullet point."`
 	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the new bullet.,enum=None;Unchecked;Checked"`
+	Status   string `json:"status,omitempty" jsonschema:"description=Alias for Checkbox will be ingored if Checkbox has a value.,enum=None;Uncheked;Checked"`
 }
 
 func (b *BulletInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	parent, ok := of.GetUid(orgmcp.NewUid(b.Parent)).Split()
+	parent, ok := of.GetUid(NewUid(b.Parent)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Parent uid %s not found, skipping addition.", b.Parent)
 		return
 	}
 
-	bullet := orgmcp.NewBullet(parent, orgmcp.NewBulletStatus(b.Checkbox))
+	bullet := orgmcp.NewBullet(parent, orgmcp.NewBulletStatus(b.Status))
+
 	bullet.SetContent(b.Content)
+	if b.Checkbox != "" || b.Status != "" {
+		s := b.Status
+		if b.Checkbox != "" {
+			s = b.Checkbox
+		}
+
+		switch strings.ToLower(s) {
+		case "none":
+			bullet.SetCheckbox(orgmcp.NoCheck)
+		case "unchecked":
+			bullet.SetCheckbox(orgmcp.Unchecked)
+		case "checked":
+			bullet.SetCheckbox(orgmcp.Checked)
+		default:
+			res.err = fmt.Errorf("invalid checkbox value: %s", s)
+			return
+		}
+	}
 
 	res.affectedItems[bullet.Uid()] = bullet
 
@@ -96,12 +118,13 @@ type BulletInputUpdate struct {
 	Uid      string `json:"uid" jsonschema:"description=UID of the bullet point to modify.,required=true"`
 	Content  string `json:"content,omitempty" jsonschema:"description=Text content of the bullet."`
 	Checkbox string `json:"checkbox,omitempty" jsonschema:"description=Checkbox status for the bullet.,enum=None;Unchecked;Checked"`
+	Status   string `json:"status,omitempty" jsonschema:"description=Alias for Checkbox will be ingored if Checkbox has a value.,enum=None;Uncheked;Checked"`
 }
 
 func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	selected, ok := of.GetUid(orgmcp.NewUid(b.Uid)).Split()
+	selected, ok := of.GetUid(NewUid(b.Uid)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Uid %s not found", b.Uid)
 		return
@@ -117,13 +140,18 @@ func (b *BulletInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 		bullet.SetContent(b.Content)
 	}
 
-	if b.Checkbox != "" {
-		switch b.Checkbox {
-		case "None":
+	if b.Checkbox != "" || b.Status != "" {
+		s := b.Status
+		if b.Checkbox != "" {
+			s = b.Checkbox
+		}
+
+		switch strings.ToLower(s) {
+		case "none":
 			bullet.SetCheckbox(orgmcp.NoCheck)
-		case "Unchecked":
+		case "unchecked":
 			bullet.SetCheckbox(orgmcp.Unchecked)
-		case "Checked":
+		case "checked":
 			bullet.SetCheckbox(orgmcp.Checked)
 		default:
 			res.err = fmt.Errorf("invalid checkbox value: %s", b.Checkbox)
@@ -142,9 +170,9 @@ type BulletInputRemove struct {
 }
 
 func (b *BulletInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	selected, ok := of.GetUid(orgmcp.NewUid(b.Uid)).Split()
+	selected, ok := of.GetUid(NewUid(b.Uid)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Uid %s not found", b.Uid)
 		return
@@ -156,7 +184,7 @@ func (b *BulletInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 		return
 	}
 
-	header.RemoveChildren(orgmcp.NewUid(b.Uid))
+	header.RemoveChildren(NewUid(b.Uid))
 
 	res.affectedItems[header.Uid()] = header
 
@@ -165,14 +193,17 @@ func (b *BulletInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res 
 
 var BulletTool = mcp.GenericTool[BulletInput]{
 	Name: "manage_bullet",
-	Description: "Add, remove or complete bullet points.\n" +
+		Description: "Add, remove or complete bullet points.\n" +
 		"The method parameter defines the action to take: 'add', 'remove' or 'update'.\n" +
 		"- 'add': Adds a new bullet point at the specified index under the given parent (can be another bullet). Requires 'content' and 'checkbox' parameters.\n" +
 		"- 'remove': Removes the bullet point identified by its uid.\n" +
 		"- 'update': Updates the content of the bullet point. Requires 'content' parameter.\n\n" +
 		"When targeting a bullet, the uid is constructed as `parent_uid + '.b' + bullet_index`.\n" +
 		"The 'bullet_index' specifies the position of the bullet point under the header (0-based index).\n\n" +
-		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like parent_uid.b0.b1\n",
+		"Bullets are hierarchical meaning that bullets can have sub-bullets. Sub-bullets will use parent_bullet_uid + '.b' + bullet_sub_index like parent_uid.b0.b1\n\n" +
+		"IMPORTANT: Bullet UIDs are positional and unstable — adding or removing a bullet shifts the indices of its neighbors. " +
+		"Bulk ops apply sequentially, so subsequent bullets stay valid while earlier ones are processed (remove bottom-up to keep indices stable). " +
+		"Re-query the parent header before further edits once the structure changed.\n",
 	Callback: bulletFunc,
 }
 
@@ -191,7 +222,7 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 	}
 
 	affectedCount := 0
-	affectedItems := map[orgmcp.Uid]orgmcp.Render{}
+	affectedItems := map[Uid]Render{}
 
 	for _, mt := range input.Bullets {
 		var res ApplyResult
@@ -213,15 +244,19 @@ func bulletFunc(ctx context.Context, input BulletInput, options mcp.FuncOptions)
 		affectedCount += len(res.affectedItems)
 	}
 
-	ordered := []orgmcp.Render{}
+	ordered := []Render{}
 
 	if input.ShowAffected == nil || *input.ShowAffected == true {
 		locationTable := orgFile.BuildLocationTable()
 		ordered = append(ordered, itertools.Collect(maps.Values(affectedItems))...)
 
-		slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+		slices.SortFunc(ordered, func(a, b Render) int {
 			return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 		})
+
+		if len(input.Columns) == 0 {
+			input.Columns = append(input.Columns, &orgmcp.ColUidValue, &orgmcp.ColPreviewValue)
+		}
 
 		resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
 		resp = append(resp, map[string]any{

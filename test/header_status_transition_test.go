@@ -1,9 +1,11 @@
 package main
 
 import (
-	. "github.com/p3rtang/org-mcp/orgmcp"
 	"os"
 	"testing"
+
+	. "github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 // TestHeaderCheckProgressWithStatus tests CheckProgress with headers that have status but no children

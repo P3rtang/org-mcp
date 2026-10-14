@@ -3,6 +3,7 @@
   :ID: 48524342
   :END:
   The structural rendering fix is now fully operational. This text is added via the unified toolset to verify that plain text is correctly prioritized over sub-headers.
+  * Test bullet for table management
 ** Headers
    :PROPERTIES:
    :ID: 28028254
@@ -409,6 +410,7 @@
     - [ ] *Bug Pattern: CLOSED schedule parsing*: When parsing CLOSED timestamps in `schedule.go`, the regex `.*CLOSED: \[(.*? )(.*? )?(.*?)?\].*` had a trailing space in the first capture group. This caused `time.Parse("2006-01-02", matches[1])` to fail on dates without times. Fixed by changing to `(.*?)` to exclude the trailing space.
     * *Table Support*: Implement parsing and surgical modification of Org-mode tables with CSV-style row/column targeting.
     * *Advanced Date Tools*: Add dedicated tools for scheduling, deadlines, and reoccurring tasks with relative date support (+2d, next week).
+    - [ ] *Future Enhancement: SQL Query of Org File Structure*: Treat the root OrgFile (UID 0) as a queryable table, enabling SQL queries (including RECURSIVE CTEs for hierarchy) across the entire file structure. Columns would be the same as query_items (UID, PREVIEW, STATUS, LEVEL, TAGS, etc.). Low priority - query_items remains the primary interface.
 *** TODO Task History Tracking in Properties :design:
     :PROPERTIES:
     :ID: 21285539
@@ -506,7 +508,7 @@
     - [ ] Create ~export_to_notion~ MCP tool.
     - [ ] Implement unit tests for the block converter.
     - [ ] Integration tests with a test Notion workspace.
-** PROG Tool Design & AI UX Improvements [3/13] :ux:ui:design:
+** PROG Tool Design & AI UX Improvements [4/13] :ux:ui:design:
    :PROPERTIES:
    :ID: 30384709
    :END:
@@ -569,71 +571,6 @@
     - [ ] *Decision Resolved: Temporary UIDs (AI-Specified)*: AI can specify a `temp_uid` (e.g., `temp:new-header`) in an `add` operation. This ID is registered in the in-memory `items` map immediately, allowing subsequent operations in the same call to reference it. Not persisted to disk.
     * *Technical Design: Temporary IDs (AI-Only)*: Implement `temp:[random]` prefix for in-memory-only addressing. UIDs are valid only for the duration of a single `tools/call` JSON-RPC execution.
     * *Implementation*: `OrgFile.RegisterTemp(Render) Uid` will be called during `AddChildren`. `GetUid` will resolve both stable and `temp:` prefixed IDs.
-*** TODO Issue-18 feat: Implement oneOf/Discriminated Union schema generation for strict AI tool schemas :issue:18:schema:mcp:ai::
-    :PROPERTIES:
-    :ID: 40413358
-    :END:
-    [[https://github.com/P3rtang/org-mcp/issues/18]]
-** DONE Tag Management & Discovery Improvements
-   CLOSED: [2026-02-14 Sat 14:30]
-   :PROPERTIES:
-   :ID: 71742063
-   :END:
-   - [x] Implement a ~list_tags~ tool or a ~TAGS~ summary in ~status_overview~ to provide a global view of all used tags.
-   - [x] Allow filtering ~query_items~ by multiple tags (AND/OR logic) to improve discovery.
-   - [x] Add a "Tag Cloud" or frequency count to help AI models understand the "Hot Topics" of a project.
-   * *Context*: Finding the AI session header was difficult because searching for specific tags (like ~:context:ai:session:~) isn't currently a first-class discovery mechanism.
-* Project Terminology :memory:
-  :PROPERTIES:
-  :ID: 8251913
-  :END:
-  | Term                | Description                                                           | Avoid Using This Term       |
-  |---------------------+-----------------------------------------------------------------------+-----------------------------|
-  | *OrgFile*           | The top-level document structure representing the entire `.org` file. | File, document, tasks       |
-  | *Header*            | A structural node starting with `*` asterisks.                        | Section, title, item        |
-  | *Bullet*            | A list item starting with `-` or `*` within a header.                 | List, checkbox, sub-task    |
-  | *PlainText*         | Indented text content that is not a header or bullet.                 | Body, note, text block      |
-  | *Render*            | The interface implemented by all nodes (Headers, Bullets, PlainText). | Node, element, component    |
-  | *UID*               | The unique identifier (e.g., `99998888` or `123.b0.t0`).              | ID, key, index              |
-  | *Items Map*         | The `of.items` lookup table used for stable UID addressing.           | Cache, registry, dictionary |
-  | *Stable Indexing*   | The principle that indices remain constant within a single tool call. | Order, position             |
-  | *Tool Callback*     | The function executed by the MCP server for a specific tool.          | Action, handler             |
-  | *Actionable Export* | The process of moving an Org task to a GitHub Issue.                  | Migration, sync             |
-  | *Two-Way Linking*   | The requirement to cross-reference Org UIDs and GitHub Issue numbers. | Linking, reference          |
-* Issues
-  :PROPERTIES:
-  :ID: 78690404
-  :END:
-** TODO Issue-10 fix: bullet-child parsing - Indented text incorrectly concatenated to bullet content :issue:10:bullet-parsing:
-   :PROPERTIES:
-   :ID: 81006049
-   :END:
-   * Description**: Indented plain text under a bullet is incorrectly concatenated to the bullet's content instead of being parsed as a separate ~PlainText~ child. This makes it impossible to target the text specifically for updates or removal without modifying the entire bullet.
-   * Current Behavior**: Querying a bullet with indented text returns ~CHILDREN_COUNT: 0~ and the raw content contains both the bullet text and the indented text separated by a newline (\n).
-   * Expected Behavior**: Indented text should be parsed as a separate ~PlainText~ node with a UID format of ~[bullet_uid].t0~.
-   * Reproduction**: Run ~go test -v ./tools/test/... -run TestTextTool/UpdatePlainTextUnderBullet~. The test fails because ~99998891.b0.t0~ is not found in the ~items~ map.
-   * Reproduction Branch**: ~repro/bullet-child-parsing~
-   * Context**: Source UID ~99998891.b0.t0~ in ~tools/test/test.org~.
-   [[https://github.com/P3rtang/org-mcp/issues/10]]
-* PROG Issue-11 feat: Table Support :issue:11:table:parsing:memory:
-  :PROPERTIES:
-  :ID: 72407620
-  :END:
-  [[https://github.com/P3rtang/org-mcp/issues/11]]
-** Discovery & Context Mapping
-   :PROPERTIES:
-   :ID: 53285059
-   :END:
-   * *Source of Truth*: Org-mode tables are delimited by `|` characters. Multiple rows form a contiguous table.
-   * *Current Infrastructure*: `OrgFileFromReader` handles headers (`*`) and indented lines. Tables can be top-level or indented.
-   * *Dependency Analysis*: Relies on the fixed `PlainText` vs `Bullet` parsing to ensure tables don't get swallowed into bullet content incorrectly.
-   - [x] *Decision Resolved: Separator Handling*: Separators are metadata (list of divider indices). DataRows are addressable 0-N. Render logic generates `|---+---|` based on column widths.
-   - [x] *Current Infrastructure Update*: `ParseIndentedLine` incorrectly treats `|` as `PlainText`. Integration point: Add `case '|'` to `ParseIndentedLine`.
-   * *UID Stability Requirement*: Proposed `parent_uid.tbl[index]` to avoid collision with `.t` (PlainText) and `.b` (Bullet).
-   - [ ] *Decision Branch: Separator Handling*: Determine if separators are addressable rows or metadata. (Current: Under Discussion)
-   - [x] *Decision Resolved: Surgical Addressing*: Dedicated `read_table` tool for complex queries (row/col ranges). `manage_table` uses coordinate-based (R,C) addressing to keep queries surgical and token-efficient.
-   - [x] *Decision Resolved: Alignment Strategy*: The `Render()` method will *always* auto-format with correct column widths. Correctness and human-readability are prioritized over minimal diff noise.
-   - [x] *Decision Resolved: Parsing Fluidity*: `OrgFileFromReader` and `ParseIndentedLine` will both detect `|` as a structural marker. Tables are first-class `Render` nodes, capable of being children of `Header` or `Bullet`.
    - [ ] *Strategic Gap*: `OrgFileFromReader` panics on top-level text. High priority fix.
    - [ ] *Strategic Gap*: `items` map doesn't sync after `add` operations. Fix required for 'Temporary IDs'.
    - [ ] *Design Decision*: Support `#+NAME` as a stable UID for Tables.
@@ -645,8 +582,8 @@
    * *Functional*: Reading/Writing Org tables via MCP tools. Support for CSV-style addressing (e.g., `row:1, col:2`).
    * *Technical*: Token optimization — don't return the full table if only one cell is needed. Efficient re-rendering preserving alignments.
    * *Gap Analysis*: Missing `Table` struct, table parser, and `manage_table` tool implementation.
-   - [ ] *Critical Requirement*: `manage_table` must return a "Neighborhood" view (surrounding rows) rather than the full table to save tokens.
-   - [ ] *Critical Requirement*: Table struct must handle "Ragged Rows" (rows with mismatched column counts) gracefully during `Render`.
+   - [x] *Critical Requirement*: `manage_table` must return a "Neighborhood" view (surrounding rows) rather than the full table to save tokens.
+   - [x] *Critical Requirement*: Table struct must handle "Ragged Rows" (rows with mismatched column counts) gracefully during `Render`.
    - [x] *Decision Resolved: Surgical Return*: `manage_table` returns a summary/neighborhood by default. Full table returned only if `show_table: true` is passed.
    - [x] *Decision Resolved: Structural Validation*: Rows with mismatched column counts will be normalized (padded/truncated) during `Render` with a warning returned to the user.
 ** Data & Resource Mapping
@@ -654,14 +591,15 @@
    :ID: 26174735
    :END:
    * *Logic*: New `orgmcp/table.go` implementing `Render` interface. Update `ParseIndentedLine` to handle `|`.
-   * *API*: New `manage_table` tool in `tools/table.go` with `read_cell`, `update_cell`, `add_row`, `delete_row` methods.
+   * *API Design*: Two dedicated table tools:
+     * `query_table`: SQL-powered querying (SELECT, INSERT, UPDATE, DELETE) for complex filtering, aggregations, and SQL-level modifications
+     * `manage_table`: Simple interface for basic edits (add_row, add_column, update_cell via row/col addressing)
    * *Data*: `Table` struct with `rows [][]string` and `has_header bool` (if separator `|---|` exists).
    * *Block Parsing*: `NewTableFromReader` must peek at subsequent lines to swallow contiguous rows into a single node.
-   * *Alignment Logic*: Implement a `Format()` method that re-calculates column widths after cell edits.
    * *Data Model*: `Table` struct will contain `Data [][]string` and `Dividers []int` (indices after which a separator line appears).
-   * *Tool Interface*: `read_table` (UID, Rows[], Cols[]) -> JSON/CSV. `manage_table` (UID, Method, Row, Col, Content).
    * *Algorithm*: `Table.Render` will first scan all rows to determine `max_width` per column, then apply padding during string building. Divider lines will be generated to match the total table width.
    * *Parser Integration*: Update `OrgFileFromReader` and `ParseIndentedLine` to switch to `NewTableFromReader` upon encountering a `|`. Multi-line consumption handled within `NewTableFromReader`.
+   - [x] *Future Enhancement: Type Hints*: Support `#+TYPE: Name=text,Value=int` property for column type hints, enabling proper numeric storage in SQLite and smarter comparisons.
 ** Strategic Execution Plan
    :PROPERTIES:
    :ID: 68320744
@@ -677,6 +615,45 @@
    * *Critical Path*: Correctly parsing row delimiters and separator lines (`|---|`) without breaking surrounding text or bullet context.
    * *Milestone 1*: Table parsing and `read_table` tool (Phase 1 Foundation). Goal: End of this session.
    * *Milestone 2*: Surgical cell/row editing and automated alignment (Phase 2 Logic). Goal: Next session.
+** DONE Known Bugs & Improvements
+   CLOSED: [2026-06-01 Mon 18:16]
+   :PROPERTIES:
+   :ID: 51694977
+   :END:
+   - [x] CSV quoting broken — ~query_table_tool.go:190~ uses ~strings.Join(row.Items(), ",")~ instead of ~encoding/csv~. Cells containing commas will corrupt output. Design doc (UID ~32788174~) explicitly requires auto-quoting.
+   - [x] Tool description is wrong — Line 158 says "Executes a SQL query on a table..." but it also supports the ~simple~ method.
+   - [x] ~show_diff~ is meaningless — ~query_table~ is read-only, so writing to disk and showing a diff does nothing. Dead weight in the schema.
+     * *Answer*: Not true the query_table is technically allowed to do table modification queries.
+   - [x] SQL method untested — ~QueryTableSql~ exists but has zero test coverage.
+   - [x] Column selection not implemented — ~QueryTableSimple~ has a ~// TODO: support column selection as well~ comment on line 126.
+   - [x] Neighborhood view not implemented — Should return surrounding rows context instead of just the selected range to save tokens (UID ~17984267.b3~).
+   - [x] Ragged rows handling unverified — Design says mismatched column counts should be normalized with a warning (UID ~17984267.b6~). Is this actually implemented?
+   - [x] Cells with special characters untested — Pipes, commas, newlines inside cells.
+     - [x] Parser should unescape ~\vert~ / ~\vert{}~ to literal ~|~ in cell content
+     - [x] Update path: when writing a cell with ~|~, render it as ~\vert{}~ (or ~\vert~ at word boundary)
+     - [x] Query output should expose literal ~|~ in CSV cells (no extra escaping needed)
+     - [x] Failing tests already exist in [[tools/test/query_table_special_chars_test.go]]
+   - [x] Type hints not implemented — Support ~#+TYPE: Name=text,Value=int~ for column type hints enabling proper numeric comparisons (UID ~26174735.b7~).
+     - [x] Add `HideTypes bool` field to `QueryTableInput` (default false = types shown)
+     - [x] Prepend `#+TYPE: col1=type,col2=type,...` line to CSV output when types are not hidden and table has #+TYPE: metadata
+     - [x] No error on type mismatch — hints only, never validate against cell content
+     - [x] Tables without `#+TYPE:` metadata do NOT get a type line in output
+     - [x] Failing tests in `tools/test/query_table_types_test.go` reference `HideTypes` field — needs implementation to pass
+*** DONE Pipe escaping for table cells
+    CLOSED: [2026-06-01 Mon 16:38]
+    :PROPERTIES:
+    :ID: 23416309
+    :END:
+** TODO Session feedback: table tool ergonomics observed in vivo :session:table:ux:issue:31:
+   :PROPERTIES:
+   :ID: 44496102
+   :END:
+   * manage_table has no create operation — calling =add= against a header with no table returns ={}= silently; tables can only exist if hand-written on disk first. GH: https://github.com/P3rtang/org-mcp/issues/31, spec: docs/tables/issue-31.org
+   * manage_table output manufactures duplicates: batched ops each return overlapping GetRange neighborhood snapshots (row-1..row+2), so the same rows appear in multiple CSV chunks and can't be mapped back to ops
+   * manage_table responses are unlabeled []any (CSV / error / prose per op, positionally) — with N ops and M failures the model must guess which item belongs to which op; proposed per-op JSON contract in issue-31 spec header =31l12=
+   * manage_table writes a stray ~#+TYPE: ~ (empty) line into the file on every edit
+   * parsers ignore flush-left tables after a blank line and a later manage_table write deleted my hand-written table wholesale — silent data destruction, reverse of the inteded UX
+   * query_items TYPE column returns raw Go type names like ~*orgmcp.Header~ instead of friendly values (e.g. =header=) — fine for debugging, noisy for steering; suggest a doc-level enum
 * DONE Issue-12 fix: Header corruption when updating text content :issue:12:parsing:text:memory::
   CLOSED: [2026-03-28 Sat 15:25]
   :PROPERTIES:

@@ -1,0 +1,117 @@
+* Error conventions (non-negotiable)
+  :PROPERTIES:
+  :ID: 41497269
+  :END:
+  - [ ] *500-class (top-level err)* — reserved for org-mcp/server failures: context lost, file unreadable, parse panic. Bubble up as =error= from the tool callback. Not for recoverable tool mistakes
+  - [ ] *400-class (response items)* — every tool-level failure (bad op, not found, duplicate, out of range, name taken) is NOT =err=; appended into the response array so batched ops stay decodable. Convention bullet =48779879.b6= in =docs/index.org=
+  - [ ] *Generic structural checks stay centralized* — =Header.AddChildren= owns the parent/child + duplicate-uid contract; feature paths (create/add) do NOT re-implement it. They may pre-resolve parameters to produce *feature-specific* messages alongside the structural fail
+  - [ ] *Templates live in =orgmcp/types/errors.go=* — one string constant per error, prefixed (see catalog). Callers =fmt.Errorf(TEMPLATE, ...)= with values only — no ad-hoc error text
+* Error code catalog :catalog:
+  :PROPERTIES:
+  :ID: 96623401
+  :END:
+  | Code                | Where                  | Status             | Notes                                                                                                                              |
+  |---------------------+------------------------+--------------------+------------------------------------------------------------------------------------------------------------------------------------|
+  | DUPLICATE_UID       | orgmcp/types/errors.go | exists             | Header.AddChildren rejects a child uid that already exists under the parent; create-table name collisions fail via the derived uid |
+  | ROW_OUT_OF_RANGE    | orgmcp/table           | exists             | edits/deletes past end must error (silent-drop AddRow tracked as 31c3); add past end clamp-appends, negative index errors          |
+  | COLUMN_OUT_OF_RANGE | orgmcp/table           | exists             | column edits past end error; add_col past end clamp-appends to the last position (tested behavior, re-affirmed in 31c3)            |
+  | TABLE_NOT_FOUND     | proposed               | issue-31 31b2/31c3 | input uid does not resolve to a table/createable position; replaces silent {} responses for out-of-range read/write                |
+  | TARGET_NOT_HEADER   | proposed               | issue-31 31b2      | op requires a header but uid resolves to another item type; message carries the usable parent header uid verbatim                  |
+  | TABLE_NAME_TAKEN    | proposed               | issue-31 31b2      | name-specific variant of DUPLICATE_UID raised inside create-table pre-check; structural check stays centralized in AddChildren     |
+  #+NAME: error_catalog
+  #+TYPE: 
+** TODO Errors constants
+   :PROPERTIES:
+   :ID: 13212920
+   :END:
+   - [ ] =DUPLICATE_UID= (=types/errors.go=) — =Header.AddChildren= rejects a child uid that already exists under the parent. Wording recently corrected (“update” not “modify”). Used by create-table name collisions via the derived uid. Has to be implemented for other ~Render~ items and not just ~Header~
+   - [ ] =ROW_OUT_OF_RANGE= / =COLUMN_OUT_OF_RANGE= ( =orgmcp/table= ) — edits/deletes past end must be errors (silent-drop path in =AddRow= is tracked as issue-31 =31c3=); =add= past end is a clamp-append instead, negative index errors
+   - [ ] =TABLE_NOT_FOUND= — proposed (issue-31 =31b2=/=31c3=): input uid does not resolve to a table/createable position; replaces silent ={}= responses for out-of-range read/write
+   - [ ] =TARGET_NOT_HEADER= — proposed (issue-31 =31b2=): op requires a header but uid resolves to another item type; message carries the usable parent header uid verbatim
+   - [ ] =TABLE_NAME_TAKEN= — proposed variant of =DUPLICATE_UID= raised inside create-table for a name-specific message; kept as feature-pre-check while the structural check stays in =AddChildren=
+   - [ ] Phase-out dead text — “PlainText cannot have children” style strings ( =orgmcp/plain.go:96,108= ) still anonymous; to be renamed per the three-act guideline when plain-text add op work happens
+* Message template guidelines
+  :PROPERTIES:
+  :ID: 1418073
+  :END:
+  - [ ] *Prefix = code = detail* — today: =ERROR | [%T]: <state>. <remedy>= via =types/errors.go=. Proposal: keep the prefix, insert a stable short code token between — =ERROR | TAKEN_NAME.[%T]: ...= — codes (=ROW_OUT_OF_RANGE=, =COLUMN_OUT_OF_RANGE= exist already) let tests and agents classify errors cheaply
+  - [ ] *Three-act message* — (1) what failed / what was asked, (2) actual state (uids, names, indices), (3) exact remedy composed of real op names. Remedy parameters must be copy-pasteable into the next tool call verbatim. Never generic verbs ( modify ) and never call a =name= a =UID=
+  - [ ] *No anonymous referents* — “This item” style is being phased out; name the entity kind + uid. When the fix is “use the parent”, include the parent UID verbatim so the agent self-heals in one step (create requires a header uid; `X.Y` resolves to a table — use its parent header `X` instead)
+* Phase-out backlog
+  :PROPERTIES:
+  :ID: 52396747
+  :END:
+  | Code                | Where                                                                                                                                                                                                                                                                                                         | Sites | Current text                                                                | Migration note                                                                            |
+  |---------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------+-----------------------------------------------------------------------------+-------------------------------------------------------------------------------------------|
+  | NO_CHILDREN         | [[file:orgmcp/plain.go][plain.go]] [[file:orgmcp/move.go][move.go]] [[file:orgmcp/file.go][file.go]]                                                                                                                                                                                                          | 3     | PlainText cannot have children / OrgFile cannot have a parent               | anonymous strings; one catalog spec with Render target supplying kind                     |
+  | DUPLICATE_UID       | [[file:orgmcp/types/errors.go][types/errors.go]]                                                                                                                                                                                                                                                              | 1     | already contains a child with UID - Either update or choose a new Name      | already migrated; first template in the new catalog                                       |
+  | NOT_FOUND           | [[file:tools/utils.go][utils.go]]                                                                                                                                                                                                                                                                             | 1     | Uid was not found.                                                          | proposed code; unify copies across bullet/text/header/query_table                         |
+  | PARENT_NOT_FOUND    | [[file:tools/utils.go][utils.go]]                                                                                                                                                                                                                                                                             | 1     | The parent of Codeblock X could not be found. This is a bug, please report. | internal invariant; consider subsuming into NOT_FOUND                                     |
+  | WRONG_TYPE          | [[file:tools/utils.go][utils.go]]                                                                                                                                                                                                                                                                             | 1     | Uid X is not a CodeBlock, but a PlainText                                   | proposed; merge with text_tool not-a-plain-text-element copy                              |
+  | ROW_OUT_OF_RANGE    | [[file:orgmcp/table/manage.go][manage.go]]                                                                                                                                                                                                                                                                    | 1     | Index out of range... use the add method                                    | already code-token shaped; move template into catalog map                                 |
+  | COLUMN_OUT_OF_RANGE | [[file:orgmcp/table/column.go][column.go]]                                                                                                                                                                                                                                                                    | 1     | The specified column index was out of range                                 | ditto                                                                                     |
+  | BAD_METHOD          | [[file:tools/header_tool.go][header_tool.go]] [[file:tools/bullet_tool.go][bullet_tool.go]] [[file:tools/text_tool.go][text_tool.go]] [[file:tools/manage_table_tool.go][manage_table_tool.go]] [[file:tools/code_block_tool.go][code_block_tool.go]] [[file:tools/query_table_tool.go][query_table_tool.go]] | 6+1   | invalid method for X operation                                              | per-tool copies with ad-hoc wording; one spec listing the valid enum values for that tool |
+  #+NAME: legacy_errors_index
+  #+TYPE: 
+* Open decisions :design:
+  :PROPERTIES:
+  :ID: 73468177
+  :END:
+  - [ ] *Per-op error tagging (from issue-31 =31l12=)* — should 400-class items become structured JSON per op (op index, method, status=error, code, message) to kill positional ambiguity in batches? Depends on output-contract work landing first
+  - [ ] *Code token placement* — prefix token ( =ERROR | TAKEN_NAME.[%T]: ...= ) vs standalone first word; shell- and agent-friendliness needs one decision before the catalog is finalized
+  - [ ] *Partial-success labels* — batch ops persist successes even when some items error; the response must identify which items applied (ties into per-op tagging, =31l12=)
+* TODO McpError structure :design:
+  :PROPERTIES:
+  :ID: 17675374
+  :END:
+  - [ ] *Lives in =orgmcp/types= (same package as =Render=)* — no import cycle, so the struct can hold the offending item directly; this satisfies the “guarantee errors can print context” requirement without callers threading uid/kind through every call site
+  - [ ] *Shape*: code token (=TAKEN_NAME=, =NO_CHILDREN=, ...) + =Option[Render]= target (None for input-level errors where nothing resolved) + =[]any= args. No remedy/message embedded — those resolve through the lookup at format time; codes are the join key for BOTH message template and remedy
+  - [ ] *Single formatter* — one =format()= renders =ERROR | [CODE][%T of `uid`]: msg. remedy= — target supplies the =[%T]= and uid automatically, args fill the template, remedy appends verbatim from the catalog; no per-call-site string building
+  - [ ] *Compat*: =McpError.Error()= must emit strings satisfying existing assertions (create tests match =already contains a child with UID `...`=); the two current =types/errors.go= constants become the first two templates migrated
+  - [ ] *350-class / response integration*: tool layer currently appends =res.err.Error()= strings; when per-op tagging (31l12) lands, =McpError= gets a =ResponseItem(op, method)= producing ={op, method, status=error, code, message}= JSON — the struct is what makes that shape possible without string parsing
+  #+NAME: mcperror_spec
+  #+BEGIN_SRC go
+  ```go
+  // orgmcp/types/errors.go — codes + lookup, no format strings at call sites
+  
+  type ErrorCode string
+  
+  const (
+  	NO_CHILDREN      ErrorCode = "NO_CHILDREN"
+  	TAKEN_NAME       ErrorCode = "TAKEN_NAME"
+  	NOT_FOUND        ErrorCode = "NOT_FOUND"
+  	ROW_OUT_OF_RANGE ErrorCode = "ROW_OUT_OF_RANGE"
+  )
+  
+  type ErrorSpec struct {
+  	Template string // "[%T of uid `%s`] already contains a child with uid `%s`"
+  	Remedy   string // "choose a different `name`, or update the existing table in place (update / update_col)"
+  }
+  
+  var Catalog = map[ErrorCode]ErrorSpec{
+  	TAKEN_NAME: {Template: "...", Remedy: "..."},
+  	// ...
+  }
+  
+  type McpError struct {
+  	code   ErrorCode
+  	target Option[Render] // supplying [%T] + uid when present; None = input-level
+  	args   []any
+  }
+  
+  func New(code ErrorCode, target Option[Render], args ...any) *McpError {
+  	return &McpError{code: code, target: target, args: args}
+  }
+  
+  func (e *McpError) Error() string {
+  	// resolve spec via Catalog[e.code]; one formatter renders
+  	// "ERROR | [CODE][%T]: <template(args)>. <remedy>"
+  }
+  
+  // ResponseItem is the per-op JSON tagging seam (issue-31, 31l12):
+  // {"op": n, "method": "create", "status": "error", "code": "TAKEN_NAME",
+  //  "message": "<template(args)>", "remedy": "<spec.Remedy>"}
+  func (e *McpError) ResponseItem(op int, method string) string { ... }
+  ```
+  #+END_SRC
+  - [ ] *Lookup table = single source of truth* — =map[ErrorCode]ErrorSpec{Template, Remedy}= alongside the constants; the catalog table (record =96623401.error_catalog= = docs/errors.org) mirrors it as the human-facing doc of record. Optional sync test: render the Go map and compare against the parsed org table so code and docs cannot drift

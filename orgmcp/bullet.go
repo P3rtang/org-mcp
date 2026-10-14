@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/option"
 	o "github.com/p3rtang/org-mcp/utils/option"
 	"github.com/p3rtang/org-mcp/utils/reader"
@@ -60,7 +61,7 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 	bullet := Bullet{}
 
 	line, err := r.ReadBytes('\n')
-	// fmt.Fprintf(os.Stderr, "Parsing bullet: %s\n", string(line))
+
 	if err != nil {
 		return o.None[*Bullet]()
 	}
@@ -100,8 +101,6 @@ func NewBulletFromReader(r *reader.PeekReader) o.Option[*Bullet] {
 
 func NewBulletFromString(str string) o.Option[Bullet] {
 	bullet := Bullet{}
-
-	// fmt.Fprintf(os.Stderr, "%s\n", str)
 
 	if str[1] != ' ' {
 		return o.None[Bullet]()
@@ -165,9 +164,9 @@ func (b *Bullet) CheckProgress() o.Option[Progress] {
 	case NoCheck:
 		return o.None[Progress]()
 	case Unchecked:
-		return o.Some(Progress{done: o.Some(false)})
+		return o.Some(NewProgress(o.Some(false)))
 	case Checked:
-		return o.Some(Progress{done: o.Some(true)})
+		return o.Some(NewProgress(o.Some(true)))
 	default:
 		panic("unreachable")
 	}
@@ -200,7 +199,7 @@ func (b *Bullet) Render(builder *strings.Builder, depth int) {
 }
 
 func (b *Bullet) IndentLevel() int {
-	return option.Map(b.parent, func(r Render) int {
+	return b.parent.Map(func(r Render) int {
 		return r.ChildIndentLevel()
 	}).UnwrapOr(0)
 }
@@ -210,7 +209,7 @@ func (b *Bullet) ChildIndentLevel() int {
 }
 
 func (b *Bullet) Level() int {
-	return option.Map(b.parent, func(r Render) int { return r.Level() }).UnwrapOr(0)
+	return b.parent.Map(func(r Render) int { return r.Level() }).UnwrapOr(0)
 }
 
 func (b *Bullet) BulletLevel() int {
@@ -248,8 +247,10 @@ func (b *Bullet) AddChildren(r ...Render) error {
 	for _, child := range r {
 		_, ok_bullet := child.(*Bullet)
 		_, ok_text := child.(*PlainText)
+		_, ok_code_block := child.(*CodeBlock)
+		_, ok_table := child.(*Table)
 
-		if !ok_bullet && !ok_text {
+		if !ok_bullet && !ok_text && !ok_code_block && !ok_table {
 			return errors.New("only bullets and plain text can be added as children to a bullet")
 		}
 
@@ -262,7 +263,7 @@ func (b *Bullet) AddChildren(r ...Render) error {
 }
 
 func (b *Bullet) SetParent(render Render) error {
-	if option.Map(b.parent, func(r Render) Uid { return r.Uid() }) == option.Some(render.Uid()) {
+	if b.parent.Map(func(r Render) Uid { return r.Uid() }) == option.Some(render.Uid()) {
 		return nil
 	}
 
@@ -298,13 +299,13 @@ func (b *Bullet) ChildrenRec(depth int) (children []Render) {
 }
 
 func (b *Bullet) Uid() Uid {
-	return option.Map(b.parent, func(r Render) Uid {
+	return b.parent.Map(func(r Render) Uid {
 		return NewUid(fmt.Sprintf("%s.b%d", r.Uid(), b.index))
 	}).UnwrapOr(NewUid(-1))
 }
 
 func (b *Bullet) ParentUid() Uid {
-	return option.Map(b.parent, func(r Render) Uid {
+	return b.parent.Map(func(r Render) Uid {
 		return r.Uid()
 	}).UnwrapOr(NewUid(0))
 }

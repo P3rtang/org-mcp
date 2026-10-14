@@ -1,0 +1,11 @@
+* Header with type-hinted table
+  :PROPERTIES:
+  :ID: 88888888
+  :END:
+  | Name  | Age | Department | Salary |
+  |-------+-----+------------+--------|
+  | Alice | 30  | Eng        | 90000  |
+  | Bob   | 25  | Sales      | 60000  |
+  | Carol | 35  | Eng        | 100000 |
+  #+NAME: table_typed
+  #+TYPE: Name=text,Age=int,Department=text,Salary=int

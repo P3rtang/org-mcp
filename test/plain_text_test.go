@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/p3rtang/org-mcp/orgmcp"
 	. "github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/reader"
 )
 
@@ -344,7 +344,7 @@ func TestPlainTextFileUid(t *testing.T) {
 	// os.Stderr, _ = os.OpenFile("/dev/null", os.O_WRONLY, 0644)
 
 	file, _ := os.OpenFile("./files/plain_text.org", os.O_RDONLY, 0644)
-	of, err := orgmcp.OrgFileFromReader(context.TODO(), file).Split()
+	of, err := OrgFileFromReader(context.TODO(), file).Split()
 
 	if err != nil {
 		t.Fatalf("failed to parse org file: %v", err)

@@ -1,0 +1,38 @@
+* Header with bullet and code block
+  :PROPERTIES:
+  :ID: 11111111
+  :END:
+  - [ ] Task with code block
+    #+BEGIN_SRC python
+    print("hello")
+    #+END_SRC
+* Another header
+  :PROPERTIES:
+  :ID: 22222222
+  :END:
+  - [x] Checked bullet with named code block
+    #+NAME: greet
+    #+BEGIN_SRC python
+    def greet(name):
+        return f"Hello, {name}!"
+    #+END_SRC
+* Third header
+  :PROPERTIES:
+  :ID: 33333333
+  :END:
+  - [ ] Bullet with multiple children
+    #+BEGIN_SRC go
+    package main
+    #+END_SRC
+    #+BEGIN_SRC bash
+    echo "world"
+    #+END_SRC
+* Fourth header
+  :PROPERTIES:
+  :ID: 44444444
+  :END:
+  - [ ] Bullet with code block and sub-bullet
+    #+BEGIN_SRC rust
+    fn main() {}
+    #+END_SRC
+    * Another bullet

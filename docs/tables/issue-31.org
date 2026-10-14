@@ -1,0 +1,397 @@
+* NEXT Issue 31 fix: table tool reliability :issue:31:table:parsing:
+  DEADLINE: <2026-11-01 Sun>
+  :PROPERTIES:
+  :ID: 31bin1
+  :END:
+  Branch of work for https://github.com/P3rtang/org-mcp/issues/31
+  Toolchain bumped to go 1.27.0 (2026-10-10) before the create implementation; 1.27 is the first release with generic methods, so implementation can favor generic methods over package-level helpers where the code suits it.
+** DONE feat: ~create~ method on ~manage_table~ :table:design:
+   CLOSED: [2026-10-12 Mon 09:09]
+   :PROPERTIES:
+   :ID: 31b2
+   :END:
+   - [x] Called with =uid= of a /header/ (not a table), a =name= (becomes =#+NAME:=), and =header= (the header row)
+   - [x] Inserts a parsed, persisted table under the header and returns the allocation UID on the first call
+   - [x] ~#+NAME:~ is set up; further operations address the table by parent =.= name
+   - [x] If the header already contains a table(s), creating another is ALLOWED (org supports multiple tables per header; the =#+NAME= disambiguates uids) — error only if the =name= collides with an existing table under the same header (test =SecondTableUnderSameHeaderAllowed= / =DuplicateNameUnderSameHeaderErrors=)
+   - [x] Codeblock has ~#+NAME:~ /before/ the block, table ~#+NAME:~ /after/ the rows (see render)
+   TDD spec (test file =tools/test/manage_table_create_test.go=, fixture =tools/test/table_test_create.org=):
+   #+BEGIN_SRC go
+   // Fixture tools/test/table_test_create.org:
+   //   * Header with no table yet
+   //     :PROPERTIES:
+   //     :ID: 88880000
+   //     :END:
+   //
+   // TDD: CreateTableInput / CreateTable do not exist yet. The test is the spec.
+   type CreateTableTest struct {
+       name         string
+       uid          string   // header uid to create the table under
+       name         string   // value for #+NAME:
+       cells        []string // header row
+       expectError  bool
+       expectedResp []string
+       expectedCSV  string
+   }
+   
+   var createTests = []CreateTableTest{
+   {
+       name: "UnderHeaderWithoutTable",
+       uid:  "88880000",
+       name: "created_table",
+       cells: []string{"Name", "Role"},
+       expectedCSV: "Name,Role",
+   },
+   {
+       name:        "UnderHeaderThatAlreadyHasTable",
+       uid:         "55555555", // fixture with existing table
+       name:        "another_table",
+       cells:       []string{"A", "B"},
+       expectError: true, // explicit error, not silent no-op
+   },
+   {
+       name:        "UidPointsAtNonHeader",
+       uid:         "55555555.table_manage_test",
+       name:        "nope",
+       cells:       []string{"A", "B"},
+       expectError: true,
+   },
+   }
+   
+   func TestManageTableCreate(t *testing.T) {
+       originalContent, err := os.ReadFile("./table_test_create.org")
+       if err != nil {
+           t.Fatalf("failed to read table_test_create.org: %v", err)
+       }
+       defer os.WriteFile("./table_test_create.org", originalContent, 0644)
+   
+       ctx := t.Context()
+   
+       for _, tt := range createTests {
+           t.Run(tt.name, func(t *testing.T) {
+               os.WriteFile("./table_test_create.org", originalContent, 0644) // reset per subtest
+   
+               runManageTableTest(t, ctx, tools.ManageTableInput{
+                   Items: intoManageTableUnion(
+                       tools.CreateTable{
+                           Method: "create",
+                           Uid:    NewUid(tt.uid),
+                           Name:   tt.name,
+                           Cells:  tt.cells,
+                       },
+                   ),
+                    Path: "./table_test_create.org",
+               }, tt.expectError, tt.expectedResp...)
+   
+               if tt.expectedCSV != "" {
+                   if got := queryFullTable(t, ctx); !EqualString(got, tt.expectedCSV) {
+                       t.Errorf("expected table %q, got %q", tt.expectedCSV, got)
+                   }
+               }
+           })
+       }
+   }
+   #+END_SRC
+** TODO fix: range semantics — out-of-range ~add~ appends, out-of-range ~update~ ／~remove~ error :table:design:
+   :PROPERTIES:
+   :ID: 31c3
+   :END:
+   Decision (2026-10-10): sync row ops with the column ops' established behavior. No more silent no-ops in either direction.
+   - [ ] =~create~ the input =uid= for a nonexistent table (e.g. header with no table) → /TableNotFound/
+   - [ ] ~AddRow~ row past the end → **append at the end** (no error). This is already what ~add_col~ does with an out-of-range =col= (tested in =tools/test/manage_table_column_test.go:118-124= = col 99 → appended last); codify it for rows so both axes behave identically
+   - [ ] ~AddRow~ response must state the /actual/ index the row landed at (callers can't compute it after a clamp)
+   - [ ] ~AddRow~ /all ops/ negative index → explicit =ROW_OUT_OF_RANGE= error (never clamp below zero)
+   - [ ] ~UpdateRow~ past end → =ROW_OUT_OF_RANGE= error (already implemented in =orgmcp/table/manage.go:33=, keep)
+   - [ ] ~RemoveRow~ past end → =ROW_OUT_OF_RANGE= error (already implemented, =orgmcp/table/manage.go:45=, keep)
+   - [ ] The silent-drop path in ~AddRow~ (=orgmcp/table/manage.go:16-25=, walk loop just exits without inserting) must be replaced by the clamp logic above; an empty table (header only) =add= row 0 must work today and also keep working after the change
+   - [ ] Out-of-range ~update_col~ / ~remove_col~ → =COLUMN_OUT_OF_RANGE= error (drop the current ~update_col~/~add_col~ degrade-to-append inconsistency only if =add_col= append is /kept as intended behavior/ — see next bullet)
+   - [ ] Re-affirm =add_col= out-of-range → append-at-end as intended (same semantic as =AddRow= clamp)
+   #+BEGIN_SRC go
+   // TDD: range semantics. Fixture 55555555.table_manage_test has rows
+   // Alice(0) Bob(1) Carol(2) under header Name,Status,Value.
+   type RangeTest struct {
+   	name         string
+   	ops          []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool]
+   	expectError  bool
+   	expectedErr  string
+   	expectedResp []string // e.g. row land-index messages
+   	expectedCSV  string
+   }
+   
+   var rangeTests = []RangeTest{
+   	{
+   		name: "AddRowPastEndAppendsAtEnd",
+   		ops: intoManageTableUnion(
+   			tools.AddTableRow{Method: "add", Uid: NewUid("55555555.table_manage_test"), Row: 99, Cells: []string{"Dave", "NEXT", "40"}},
+   		),
+   		expectedResp: []string{"99→3"}, // response records real index 3
+   		expectedCSV:  "Name,Status,Value\nAlice,TODO,10\nBob,DONE,20\nCarol,TODO,30\nDave,NEXT,40",
+   	},
+   	{
+   		name: "AddRowNegativeErrors",
+   		ops: intoManageTableUnion(
+   			tools.AddTableRow{Method: "add", Uid: NewUid("55555555.table_manage_test"), Row: -1, Cells: []string{"X", "Y", "Z"}},
+   		),
+   		expectError: true,
+   		expectedErr: "ROW_OUT_OF_RANGE",
+   	},
+   	{
+   		name: "AddRowToEmptyTableInsertsFirstRow",
+   		// header-only table; today AddRow silently no-ops here (rows[1:] is empty)
+   		ops: intoManageTableUnion(
+   			tools.AddTableRow{Method: "add", Uid: NewUid("77770000.empty_table"), Row: 0, Cells: []string{"first"}},
+   		),
+   		expectedCSV: "Cell,Width\nfirst",
+   	},
+   	{
+   		name: "UpdateRowPastEndErrors",
+   		ops: intoManageTableUnion(
+   			tools.UpdateTableRow{Method: "update", Uid: NewUid("55555555.table_manage_test"), Row: 5, Cells: []string{"X", "Y", "Z"}},
+   		),
+   		expectError: true,
+   		expectedErr: "ROW_OUT_OF_RANGE",
+   		expectedCSV: "Name,Status,Value\nAlice,TODO,10\nBob,DONE,20\nCarol,TODO,30", // unchanged
+   	},
+   	{
+   		name: "RemoveRowPastEndErrors",
+   		ops: intoManageTableUnion(
+   			tools.RemoveTableRow{Method: "remove", Uid: NewUid("55555555.table_manage_test"), Row: 9},
+   		),
+   		expectError: true,
+   		expectedErr: "ROW_OUT_OF_RANGE",
+   	},
+   	{
+   		name: "AddColOutOfRangeAppendsAtEnd", // pre-existing behavior, now asserted as intended
+   		ops: intoManageTableUnion(
+   			tools.AddTableColumn{Method: "add_col", Uid: NewUid("55555555.table_manage_test"), Col: 99, Name: "New"},
+   		),
+   		expectedCSV: "Name,Status,Value,New\nAlice,TODO,10,\nBob,DONE,20,\nCarol,TODO,30,",
+   	},
+   }
+   
+   func TestManageTableRangeSemantics(t *testing.T) {
+   	// file backup/restore per TestManageTableOperations pattern
+   	for _, tt := range rangeTests {
+   		t.Run(tt.name, func(t *testing.T) {
+   			runManageTableTest(t, ctx, tools.ManageTableInput{
+   				Items: tt.ops,
+   				Path:  "./table_test_manage.org",
+   			}, tt.expectError, tt.expectedResp...)
+   
+   			if tt.expectedCSV != "" {
+   				if got := queryFullTable(t, ctx); !EqualString(got, tt.expectedCSV) {
+   					t.Errorf("expected table %q, got %q", tt.expectedCSV, got)
+   				}
+   			}
+   		})
+   	}
+   }
+   #+END_SRC
+** TODO fix: escape pipes in ~add~ cells (data loss) :table:issue:
+   :PROPERTIES:
+   :ID: 31d4
+   :END:
+   - [ ] =|= cells in =add= (adding a value containing a pipe character) write a /format-corrupting pipe/ to the file, re-parsed as an extra column that the table width silently truncates / data dropped with no error
+   - [ ] =Update:= goes through the escape path, =add= does not (=tools/manage_table_tool.go:236= vs =orgmcp/table/table.go:10=, =escapePipe=)
+   - [ ] Fix: =AddRow= / =create= cells go through =setCells= = escapePipe:
+     - =|= inside =|= → =\vert{}= escaping on write
+     - unescape =\vert{= when read back / parsed
+   #+BEGIN_SRC go
+   type PipeEscapeTest struct {
+       name         string
+       ops          []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool]
+       expectedResp []string
+       expectedCSV  string
+       expectedDisk string // substring that must appear on disk (escaped pipe)
+   }
+   
+   var pipeTests = []PipeEscapeTest{
+       {
+           name: "AddRowWithPipeCell",
+           ops: intoManageTableUnion(
+               tools.AddTableRow{Method: "add", Uid: NewUid("55555555.table_manage_test"), Row: 1, Cells: []string{"a|b", "TODO", "1"}},
+           ),
+           expectedResp: []string{"a|b,TODO,1"}, // response keeps raw pipe
+           expectedDisk: "a\\vert{}b",
+           expectedCSV:  "Name,Status,Value\na|b,TODO,1\n...", // round-trips to 3 columns, not 4-corrupted
+       },
+   }
+   #+END_SRC
+** TODO fix: ragged-row normalization before column ops (batch row loss) :table:issue:
+   :PROPERTIES:
+   :ID: 31e5
+   :END:
+   - [ ] =add_col= + =remove_col= in one batch dropped a sibling data row from disk (verified live)
+   - [ ] =RemoveColumn= / =AddColumn= slice items / raw / short-row / ragged rows stored with fewer / more / differing cells = `nil` silently
+   - [ ] =UpdateColumn= range check depends on stale =t.columns=, so header length vs counters drift
+   - [ ] Fix: nav pulls cells through =setCells= = ragged rows are normalized by =render= time using =parse.go= pad/truncate to header width + /warning/; =AddColumn= / =RemoveColumn= never index raw slices. =UpdateRow= does not mutate =t.columns=
+   - [ ] org property: batched =add_col+remove_col= round-trip must be a no-op on the data
+   #+BEGIN_SRC go
+   type ColumnBatchTest struct {
+       name         string
+       ops          []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool] // add_col + remove_col + update
+       expectedCSV  string
+   }
+   
+   func TestManageTableColumnAtomicity(t *testing.T) {
+       tests := []ColumnBatchTest{
+           {
+               name: "AddRemoveColRoundTripPreservesAllRows",
+               // 4 data rows in fixture; a round-trip must not eat any of them
+           },
+           {
+               name: "BatchedInterleavedOpsSeparateRedParse",
+               // batch: add_col(1), update_row(1), remove_col(1) → update must see the added col
+           },
+       }
+   }
+   #+END_SRC
+** TODO fix: stray ~#+TYPE: ~ line written on every render :table:issue:
+   :PROPERTIES:
+   :ID: 31f6
+   :END:
+   - [ ] =#+TYPE: = (empty) line appended to the org file on every =manage_table= write
+   - [ ] Happens even when the table has no type hints
+   - [ ] Fix: only emit =#+TYPE:= when t.type != ""
+   #+BEGIN_SRC go
+   func TestManageTableNoStrayTypeLine(t *testing.T) {
+       // After any manage_table op, render must not emit "#+TYPE: " (trailing space, empty).
+       // Assert on disk content: !strings.Contains(disk, "#+TYPE: \n")
+   }
+   #+END_SRC
+** TODO fix: =#+NAME= before a table is consumed/lost (random uid on reload) :table:issue:
+   :PROPERTIES:
+   :ID: 31g7
+   :END:
+   - [ ] File parser consumes leading =#+NAME:= line in the table context, but that =name= option is only applied to codeblocks ( =orgmcp/file.go:192-218= ) — a table preceded by =#+NAME:= loses the name and gets a random =table_12345= uid on every file reload
+   - [ ] Fix: parser applies the consumed name to tables; stable uid for a table written as
+   #+BEGIN_SRC
+   #+NAME: my_table
+   | A | B |
+   |---+---|
+   #+END_SRC
+   #+BEGIN_SRC go
+   // TDD: name-before-table parsing
+   func TestParseTableNameBeforeTableStableUID(t *testing.T) {
+       // Load a fixture with "#+NAME: stable_name" directly above a table.
+       // Assert the table is discovered at "<header_uid>.stable_name", not a random uid.
+       // Then run a manage_table op and assert the name persists to the file.
+   }
+   #+END_SRC
+** TODO fix: flush-left / non-indentedtables are not parsed (silent deletion) :table:issue:
+   :PROPERTIES:
+   :ID: 31h8
+   :END:
+   - [ ] Table rows / flush-left after a blank line are not parsed as tables — the /content silently vanishes on the next write/ (live-verified!). Parser only picks up tables indented (2 spaces) under the header.
+   - [ ] This is silent data destruction for CI / single files
+   - [ ] Fix: parser recognizes flush-left =| ...= rows under a header, same as the indented format. If not supported, render must refuse the write that would drop them
+   #+BEGIN_SRC go
+   func TestParseFlushLeftTable(t *testing.T) {
+       // Fixture with a flush-left (no indent) table under a header.
+       // Assert: table parses, has expected uid + rows.
+       // Then: manage_table add + reparse — table must still contain all rows.
+   }
+   #+END_SRC
+** TODO fix: tool output is unlabeled, ambiguous, and manufactures duplicate rows :table:ux:output:
+   :PROPERTIES:
+   :ID: 31l12
+   :END:
+   The biggest day-to-day friction: the response format. Live repro with one batched call of 3 =add= ops on a 1-row-header table produced:
+   #+BEGIN_EXAMPLE
+   Name,Role
+   Alice,Dev
+   Name,Role
+   Alice,Dev
+   Bob,QA
+   Name,Role
+   Bob,QA
+   Carol,Ops
+   #+END_EXAMPLE
+   - [ ] **Duplicate rows in output** — each op returns a neighborhood snapshot ( =GetRange(row-1, row+2)= = =tools/manage_table_tool.go:239= , =:258= Saints, =:276= ). Ranges overlap between batched ops, so =Alice= appears in chunks 1 =AND= 2, =Bob= in 2 =AND= 3. The disk table is correct, but the response /looks dt-like duplicatd data/ — models routinely misread this and act on phantom dupes
+   - [ ] **Stale state in output** — chunk 1 shows state /after op 1/, which op 2 and 3 have since invalidated. The model gets three /different/ table states in one response with nothing saying which is current
+   - [ ] **No op/result association** — response items are unlabeled positional elements in a flat =[]any=: an error / a raw message / a CSV string, whichever that op happened to produce ( =:348-371= ). With 5 ops and 2 errors, the model must guess which item maps to which op
+   - [ ] **Errors interleaved as raw objects** — =resp = append(resp, res.err)= puts Go error values right next to CSV strings, no marker
+   - [ ] **Inconsistent shapes per op** — row ops return CSV neighborhoods; column ops return prose ( =COLUMN_ADDED= etc.); no-ops return nothing and the whole response degrades to ={}= — impossible to distinguish "success, nothing to say" from "failed, nothing happened"
+   - [ ] **No final-state view** — to see the resulting table the model usually needs a follow-up =query_table= call; if a batch ends in partial failure, you cannot tell what actually persisted
+   - [ ] **Partial success is invisible** — batch continues past errors and =WriteOrgFileToDisk= runs unconditionally ( =:373= ); success/failure per item is indistinguishable in the unlabeled stream
+   Proposed response contract: one entry per op, each ={"op": <index or tag>, "status": "ok|error", "error": "...", "affected": {...}}= + optional single =final_table= CSV at the end (the current state, on request). Kill the overlapping neighborhood windows.
+   #+BEGIN_SRC go
+   // TDD: structured response. Expect ManageTableTool responses to be JSON strings
+   // in order, one per op, regardless of op type or failure.
+   type OutputContractTest struct {
+       name string
+       ops  []mcp.GenericOneOf[*tools.ManageTableInputUnion, tools.TableApplicableTool]
+       // one expected JSON blob per op, in order:
+       expected []string
+   }
+   
+   var outputTests = []OutputContractTest{
+       {
+           name: "BatchedAddsDoNotDuplicateRows",
+           ops: intoManageTableUnion(
+               tools.AddTableRow{Method: "add", Uid: NewUid("55555555.table_manage_test"), Row: 0, Cells: []string{"Z", "NEW", "9"}},
+               tools.AddTableRow{Method: "add", Uid: NewUid("55555555.table_manage_test"), Row: 1, Cells: []string{"Y", "NEW", "8"}},
+           ),
+           expected: []string{
+               `{"op":0,"method":"add","status":"ok","cells":"Z,NEW,9"}`,
+               `{"op":1,"method":"add","status":"ok","cells":"Y,NEW,8"}`,
+               // no third entry, no repeated rows, no stale pre-op state
+           },
+       },
+       {
+           name: "MixedSuccessAndFailureIsLabeled",
+           ops: intoManageTableUnion(
+               tools.UpdateTableRow{Method: "update", Uid: NewUid("55555555.table_manage_test"), Row: 0, Cells: []string{"A", "TODO", "1"}},
+               tools.UpdateTableRow{Method: "update", Uid: NewUid("55555555.table_manage_test"), Row: 99, Cells: []string{"X", "NO", "OP"}},
+           ),
+           expected: []string{
+               `{"op":0,"method":"update","status":"ok"}`,
+               `{"op":1,"method":"update","status":"error","error":"ROW_OUT_OF_RANGE"}`,
+               // error is labeled and attached to op 1, not a bare error object
+           },
+       },
+       {
+           name: "ColumnOpsSameShapeAsRowOps",
+           ops: intoManageTableUnion(
+               tools.AddTableColumn{Method: "add_col", Uid: NewUid("55555555.table_manage_test"), Col: 0, Name: "C1"},
+           ),
+           expected: []string{
+               `{"op":0,"method":"add_col","status":"ok","header":"C1,Name,Status,Value"}`,
+           },
+       },
+   }
+   
+   func TestManageTableOutputContract(t *testing.T) {
+       // Each response item must parse as JSON with "op","status".
+       // Response length must equal len(input.Items).
+       // With show_final: true, last item is the post-write full-table CSV exactly once.
+   }
+   #+END_SRC
+** TODO feat doc: writable header row; =update= row semantics decided :table:design:
+   :PROPERTIES:
+   :ID: 31i9
+   :END:
+   - [ ] Design choice: how do callers update the header row of a table?
+     - Option A — ~update~ with =row: -1= meaning header
+     - Option B — new =update_header= op (parallel to =update_col=)
+     - Option C — =row: 0= means header (breaking; header is /not/ =rows[0]= for content rows today = table.go:42 =ContentRows(false)= always skips index 0)
+   - [ ] update_col on the header already works; row ops skip it
+   - [ ] Test both simple and CSV response shapes after decision
+** TODO fix: empty org file = server request timeout :parsing:
+   :PROPERTIES:
+   :ID: 31j10
+   :END:
+   - [ ] Any MCP call against an empty (0-line) file times out server-side
+   - [ ] =OrgFileFromReader= on empty input should produce an empty file object, not hang/error
+   - [ ] Test in =orgmcp/=
+   #+BEGIN_SRC go
+   func TestParseEmptyFile(t *testing.T) {
+       // mcp.LoadOrgFile against a 0-byte file must return a valid empty OrgFile, quickly.
+   }
+   #+END_SRC
+** TODO docs: document the on-disk table format contract :table:design:
+   :PROPERTIES:
+   :ID: 31k11
+   :END:
+   - [x] Tool description + docs must state: rows indented under header, =#+NAME:= after rows, =#+NAME:= before block is the stable uid source once parser names tables. LANDED in server-level instructions instead of tool descriptions (mcp/instructions.go, Table format contract section) — the initialize channel reaches every session including non-table tools' context
+   - [x] Un-named tables get =table_<rand>= uid that changes on reload until a manage call persists a =#+NAME:=. Also now documented in the server instructions (Table format contract section)

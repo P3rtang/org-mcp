@@ -93,9 +93,9 @@ func TestTryFunc(t *testing.T) {
 // TestIsOk tests the IsOk method
 func TestIsOk(t *testing.T) {
 	tests := []struct {
-		name     string
-		result   Result[string]
-		wantOk   bool
+		name   string
+		result Result[string]
+		wantOk bool
 	}{
 		{"Err returns false", Err[string](errors.New("error")), false},
 		{"Ok returns true", Ok("value"), true},
@@ -113,9 +113,9 @@ func TestIsOk(t *testing.T) {
 // TestIsErr tests the IsErr method
 func TestIsErr(t *testing.T) {
 	tests := []struct {
-		name      string
-		result    Result[int]
-		wantErr   bool
+		name    string
+		result  Result[int]
+		wantErr bool
 	}{
 		{"Err returns true", Err[int](errors.New("error")), true},
 		{"Ok returns false", Ok(123), false},
@@ -274,7 +274,7 @@ func TestMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mappedResult := Map(tt.result, func(val int) int {
+			mappedResult := tt.result.Map(func(val int) int {
 				return val * 2
 			})
 
@@ -294,11 +294,11 @@ func TestMapChaining(t *testing.T) {
 	result := Ok(5)
 
 	// Chain multiple maps
-	mappedResult := Map(result, func(val int) int {
+	mappedResult := result.Map(func(val int) int {
 		return val * 2
 	})
 
-	mappedResult = Map(mappedResult, func(val int) int {
+	mappedResult = mappedResult.Map(func(val int) int {
 		return val + 3
 	})
 
@@ -316,7 +316,7 @@ func TestMapChaining(t *testing.T) {
 func TestMapDifferentTypes(t *testing.T) {
 	result := Ok("hello")
 
-	mappedResult := Map(result, func(val string) int {
+	mappedResult := result.Map(func(val string) int {
 		return len(val)
 	})
 
@@ -371,7 +371,7 @@ func TestTry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tryResult := Try(tt.result, tt.fn)
+			tryResult := tt.result.Try(tt.fn)
 
 			if tryResult.IsOk() != tt.wantOk {
 				t.Errorf("Try() IsOk() = %v, want %v", tryResult.IsOk(), tt.wantOk)
@@ -389,11 +389,11 @@ func TestTryChaining(t *testing.T) {
 	result := Ok(5)
 
 	// Chain multiple tries
-	tryResult := Try(result, func(val int) Result[int] {
+	tryResult := result.Try(func(val int) Result[int] {
 		return Ok(val * 2)
 	})
 
-	tryResult = Try(tryResult, func(val int) Result[int] {
+	tryResult = tryResult.Try(func(val int) Result[int] {
 		return Ok(val + 3)
 	})
 
@@ -413,16 +413,16 @@ func TestTryWithError(t *testing.T) {
 	testErr := errors.New("test error")
 
 	// Chain tries with an error in the middle
-	tryResult := Try(result, func(val int) Result[int] {
+	tryResult := result.Try(func(val int) Result[int] {
 		return Ok(val * 2)
 	})
 
-	tryResult = Try(tryResult, func(val int) Result[int] {
+	tryResult = tryResult.Try(func(val int) Result[int] {
 		// Return an error
 		return Err[int](testErr)
 	})
 
-	tryResult = Try(tryResult, func(val int) Result[int] {
+	tryResult = tryResult.Try(func(val int) Result[int] {
 		t.Error("Try() should not call function after error")
 		return Ok(val)
 	})
@@ -470,7 +470,7 @@ func TestWithSliceType(t *testing.T) {
 	}
 
 	// Test Map with slice type
-	mappedResult := Map(result, func(s []int) int {
+	mappedResult := result.Map(func(s []int) int {
 		return len(s)
 	})
 	if mappedResult.Unwrap() != 3 {
@@ -498,7 +498,7 @@ func TestWithStructType(t *testing.T) {
 	}
 
 	// Test Map with struct type
-	mappedResult := Map(result, func(p Person) string {
+	mappedResult := result.Map(func(p Person) string {
 		return p.name
 	})
 	if mappedResult.Unwrap() != "Alice" {
@@ -512,7 +512,7 @@ func TestErrorPreservation(t *testing.T) {
 	result := Err[int](testErr)
 
 	// Map should preserve the error
-	mappedResult := Map(result, func(val int) int {
+	mappedResult := result.Map(func(val int) int {
 		return val * 2
 	})
 
@@ -521,7 +521,7 @@ func TestErrorPreservation(t *testing.T) {
 	}
 
 	// Try should preserve the error
-	tryResult := Try(result, func(val int) Result[int] {
+	tryResult := result.Try(func(val int) Result[int] {
 		return Ok(val)
 	})
 
@@ -529,4 +529,3 @@ func TestErrorPreservation(t *testing.T) {
 		t.Error("Try() should preserve error for Err result")
 	}
 }
-

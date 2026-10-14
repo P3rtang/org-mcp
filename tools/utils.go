@@ -1,11 +1,19 @@
 package tools
 
 import (
+	"context"
 	"os"
 	"strings"
 
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/diff"
+)
+
+const (
+	ITEM_NOT_FOUND   = "Uid `%s` was not found."
+	PARENT_NOT_FOUND = "The parent of Codeblock `%s` could not be found. This is a bug, please report."
+	WRONG_TYPE       = "Uid `%s` is not a `%s`, but a `%s`."
 )
 
 // GetDiffOnly renders the OrgFile and returns a diff against the current disk content
@@ -26,6 +34,14 @@ func GetDiffOnly(of orgmcp.OrgFile, filePath string) (res string, err error) {
 }
 
 type ApplyResult struct {
-	affectedItems map[orgmcp.Uid]orgmcp.Render
+	affectedItems map[Uid]Render
 	err           error
+}
+
+type ApplicableTool interface {
+	Apply(ctx context.Context) (ApplyResult, error)
+}
+
+type TableApplicableTool interface {
+	Apply(ctx context.Context) TableApplyResult
 }

@@ -1,5 +1,7 @@
 package option
 
+import "github.com/p3rtang/org-mcp/utils/result"
+
 type Option[T any] struct {
 	value T
 	set   bool
@@ -40,6 +42,32 @@ Inverse of IsNone
 */
 func (o Option[T]) IsSome() bool {
 	return o.set
+}
+
+/*
+Returns true if either
+1. the Option does not contain a value
+2. The value inside the option returns true when called as an argument of the predicate
+*/
+func (o Option[T]) IsNoneOr(predicate func(t T) bool) bool {
+	if o.IsNone() {
+		return true
+	}
+
+	return predicate(o.value)
+}
+
+/*
+Returns true if both
+1. The option contains a value
+2. The value inside the option returns true when called as an argument of the predicate
+*/
+func (o Option[T]) IsSomeAnd(predicate func(t T) bool) bool {
+	if o.IsNone() {
+		return false
+	}
+
+	return predicate(o.value)
 }
 
 func (o Option[T]) Split() (T, bool) {
@@ -89,6 +117,14 @@ func (o Option[T]) UnwrapOr(t T) T {
 	return o.value
 }
 
+func (o Option[T]) UnwrapOrDefault() (t T) {
+	if o.IsSome() {
+		t = o.value
+	}
+
+	return
+}
+
 func (o Option[T]) UnwrapOrElse(fn func() T) T {
 	if o.IsNone() {
 		return fn()
@@ -125,23 +161,31 @@ func (o Option[T]) AndThen(fn func(T) bool) bool {
 	return fn(o.value)
 }
 
+func (o Option[T]) OkOr(e error) result.Result[T] {
+	if o.IsNone() {
+		return result.Err[T](e)
+	}
+
+	return result.Ok(o.value)
+}
+
 /*
 This function applies the given function to the Option value and returns the result.
 */
-func Map[T any, U any](option Option[T], fn func(T) U) Option[U] {
-	if option.IsNone() {
+func (o Option[T]) Map[U any](fn func(T) U) Option[U] {
+	if o.IsNone() {
 		return Option[U]{}
 	}
 
-	return Some(fn(option.value))
+	return Some(fn(o.value))
 }
 
-func Cast[T any, U any](option Option[T]) Option[U] {
-	if option.IsNone() {
+func (o Option[T]) Cast[U any]() Option[U] {
+	if o.IsNone() {
 		return None[U]()
 	}
 
-	casted, ok := any(option.value).(U)
+	casted, ok := any(o.value).(U)
 	if !ok {
 		return None[U]()
 	}

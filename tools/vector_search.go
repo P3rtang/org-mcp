@@ -6,6 +6,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 type VectorSearchInput struct {
@@ -39,7 +40,7 @@ var VectorSearch = mcp.GenericTool[VectorSearchInput]{
 		locationTable := of.BuildLocationTable()
 		searchResults, err := of.VectorSearch(input.Query, input.TopN)
 
-		slices.SortFunc(searchResults, func(a, b orgmcp.Render) int {
+		slices.SortFunc(searchResults, func(a, b Render) int {
 			return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 		})
 

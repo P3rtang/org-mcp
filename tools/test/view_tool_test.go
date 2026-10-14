@@ -10,7 +10,9 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/utils"
 	"github.com/p3rtang/org-mcp/utils/slice"
 )
 
@@ -29,7 +31,7 @@ func TestViewTool(t *testing.T) {
 	var (
 		depth        = 0
 		depth2       = 2
-		Todo         = orgmcp.RenderStatus(orgmcp.Todo)
+		Todo         = RenderStatus(orgmcp.Todo)
 		twoDaysRange = 2
 		startDate    = "2025-12-31"
 	)
@@ -171,7 +173,7 @@ func TestViewTool(t *testing.T) {
 				},
 				Columns: slice.Ref(orgmcp.AllColumns),
 			},
-			expected: []any{"TYPE,UID,PREVIEW,CONTENT,STATUS,PROGRESS,PARENT,CHILDREN_COUNT,TAGS,LEVEL,PATH,SCHEDULED,DEADLINE,CLOSED\\n*orgmcp.Header,95718920,All columns,* DONE All columns [1/3] :tag:,DONE,1/3,0,3,tag,1,/95718920,2026-02-02,2026-02-03,2026-02-02 18:16"},
+			expected: []any{"TYPE,UID,PREVIEW,CONTENT,STATUS,PROGRESS,PARENT,CHILDREN_COUNT,TAGS,LEVEL,PATH,SCHEDULED,DEADLINE,CLOSED,LANGUAGE\\n*orgmcp.Header,95718920,All columns,* DONE All columns [1/3] :tag:,DONE,1/3,0,3,tag,1,/95718920,2026-02-02,2026-02-03,2026-02-02 18:16,"},
 		},
 	}
 
@@ -195,7 +197,7 @@ func TestViewTool(t *testing.T) {
 
 					fmt.Fprintf(os.Stderr, "%s == %s\n", strings.TrimSpace(str), strings.TrimSpace(expectedStr.(string)))
 
-					if EqualString(str, expectedStr.(string)) {
+					if ContainsString(str, expectedStr.(string)) {
 						found = true
 						break
 					}

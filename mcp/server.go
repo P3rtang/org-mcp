@@ -178,8 +178,17 @@ func (s *Server) handleToolCall(ctx context.Context, id any, params json.RawMess
 }
 
 // handleInitialize handles the initialize request
-func (s *Server) handleInitialize(id any, _ json.RawMessage) {
+func (s *Server) handleInitialize(id any, params json.RawMessage) {
 	s.state.Initialized = true
+
+	var req struct {
+		ClientInfo struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"clientInfo"`
+	}
+	// a client that sends no clientInfo gets only the base instructions
+	json.Unmarshal(params, &req)
 
 	encodedTools := map[string]EncodeTool{}
 	for name, tool := range s.tools {
@@ -195,44 +204,7 @@ func (s *Server) handleInitialize(id any, _ json.RawMessage) {
 			Name:    "org-mcp",
 			Version: "0.2.0",
 		},
-		Instructions: `
-When working with org-mcp, you can use the tool to parse / change org-mode files.
-This should be used to increase your understanding of the project, tasks and notes.
-
-Tooling to traverse headers, extract metadata, and update statuses are available.
-Using these tools has the benifit of keeping the org-mode file consistent and reducing the amount of data in the context window.
-Since targeted updates and queries are possible, there is no need to pass the entire file contents back and forth.
-
-The org-mode file is the single source of truth for both the programmer and the LLM.
-Every task, bullet point, or step must be added to the document.
-Implementation begins with extracting the relevant metadata and statuses from the document.
-
-Direct modification of the org file is discouraged. Use the tooling provided by the org-mcp server to ensure consistency and maintain integrity.
-Direct reading should be avoided as it may lead to blowing up the context window and losing important information.
-
-An org file serves as a long-term memory and organizational tool for the project. Always refer to it as the main reference point.
-It also functions as long term memory between session, this means that any information not stored in the org file will be lost between sessions.
-Use this together with the programmer to ensure that all important information is captured in the org file.
-
-## Columns
-!!IMPORTANT!!
-Tools with output that can be large have the option to specify columns to return in the response.
-This allows you to get only the relevant information without blowing up the context window.
-Possible column to specify in a return are the following
-	- UID: Unique identifier for the org item.
-	- PREVIEW: A short preview of the header content (first 60 characters).
-	- CONTENT: The full content of the header, including all text and metadata. Use with caution as it can be very large.
-	- PARENT: The UID of the parent header, if any.
-	- LEVEL: The depth level of the header in the org file (e.g. 1 for top-level headers, 2 for their children, etc.).
-	- STATUS: The TODO or checkbox status of the header or bullet (e.g. TODO, DONE, CHECKED, UNCHECKED).
-	- TAGS: A comma-separated list of tags associated with the header.
-	- PROGRESS: The progress of the header/bullet formatted as "X/Y" where X is the number of completed child items and Y is the total number of child items.
-	- CHILDREN_COUNT: The number of child headers under this header or bullet.
-	- PATH: The hierarchical path to the header in the org file, represented as a string of header/bullet/etc. uids separated by "/".
-	- SCHEDULED: The scheduled date of the header, if any.
-	- DEADLINE: The deadline date of the header, if any.
-	- CLOSED: The closed date of the header, if any.
-`,
+		Instructions: buildInstructions(baseInstructions, req.ClientInfo.Name),
 	}
 
 	if err := s.sender.SendResponse(id, result); err != nil {

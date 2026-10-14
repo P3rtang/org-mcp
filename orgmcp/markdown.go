@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
 
 func (of *OrgFile) RenderMarkdown(builder *strings.Builder, depth int) {

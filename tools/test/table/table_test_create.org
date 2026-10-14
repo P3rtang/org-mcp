@@ -1,0 +1,14 @@
+* Header with no table yet
+  :PROPERTIES:
+  :ID: 88880000
+  :END:
+
+* Header with existing table
+  :PROPERTIES:
+  :ID: 55555555
+  :END:
+  | Name  | Status | Value |
+  |-------+--------+-------|
+  | Alice | TODO   | 10    |
+  | Bob   | DONE   | 20    |
+  #+NAME: existing_table

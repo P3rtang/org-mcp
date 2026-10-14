@@ -8,6 +8,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	. "github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 )
 

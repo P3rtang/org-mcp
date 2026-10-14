@@ -21,7 +21,13 @@ import (
 	"github.com/p3rtang/org-mcp/utils/reader"
 	"github.com/p3rtang/org-mcp/utils/result"
 	"github.com/p3rtang/org-mcp/utils/slice"
+
+	codeblock "github.com/p3rtang/org-mcp/orgmcp/code-block"
+	"github.com/p3rtang/org-mcp/orgmcp/table"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 )
+
+const key = "orgfile"
 
 type SearchScore struct {
 	score  float64
@@ -38,6 +44,18 @@ type OrgFile struct {
 
 // Enforce that OrgFile implements the Render interface at compile time
 var _ Render = (*OrgFile)(nil)
+
+func OrgFileFromContext(ctx context.Context) result.Result[*OrgFile] {
+	if of, ok := ctx.Value(key).(*OrgFile); ok && of != nil {
+		return result.Ok(of)
+	}
+
+	return result.Err[*OrgFile](fmt.Errorf("Missing `%s` in the functions context value. This is a bug please report.", key))
+}
+
+func (of *OrgFile) OrgFileToContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, key, of)
+}
 
 func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] {
 	startTime := time.Now()
@@ -71,13 +89,13 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 		}
 
 		if len(strings.TrimSpace(string(val))) == 0 {
-			peek_reader.Continue()
+			peek_reader.Discard()
 			continue
 		}
 
 		switch val[0] {
 		case '*':
-			peek_reader.Continue()
+			peek_reader.Discard()
 			NewHeaderFromString(string(val), peek_reader).Then(func(h Header) {
 				h.Parent = option.Some(currentParent[h.Level()-1])
 				h.location = current_line
@@ -91,7 +109,7 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 			})
 		case ' ':
 			indent := len(val) - len(strings.TrimLeft(string(val), " "))
-			ParseIndentedLine(peek_reader, currentParent[currentParentIdx]).Then(func(r Render) {
+			ParseIndentedLine(peek_reader, currentParent[currentParentIdx], option.None[string]()).Then(func(r Render) {
 				if currentContentIndent == 0 {
 				} else if currentContentIndent < indent {
 					currentContentIndent = indent
@@ -114,13 +132,14 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 				org_file.items[r.Uid()] = r
 			})
 		default:
-			panic("unreachable")
+			peek_reader.Discard()
+			continue
 		}
 	}
 
 	org_file.BuildLocationTable()
 
-	peek_reader.Continue()
+	peek_reader.Discard()
 
 	elapsed := time.Since(startTime)
 
@@ -148,20 +167,59 @@ func OrgFileFromReader(ctx context.Context, r io.Reader) result.Result[OrgFile] 
 	return result.Ok(org_file)
 }
 
-func ParseIndentedLine(r *reader.PeekReader, parent Render) option.Option[Render] {
+func ParseIndentedLine(r *reader.PeekReader, parent Render, name option.Option[string]) option.Option[Render] {
 	// errors have already been handled at this point
 	bytes, _ := r.PeekBytes('\n')
 	trimmed := strings.TrimSpace(string(bytes))
 	// fmt.Fprintf(os.Stderr, "Indented: %s\n", string(bytes))
 
+	if len(trimmed) == 0 {
+		r.Discard()
+		return option.Some(&PlainText{content: "", indent: 0}).Cast[Render]()
+	}
+
 	switch trimmed[0] {
 	case '-':
 		fallthrough
 	case '*':
-		return option.Cast[*Bullet, Render](NewBulletFromReader(r))
-	default:
-		return option.Cast[*PlainText, Render](NewPlainTextFromReader(r))
+		return NewBulletFromReader(r).Cast[Render]()
+	case '|':
+		t, err := table.NewTableFromReader(r)
+		if err == nil {
+			// fall through to plain text
+			return option.Some(&t).Cast[Render]()
+		}
+	case '#':
+		if len(trimmed) > 1 && trimmed[1] == '+' {
+			if strings.HasPrefix(trimmed[2:], "NAME: ") {
+				r.Discard()
+				name = option.Some(trimmed[8:])
+				return ParseIndentedLine(r, parent, name)
+			}
+
+			if strings.HasPrefix(trimmed[2:], "BEGIN_SRC") {
+				cb, err := codeblock.NewCodeBlockFromReader(r)
+				if err != nil {
+					// TODO: pass context with the ability to log
+					return option.None[Render]()
+				}
+
+				name.Then(func(s string) {
+					cb.SetName(s)
+				})
+
+				return option.Some(&cb).Cast[Render]()
+			}
+
+			t, err := table.NewTableFromReader(r)
+			if err == nil {
+				// fall through to plain text
+				return option.Some(&t).Cast[Render]()
+			}
+		}
 	}
+
+	return NewPlainTextFromReader(r).Cast[Render]()
 }
 
 func (of *OrgFile) Name() string {
@@ -188,6 +246,10 @@ func (of *OrgFile) GenerateEmbeddings() error {
 
 	if err != nil {
 		return err
+	}
+
+	if len(embeds) < len(contents) {
+		return fmt.Errorf("Embedding generation did not return the required amount of rows.")
 	}
 
 	for i, header := range headers {
@@ -369,22 +431,19 @@ func (of *OrgFile) ParentUid() Uid {
 }
 
 func (of *OrgFile) GetTag(tag string) option.Option[*Header] {
-	return option.Map(
-		itertools.Find(
-			maps.Values(of.items),
-			func(r Render) bool {
-				header, ok := r.(*Header)
-				if !ok {
-					return false
-				}
+	return itertools.Find(
+		maps.Values(of.items),
+		func(r Render) bool {
+			header, ok := r.(*Header)
+			if !ok {
+				return false
+			}
 
-				return option.Map(header.Tags, func(t TagList) bool {
-					return slices.Contains(t, tag)
-				}).UnwrapOr(false)
-			},
-		),
-		func(r Render) *Header { return r.(*Header) },
-	)
+			return header.Tags.Map(func(t TagList) bool {
+				return slices.Contains(t, tag)
+			}).UnwrapOr(false)
+		},
+	).Map(func(r Render) *Header { return r.(*Header) })
 }
 
 func (of *OrgFile) GetHeaderByStatus(status RenderStatus) []*Header {

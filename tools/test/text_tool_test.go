@@ -11,6 +11,7 @@ import (
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
 	"github.com/p3rtang/org-mcp/tools"
+	. "github.com/p3rtang/org-mcp/tools/test/utils"
 )
 
 func IntoOneOfArray[T tools.TextInputAdd | tools.TextInputUpdate | tools.TextInputRemove](t ...T) []mcp.OneOf[*tools.TextInputUnion] {

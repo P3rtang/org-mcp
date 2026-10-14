@@ -139,7 +139,7 @@ func NewScheduleFromReader(reader *reader.PeekReader) option.Option[Schedule] {
 		return option.None[Schedule]()
 	}
 
-	reader.Continue()
+	reader.Discard()
 	return option.Some(schedule)
 }
 

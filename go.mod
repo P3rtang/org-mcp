@@ -1,8 +1,10 @@
 module github.com/p3rtang/org-mcp
 
-go 1.24.9
+go 1.27.0
 
 require github.com/hexops/gotextdiff v1.0.3
+
+require github.com/mattn/go-sqlite3 v1.14.38
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

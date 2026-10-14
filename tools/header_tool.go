@@ -10,6 +10,7 @@ import (
 
 	"github.com/p3rtang/org-mcp/mcp"
 	"github.com/p3rtang/org-mcp/orgmcp"
+	. "github.com/p3rtang/org-mcp/orgmcp/types"
 	"github.com/p3rtang/org-mcp/utils/itertools"
 	"github.com/p3rtang/org-mcp/utils/option"
 )
@@ -101,14 +102,14 @@ type HeaderInputAdd struct {
 }
 
 func (h HeaderInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
 	if h.Content == "" {
 		res.err = errors.New("Content cannot be empty when adding a header.")
 		return
 	}
 
-	parent, ok := of.GetUid(orgmcp.NewUid(h.Parent)).Split()
+	parent, ok := of.GetUid(NewUid(h.Parent)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Parent UID %s not found.", h.Parent)
 		return
@@ -120,7 +121,7 @@ func (h HeaderInputAdd) Apply(ctx context.Context, of *orgmcp.OrgFile) (res Appl
 	)
 
 	if len(h.Tags) != 0 {
-		header.Tags = option.Some(orgmcp.TagList(h.Tags))
+		header.Tags = option.Some(TagList(h.Tags))
 	}
 
 	parent.AddChildren(&header)
@@ -139,9 +140,9 @@ type HeaderInputUpdate struct {
 }
 
 func (h HeaderInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	header, ok := option.Cast[orgmcp.Render, *orgmcp.Header](of.GetUid(orgmcp.NewUid(h.Uid))).Split()
+	header, ok := of.GetUid(NewUid(h.Uid)).Cast[*orgmcp.Header]().Split()
 	if !ok {
 		res.err = fmt.Errorf("Header with UID %s not found.", h.Uid)
 		return
@@ -156,7 +157,7 @@ func (h HeaderInputUpdate) Apply(ctx context.Context, of *orgmcp.OrgFile) (res A
 	}
 
 	if len(h.Tags) != 0 {
-		header.Tags = option.Some(orgmcp.TagList(h.Tags))
+		header.Tags = option.Some(TagList(h.Tags))
 	}
 
 	res.affectedItems[header.Uid()] = header
@@ -170,9 +171,9 @@ type HeaderInputRemove struct {
 }
 
 func (h HeaderInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res ApplyResult) {
-	res.affectedItems = make(map[orgmcp.Uid]orgmcp.Render)
+	res.affectedItems = make(map[Uid]Render)
 
-	header, ok := of.GetUid(orgmcp.NewUid(h.Uid)).Split()
+	header, ok := of.GetUid(NewUid(h.Uid)).Split()
 	if !ok {
 		res.err = fmt.Errorf("Header with UID %s not found.", h.Uid)
 		return
@@ -197,12 +198,20 @@ func (h HeaderInputRemove) Apply(ctx context.Context, of *orgmcp.OrgFile) (res A
 
 var HeaderTool = mcp.GenericTool[HeaderInput]{
 	Name: "manage_header",
-	Description: "Add; remove or update headers in an Org file.\n" +
+		Description: "Add; remove or update headers in an Org file.\n" +
 		"The method parameter defines the action to take: 'add'; 'remove'; 'update'.\n" +
 		"For any method you can use a depth parameter to specify how many levels of children to return.\n" +
-		"- 'add': Adds a new header at the specified index under the given paren (pass this in the parent field of the function). Requires 'content' parameter.\n" +
+		"- 'add': Adds a new header under the given parent (pass this in the parent field of the function; use '0' for the file root). Requires 'content' parameter.\n" +
 		"- 'remove': Removes the header identified by its uid.\n" +
 		"- 'update': Updates the header's content; status; or tags. Requires 'content'; 'status'; or 'tags' parameters.\n\n" +
+		"IMPORTANT: When adding a header, the 'content' field should NOT include the status prefix (e.g. 'TODO', 'DONE'). " +
+		"Use the 'status' parameter separately. The tool will automatically prepend the status to the content. " +
+		"Passing 'TODO My Header' as content with status 'TODO' will result in 'TODO TODO My Header'.\n\n" +
+		"Headers get a persisted :ID: uid assigned on their first appearance in a query or tool response; " +
+		"address them by that uid in later calls.\n" +
+		"IMPORTANT: When adding a header, the 'content' field should NOT include the status prefix (e.g. 'TODO', 'DONE'). " +
+		"Use the 'status' parameter separately. The tool will automatically prepend the status to the content. " +
+		"Passing 'TODO My Header' as content with status 'TODO' will result in 'TODO TODO My Header'.\n\n" +
 		"It is recommended to pass uid's as string to the function. While they will almost certainly be numbers; this is not guaranteed.",
 	Callback: func(ctx context.Context, input HeaderInput, options mcp.FuncOptions) (resp []any, err error) {
 		var path string
@@ -218,7 +227,7 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 		}
 
 		affectedCount := 0
-		affectedItems := map[orgmcp.Uid]orgmcp.Render{}
+		affectedItems := map[Uid]Render{}
 
 		for _, mt := range input.Headers {
 			var res ApplyResult
@@ -240,15 +249,19 @@ var HeaderTool = mcp.GenericTool[HeaderInput]{
 			affectedCount += len(res.affectedItems)
 		}
 
-		ordered := []orgmcp.Render{}
+		ordered := []Render{}
 
 		if input.ShowAffected == nil || *input.ShowAffected == true {
 			locationTable := orgFile.BuildLocationTable()
 			ordered = append(ordered, itertools.Collect(maps.Values(affectedItems))...)
 
-			slices.SortFunc(ordered, func(a, b orgmcp.Render) int {
+			slices.SortFunc(ordered, func(a, b Render) int {
 				return (*locationTable)[a.Uid()] - (*locationTable)[b.Uid()]
 			})
+
+			if len(input.Columns) == 0 {
+				input.Columns = append(input.Columns, &orgmcp.ColUidValue, &orgmcp.ColPreviewValue)
+			}
 
 			resp = append(resp, orgmcp.PrintCsv(ordered, input.Columns))
 			resp = append(resp, map[string]any{

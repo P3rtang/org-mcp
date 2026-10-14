@@ -20,3 +20,10 @@ type ManageTextTest struct {
 	expected    []any
 	expectEmpty bool
 }
+
+type TableTest struct {
+	name        string
+	input       tools.QueryTableInput
+	expected    []any
+	expectEmpty bool
+}
